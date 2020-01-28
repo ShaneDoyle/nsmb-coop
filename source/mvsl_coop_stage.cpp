@@ -114,7 +114,37 @@ int repl_0212B338_ov_0B(int playerNo, int lives)
 	return 1; //Respawn
 }
 
-void nsub_0211C470_ov_0A() { asm("B 0x0211C580"); } //Remove pipe entrance on respawn
+void nsub_0211C474_ov_0A() { asm("B 0x0211C4EC"); }
+void repl_0211C470_ov_0A(PlayerActor* player)
+{
+	asm("MOV R0, R4");
+
+	int playerNo = player->P.player;
+	if (player->P.ButtonsPressed & KEY_A)
+	{
+		player->P.cases = 1;
+		((void(*)(void*))0x211EFB0)(player);
+		((void(*)(int, int))0x20200C4)(playerNo, 3);
+		if (playerNo == *(int*)0x02085A7C)
+		{
+			int seqNo = Music_GetLevelSeqNo(playerNo);
+			Music_StartMusicNumber(seqNo);
+		}
+
+		SpawnParticle(249, &player->actor.position);
+		SpawnParticle(250, &player->actor.position);
+	}
+	else
+	{
+		PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
+		if (player->info.ViewID == oppositePlayer->info.ViewID)
+		{
+			int zPos = player->actor.position.z;
+			player->actor.position = oppositePlayer->actor.position;
+			player->actor.position.z = zPos;
+		}
+	}
+}
 void nsub_0201E504() { asm("MOV R0, R5"); asm("MOV R1, R4"); asm("B 0x0201E54C"); }
 void repl_0201E54C(Vec3* entranceData, int playerNo)
 {
@@ -125,15 +155,6 @@ void repl_0201E54C(Vec3* entranceData, int playerNo)
 	entranceData->x = oppositePlayer->actor.position.x;
 	entranceData->y = oppositePlayer->actor.position.y;
 	entranceData->z = 0;
-
-	u32 x = entranceData->x >> 12;
-	u32 y = (-entranceData->y) >> 12;
-	bool IsSolid = (GetTileBehaviorAtPos(x - 16, y - 8) >> 16) & 1;
-	if(!IsSolid)
-		entranceData->x -= 1.5 * 0x10000;
-
-	SpawnParticle(249, entranceData);
-	SpawnParticle(250, entranceData);
 }
 
 //Only freeze timer and pause menu on toad houses
