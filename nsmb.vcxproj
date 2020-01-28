@@ -73,9 +73,11 @@
   <ItemGroup>
     <None Include="include\nsmb\nocashPrint.s" />
     <None Include="include\nsmb\ostreambuffer.s" />
+    <None Include="linker.x" />
     <None Include="Makefile">
       <FileType>Makefile</FileType>
     </None>
+    <None Include="replaces.x" />
     <None Include="source\actors\CustomSpriteController_asm.s" />
     <None Include="source\actors\FinalBossController_asm.s" />
     <None Include="source\actors\Nothing_asm.s" />
@@ -90,6 +92,10 @@
     <None Include="source\nsmb\nocashPrint.s" />
     <None Include="source\nsmb\ostreambuffer.s" />
     <None Include="source\nsmb\ramviewer_asm.s" />
+    <None Include="symbols.x" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="arenaoffs.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
