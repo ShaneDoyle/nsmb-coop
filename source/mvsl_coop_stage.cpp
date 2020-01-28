@@ -30,66 +30,19 @@ int repl_020BE91C_ov_00() { return 0; } //Draw bottom screen powerups singleplay
 int repl_020BE9E4_ov_00() { return 0; } //Draw bottom screen powerups singleplayer way (BNCL Circle)
 int repl_020C03F4_ov_00() { return 0; } //Display Mario's score instead of local player score
 
-//Fix end level text
-void repl_020FC830_ov_0A() { asm("MOV R1, #0"); }
-void repl_020FC234_ov_0A() { asm("MOV R1, #0"); }
-void nsub_020FBF60_ov_0A() {}
-
-//Use singleplayer time out instead of battle end
-int repl_020FF79C_ov_0A() { return 0; }
-
-//Use my progress icon drawer
-void DrawMidwayOnProgressIndicator(int* stageScene)
-{
-	if (!GetStartingFromMidway())
-		return;
-
-	u8* var3 = (u8*)stageScene + 115;
-	int var4 = 212 * *(int*)0x02085AB8 / 4096;
-	if (*var3)
-	{
-		if (*var3 != 1)
-		{
-			if (*var3 != 2)
-				return;
-			OAM_DrawHUDSubFromLoadedBNCL(8, (OAMEntry*)0x0216F164, 0, 0, 0, 0, 0, 0, 0, var4 - *(int*)0x020CC2C4, 4);
-			return;
-		}
-		OAM_DrawHUDSubFromLoadedBNCL(8, (OAMEntry*)0x0216F164, 0, 0, 0, 0, 0, 0, 0, var4 - *(int*)0x020CC2C4, stageScene[3]);
-		int(*sub_20BDE4C)(int* stageScene) = (int(*)(int*))0x20BDE4C;
-		if (sub_20BDE4C(stageScene))
-		{
-			*var3 = 2;
-			*(int*)0x020CC0D4 = 0;
-		}
-		return;
-	}
-
-	if (!*(int*)0x020CC0D4)
-		return;
-
-	*var3 = 1;
-	stageScene[1] = 0xFFFAE000;
-	stageScene[3] = 0xFFFFFFAE;
-	stageScene[2] = 0;
-	((u8*)stageScene)[116] = 0;
+int repl_020BE5E8_ov_00() { return 212; } //MvsL progress bar uses singleplayer pixel scale
+void repl_020BE60C_ov_00() { asm("MOV R8, #6"); } //MvsL progress bar uses singleplayer OAM y_shift
+void repl_020BE64C_ov_00() { asm("LDR R1, =0x020CA104"); } //MvsL progress bar uses singleplayer OAM addresses
+int repl_020BE658_ov_00() { return 7; } //MvsL progress bar uses singleplayer BNCL rectangle index
+void repl_020BED88_ov_00() {} //Do not draw singleplayer player position indicators on progress bar
+extern "C" {
+	void MvsLDrawBottomScreenProgressPathIcons(int* stageScene, int x_shift, int y_shift);
+	void DrawBottomScreenProgressPathIcons(int* stageScene);
 }
-
-//Change the mvsl progress bar to the singleplayer values
-int repl_020BE5E8_ov_00() { return 212; }
-void repl_020BE60C_ov_00() { asm("MOV R8, #0"); }
-void repl_020BE64C_ov_00() { asm("LDR R1, =0x020CA104"); }
-/*void repl_020BE660_ov_00(int charForPlayer, int, int, int, int, int, int, int, int, int x_shift, int)
-{
-	OAMEntry** HeadProgressIndicators_1P = (OAMEntry * *)0x020CA104;
-	OAM_DrawHUDSubFromLoadedBNCL(7, HeadProgressIndicators_1P[charForPlayer], 0, 0, 0, 0, 0, 0, 0, x_shift, 6);
-}*/
-
-extern "C" void MvsLDrawBottomScreenProgressPathIcons(int* stageScene, int x_shift, int y_shift);
-void repl_020BF124_ov_00(int* stageScene)
+void repl_020BF124_ov_00(int* stageScene) //Draw MvsL progress bar instead
 {
 	MvsLDrawBottomScreenProgressPathIcons(stageScene, 0, 0);
-	DrawMidwayOnProgressIndicator(stageScene);
+	DrawBottomScreenProgressPathIcons(stageScene);
 }
 
 //Draw bottom screen lives my way
@@ -112,6 +65,14 @@ void repl_020C0444_ov_00()
 	OAM_UpdateDigits(liveCounterForPlayer_1P[0], entryTable_1P, GetLivesForPlayer(0), 2, 3);
 	OAM_UpdateDigits(liveCounterForPlayer_1P[1], entryTable_1P, GetLivesForPlayer(1), 2, 3);
 }
+
+//Fix end level text
+void repl_020FC830_ov_0A() { asm("MOV R1, #0"); }
+void repl_020FC234_ov_0A() { asm("MOV R1, #0"); }
+void nsub_020FBF60_ov_0A() {}
+
+//Use singleplayer time out instead of battle end
+int repl_020FF79C_ov_0A() { return 0; }
 
 int repl_02020374() { return 0; } //Force get coins in singleplayer mode
 

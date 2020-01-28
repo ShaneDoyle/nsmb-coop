@@ -204,5 +204,11 @@
     <None Include="source\actors\CustomSpriteController_asm.s" />
     <None Include="source\actors\Nothing_asm.s" />
     <None Include="Makefile" />
+    <None Include="linker.x" />
+    <None Include="replaces.x" />
+    <None Include="symbols.x" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="arenaoffs.txt" />
   </ItemGroup>
 </Project>
