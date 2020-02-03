@@ -2712,6 +2712,7 @@ PlayerActor_freeze = 0x0211F34C;
 PlayerActor_unfreeze = 0x0211F2EC;
 PlayerActor_setHeldActor = 0x212b26c;
 PlayerActor_removeHeldActor = 0x212bde0;
+PlayerActor_removeHeldItem = 0x02104C9C;
 
 base_ctor = 0x204d2ac;
 
@@ -2878,3 +2879,8 @@ Vec2_TryNormalize = 0x2045cd0;
 Vec2_Cross = 0x2045d74;
 Vec2_Mag = 0x2045e10;
 Vec2_Mag2 = 0x2045dbc;
+
+/* WIFI STUFF */
+
+GetSharedDataWifiAddress = 0x0204A940;
+sub_204A8D8 = 0x204A8D8;

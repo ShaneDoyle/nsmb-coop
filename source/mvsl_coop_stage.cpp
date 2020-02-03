@@ -35,6 +35,7 @@ void repl_020BE60C_ov_00() { asm("MOV R8, #6"); } //MvsL progress bar uses singl
 void repl_020BE64C_ov_00() { asm("LDR R1, =0x020CA104"); } //MvsL progress bar uses singleplayer OAM addresses
 int repl_020BE658_ov_00() { return 7; } //MvsL progress bar uses singleplayer BNCL rectangle index
 void repl_020BED88_ov_00() {} //Do not draw singleplayer player position indicators on progress bar
+bool repl_020BE5C4_ov_00(int playerNo) { return GetPtrToPlayerActorByID(playerNo) && GetPlayerDeathState(playerNo) != 2; } //Hide dead player
 extern "C" {
 	void MvsLDrawBottomScreenProgressPathIcons(int* stageScene, int x_shift, int y_shift);
 	void DrawBottomScreenProgressPathIcons(int* stageScene);
@@ -114,15 +115,35 @@ int repl_0212B338_ov_0B(int playerNo, int lives)
 	return 1; //Respawn
 }
 
+//Increment player lives my way
+void nsub_02020544(int playerNo)
+{
+	int* LivesForPlayer = (int*)0x0208B364;
+	if (!(playerNo & 0xFFFFFFFE) && LivesForPlayer[playerNo] < 99)
+		++LivesForPlayer[playerNo];
+
+	if (LivesForPlayer[playerNo] == 1)
+	{
+		PlayerActor* player = GetPtrToPlayerActorByID(playerNo);
+		if (player)
+		{
+			PlayerActor_removeHeldItem(player);
+			((void(*)(void*, void*, int))0x0211EDA0)(player, (void*)0x0211870C, *(int*)0x02127AFC);
+		}
+	}
+}
+
 void nsub_0211C474_ov_0A() { asm("B 0x0211C4EC"); }
 void repl_0211C470_ov_0A(PlayerActor* player)
 {
 	asm("MOV R0, R4");
 
 	int playerNo = player->P.player;
-	if (player->P.ButtonsPressed & KEY_A)
+	if (player->P.ButtonsPressed & KEY_A &&
+		GetPlayerDeathState(!playerNo) == 0)
 	{
 		player->P.cases = 1;
+
 		((void(*)(void*))0x211EFB0)(player);
 		((void(*)(int, int))0x20200C4)(playerNo, 3);
 		if (playerNo == *(int*)0x02085A7C)
@@ -133,6 +154,8 @@ void repl_0211C470_ov_0A(PlayerActor* player)
 
 		SpawnParticle(249, &player->actor.position);
 		SpawnParticle(250, &player->actor.position);
+
+		SetPlayerDeathState(playerNo, 0);
 	}
 	else
 	{
@@ -148,6 +171,8 @@ void repl_0211C470_ov_0A(PlayerActor* player)
 void nsub_0201E504() { asm("MOV R0, R5"); asm("MOV R1, R4"); asm("B 0x0201E54C"); }
 void repl_0201E54C(Vec3* entranceData, int playerNo)
 {
+	SetPlayerDeathState(playerNo, 2);
+
 	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
 
 	((u8**)0x0208B0A0)[playerNo][18] = oppositePlayer->info.ViewID;
