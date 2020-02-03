@@ -18,6 +18,7 @@
     <ClCompile Include="source\actors\FinalBossController.cpp" />
     <ClCompile Include="source\actors\Springboard.cpp" />
     <ClCompile Include="source\actors\StarCoin.cpp" />
+    <ClCompile Include="source\main_menu.cpp" />
     <ClCompile Include="source\mvsl_anymusic_v2.cpp" />
     <ClCompile Include="source\mvsl_bossFixes.cpp" />
     <ClCompile Include="source\mvsl_coop_stage.cpp" />

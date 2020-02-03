@@ -222,7 +222,7 @@ typedef struct PlayerActorOnly
 	u32                    unk774;
 	u32    jumpBitfield; //0x778
 	u32    miscActionsBitfield; //0x77C
-	PhysicsStateBitfield    physicsStateBitfield;
+	u32    physicsStateBitfield;
 	u32                    unk784;
 	ColliderCollisionBitfield    collBitfield;
 	ColliderCollisionBitfield    oldCollBitfield;
@@ -502,6 +502,9 @@ extern "C"
 	// Removes the actor the player is holding.
 	void PlayerActor_removeHeldActor(PlayerActor* player, EnemyActor* actor);
 
+	// Removes the item the player is holding.
+	void PlayerActor_removeHeldItem(PlayerActor* player);
+
 	// Gets the pointer to the local player.
 	// WARNING: Causes desyncs in multiplayer if used incorrectly!
 	PlayerActor* GetPtrToPlayerActor();
@@ -549,10 +552,10 @@ extern "C"
 	void SetPlayerCount(u32 playerCount);
 
 	// Returns if the specified player is dead
-	bool GetPlayerDeathState(u32 playerNo);
+	int GetPlayerDeathState(u32 playerNo);
 
 	// Sets if the specified player is dead
-	void SetPlayerDeathState(u32 playerNo, bool dead);
+	void SetPlayerDeathState(u32 playerNo, int dead);
 
 	// Gets the player count to spawn bitmask
 	int GetPlayersToSpawnBitmask();

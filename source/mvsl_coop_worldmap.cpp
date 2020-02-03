@@ -9,7 +9,7 @@ int repl_02157A40_ov_34()
 {
 	*PlayAsLuigi = *MenuPlayerNumber; //Enable Luigi graphics in world map for Luigi console (also use to store original menu playernumber)
 
-	LoadSaveAndSetCounters(0, 0, &saveData); //Load save file 1
+	LoadSaveAndSetCounters(0, 0, &saveData);
 
 	asm("LDR R1, =0x02088BDC");
 	asm("LDR R1, [R1, #0x20]"); //saveData.currentWorld

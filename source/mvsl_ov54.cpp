@@ -6,7 +6,7 @@ void nsub_0200E1E4() { asm("B 0x0200E20C"); } //Always unload overlay 54 instead
 int repl_02013840() { return 0; } //Prevent ov52 call (some dtor)
 int repl_02013964() { return 0; } //Prevent ov52 call (scene dtor free)
 int repl_02013A90() { return 0; } //Prevent ov52 call (scene dtor)
-int repl_020A2FF8() { return 0; } //Prevent ov52 call (stage dtor)
-int repl_020FC7A0_ov_0A() { return 0; } //Prevent ov52 call (end of level text dtor)
+int repl_020A2FF8() { return 0; } //Prevent ov52 call (stage onDelete)
+int repl_020FC7A0_ov_0A() { return 0; } //Prevent ov52 call (end of level text onDelete)
 
 int repl_020A306C_ov_00() { return 0; } //Prevent ov52 call (MvsL NARC unmount)
