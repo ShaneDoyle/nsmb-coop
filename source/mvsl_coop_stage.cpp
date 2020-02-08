@@ -1,9 +1,12 @@
 #include "nsmb.h"
 
-int repl_020AECA4_ov_00() { return 1; } //Disable background scrolling parallax
+int repl_020AECA4_ov_00() { return 1; } //Disable background HDMA parallax
 
 int repl_020BD820_ov_00() { return GetPlayerCount(); } //Bottom screen background draw
 int repl_020BDC1C_ov_00() { return GetPlayerCount(); } //Bottom screen background load
+
+int repl_020A3578_ov_00() { return 0; } //Draw Luigi's HUD with Mario's values (shared coins)
+int repl_020C03F4_ov_00() { return 0; } //Display Mario's score instead of local player score
 
 int repl_020BE5E8_ov_00() { return 212; } //MvsL progress bar uses singleplayer pixel scale
 void repl_020BE60C_ov_00() { asm("MOV R8, #6"); } //MvsL progress bar uses singleplayer OAM y_shift
@@ -72,7 +75,109 @@ void nsub_0215EFF0_ov_36()
 	asm("B       0x0215EFF4");
 }
 
-//Pause menu
+// ======================================= RESPAWN =======================================
+
+int repl_021041F4_ov_0A() { return GetPlayerCount() != 1; }
+int repl_0212B318_ov_0B() { return GetPlayerCount() != 1; }
+void repl_02119CB8_ov_0A() {} //Do not freeze timer on player death
+//Do not allow player to respawn so we can control it ourselves
+void repl_0212B334_ov_0B() { asm("MOV R0, R6"); asm("MOV R1, R4"); }
+int repl_0212B338_ov_0B(int playerNo, int lives)
+{
+	if ((lives == 0 && GetLivesForPlayer(!playerNo) == 0) || GetPlayerDeathState(!playerNo))
+	{
+		ExitLevel(false);
+		return 0; //Do not respawn
+	}
+	else if (lives == 0)
+	{
+		return 0;
+	}
+	return 1; //Respawn
+}
+
+//Increment player lives my way
+void nsub_02020544(int playerNo)
+{
+	int* LivesForPlayer = (int*)0x0208B364;
+	if (!(playerNo & 0xFFFFFFFE) && LivesForPlayer[playerNo] < 99)
+		++LivesForPlayer[playerNo];
+
+	if (LivesForPlayer[playerNo] == 1)
+	{
+		PlayerActor* player = GetPtrToPlayerActorByID(playerNo);
+		if (player)
+		{
+			PlayerActor_removeHeldItem(player);
+			((void(*)(void*, void*, int))0x0211EDA0)(player, (void*)0x0211870C, *(int*)0x02127AFC);
+		}
+	}
+}
+
+void nsub_0211C474_ov_0A() { asm("B 0x0211C4EC"); }
+void repl_0211C470_ov_0A(PlayerActor* player)
+{
+	asm("MOV R0, R4");
+
+	int playerNo = player->P.player;
+	if (player->P.ButtonsPressed & KEY_A &&
+		GetPlayerDeathState(!playerNo) == 0)
+	{
+		player->P.cases = 1;
+
+		((void(*)(void*))0x211EFB0)(player);
+		((void(*)(int, int))0x20200C4)(playerNo, 3);
+		if (playerNo == *(int*)0x02085A7C)
+		{
+			int seqNo = Music_GetLevelSeqNo(playerNo);
+			Music_StartMusicNumber(seqNo);
+		}
+
+		SpawnParticle(249, &player->actor.position);
+		SpawnParticle(250, &player->actor.position);
+
+		SetPlayerDeathState(playerNo, 0);
+	}
+	else
+	{
+		PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
+		if (player->info.ViewID == oppositePlayer->info.ViewID)
+		{
+			int zPos = player->actor.position.z;
+			player->actor.position = oppositePlayer->actor.position;
+			player->actor.position.z = zPos;
+		}
+	}
+}
+void nsub_0201E504() { asm("MOV R0, R5"); asm("MOV R1, R4"); asm("B 0x0201E54C"); }
+void repl_0201E54C(Vec3* entranceData, int playerNo)
+{
+	SetPlayerDeathState(playerNo, 2);
+
+	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
+
+	((u8 * *)0x0208B0A0)[playerNo][18] = oppositePlayer->info.ViewID;
+
+	entranceData->x = oppositePlayer->actor.position.x;
+	entranceData->y = oppositePlayer->actor.position.y;
+	entranceData->z = 0;
+}
+
+//Only freeze timer and pause menu on toad houses
+void nsub_0212B908_ov_0B(u8* player)
+{
+	if (*(int*)0x02085A18 == 8)
+	{
+		*(int*)0x020CA898 |= 0x40;
+		*(int*)0x020CA880 |= 0x10;
+		player[1968] = 1;
+		player[454] |= 1;
+	}
+}
+
+// ======================================= PAUSE =======================================
+
+//Fix desyncs on pause menu
 u16* repl_020A20E8_ov_00(u8* stageScene) { asm("MOV R0, R5"); return &((u16*)0x2087648)[stageScene[25640]]; }
 u8 repl_020A21A4_ov_00(u8* stageScene) { asm("MOV R0, R5"); return stageScene[25640]; }
 u8 repl_020A22D8_ov_00(u8* stageScene) { return repl_020A21A4_ov_00(stageScene); }
@@ -81,6 +186,8 @@ void repl_020A2230_ov_00() {
 	if (GetPlayerCount() == 1)
 		asm("BL 0x20C1F14");
 }
+
+// ======================================= MISC =======================================
 
 //Disable baphs if player count is bigger than 1 (prevents desyncs)
 void repl_02012584()
