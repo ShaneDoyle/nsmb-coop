@@ -16,6 +16,7 @@ void hook_020FF864_ov_0A(PlayerActor* player) { int playerNo = player->P.player;
 int repl_020AECA4_ov_00() { return 1; } //Disable background HDMA parallax
 
 int repl_020BD820_ov_00() { return GetPlayerCount(); } //Bottom screen background draw
+int repl_020BDA90_ov_00() { return GetPlayerCount(); } //Bottom screen background execute
 int repl_020BDC1C_ov_00() { return GetPlayerCount(); } //Bottom screen background load
 
 int repl_020A3578_ov_00() { return 0; } //Draw Luigi's HUD with Mario's values (shared coins)
@@ -168,7 +169,7 @@ void nsub_0201E504() { asm("MOV R0, R5"); asm("MOV R1, R4"); asm("B 0x0201E54C")
 void repl_0201E54C(Vec3* entranceData, int playerNo)
 {
 	SetPlayerDeathState(playerNo, 2);
-	SetEntranceIdForPlayer(247, playerNo);
+	SetEntranceIdForPlayer(-1, playerNo);
 	SetCameraForPlayerNo(playerNo, !playerNo);
 
 	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
@@ -183,7 +184,7 @@ void repl_0201E54C(Vec3* entranceData, int playerNo)
 //Only freeze timer and pause menu on toad houses
 void nsub_0212B908_ov_0B(u8* player)
 {
-	if (*(int*)0x02085A18 == 8)
+	if (*(int*)0x02085A18 == 8 || GetPlayerCount() == 1)
 	{
 		*(int*)0x020CA898 |= 0x40;
 		*(int*)0x020CA880 |= 0x10;
@@ -215,6 +216,11 @@ void repl_02012584()
 	asm("LDR R0, =0x2088B94");
 	asm("B 0x02012588");
 }
+
+void nsub_020FBF60_ov_0A() {} //Fix end of level for player that "lost the race"
+
+int repl_021624C8_ov_36() { return *(int*)0x02085A7C; } //Midway point draws from local player
+int repl_02162110_ov_36() { return *(int*)0x02085A7C; } //Midway point plays sound at local player position
 
 void repl_0215ED54_ov_36() {} //Disable mega mushroom destruction counter
 

@@ -82,7 +82,6 @@
     <None Include="source\actors\Springboard_asm.s" />
     <None Include="source\actors\StarCoin_asm.s" />
     <None Include="source\BossLoad.s" />
-    <None Include="source\DSiModeHeap.s" />
     <None Include="source\mvsl_any_entrances.s" />
     <None Include="source\mvsl_nospritelimit_v2.s" />
     <None Include="source\nsmb\debugscreen.s" />

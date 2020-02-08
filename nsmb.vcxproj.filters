@@ -185,7 +185,6 @@
     <None Include="include\nsmb\ostreambuffer.s" />
     <None Include="source\nsmb\model3d_draw.s" />
     <None Include="source\nsmb\nocashPrint.s" />
-    <None Include="source\DSiModeHeap.s" />
     <None Include="source\mvsl_nospritelimit_v2.s" />
     <None Include="source\nsmb\debugscreen.s" />
     <None Include="source\nsmb\ostreambuffer.s" />
