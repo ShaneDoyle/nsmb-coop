@@ -1,5 +1,18 @@
 #include "nsmb.h"
 
+// ======================================= CAMERA FUNCTIONS =======================================
+
+static int CameraForPlayerNo[2] = { 0, 1 };
+extern "C" {
+	int GetCameraForPlayerNo(int playerNo) { return CameraForPlayerNo[playerNo]; };
+	void SetCameraForPlayerNo(int playerNo, int dest) { CameraForPlayerNo[playerNo] = dest; };
+}
+void nsub_020201A4() { asm("MOV R4, R0"); asm("BL GetCameraForPlayerNo"); asm("B 0x20201A8"); }
+
+void hook_020FF864_ov_0A(PlayerActor* player) { int playerNo = player->P.player; SetCameraForPlayerNo(playerNo, playerNo); }
+
+// ======================================= MISC =======================================
+
 int repl_020AECA4_ov_00() { return 1; } //Disable background HDMA parallax
 
 int repl_020BD820_ov_00() { return GetPlayerCount(); } //Bottom screen background draw
@@ -137,6 +150,7 @@ void repl_0211C470_ov_0A(PlayerActor* player)
 		SpawnParticle(250, &player->actor.position);
 
 		SetPlayerDeathState(playerNo, 0);
+		SetCameraForPlayerNo(playerNo, playerNo);
 	}
 	else
 	{
@@ -149,14 +163,17 @@ void repl_0211C470_ov_0A(PlayerActor* player)
 		}
 	}
 }
+void repl_0201E4E0() { asm("MOV R2, #1"); }
 void nsub_0201E504() { asm("MOV R0, R5"); asm("MOV R1, R4"); asm("B 0x0201E54C"); }
 void repl_0201E54C(Vec3* entranceData, int playerNo)
 {
 	SetPlayerDeathState(playerNo, 2);
+	SetEntranceIdForPlayer(247, playerNo);
+	SetCameraForPlayerNo(playerNo, !playerNo);
 
 	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
 
-	((u8 * *)0x0208B0A0)[playerNo][18] = oppositePlayer->info.ViewID;
+	((u8**)0x0208B0A0)[playerNo][18] = oppositePlayer->info.ViewID;
 
 	entranceData->x = oppositePlayer->actor.position.x;
 	entranceData->y = oppositePlayer->actor.position.y;
@@ -198,6 +215,8 @@ void repl_02012584()
 	asm("LDR R0, =0x2088B94");
 	asm("B 0x02012588");
 }
+
+void repl_0215ED54_ov_36() {} //Disable mega mushroom destruction counter
 
 int repl_02152944_ov_36() { return *(int*)0x02085A50; } //Allow Luigi lives on stage intro scene
 int repl_0215293C_ov_36() { return *(int*)0x02085A50; } //Allow Luigi head on stage intro scene
