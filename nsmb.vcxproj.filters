@@ -72,9 +72,6 @@
     <ClCompile Include="source\mvsl_saveSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="source\mvsl_ov54.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="source\mvsl_coop_stage.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -82,9 +79,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="source\vs_battle_stars.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="source\main_menu.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

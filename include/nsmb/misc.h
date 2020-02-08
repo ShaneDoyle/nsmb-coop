@@ -121,6 +121,9 @@ extern "C" {
 	// Gets if the player starts from midway or not
 	bool GetStartingFromMidway();
 
+	// 8 = 1-Up
+	void GiveScoreItemForPlayer(int item, int playerNo);
+
 	// Returns a random number
 	int RNG();
 

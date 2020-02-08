@@ -18,14 +18,12 @@
     <ClCompile Include="source\actors\FinalBossController.cpp" />
     <ClCompile Include="source\actors\Springboard.cpp" />
     <ClCompile Include="source\actors\StarCoin.cpp" />
-    <ClCompile Include="source\main_menu.cpp" />
     <ClCompile Include="source\mvsl_anymusic_v2.cpp" />
     <ClCompile Include="source\mvsl_bossFixes.cpp" />
     <ClCompile Include="source\mvsl_coop_stage.cpp" />
     <ClCompile Include="source\mvsl_coop_worldmap.cpp" />
     <ClCompile Include="source\mvsl_coop_worldmap_oam.cpp" />
     <ClCompile Include="source\mvsl_finalbosscontroller.cpp" />
-    <ClCompile Include="source\mvsl_ov54.cpp" />
     <ClCompile Include="source\mvsl_saveSystem.cpp" />
     <ClCompile Include="source\mvsl_toad_houses.cpp" />
     <ClCompile Include="source\nsmb\events.cpp" />
