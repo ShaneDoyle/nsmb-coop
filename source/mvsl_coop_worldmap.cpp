@@ -4,7 +4,6 @@ static u8* PlayAsLuigi = (u8*)(0x2085A50);
 static u8* MenuPlayerNumber = (u8*)(0x20887F0);
 
 void repl_021578F0_ov_34() { asm("MOVEQ R1, #0"); } //Force MvsLMode = 0
-
 void nsub_021535A0_ov_34() { SetPlayerCount(2); } //Change mvsl setup crap
 
 void repl_020CF880_ov_08() {} //Delete worldmap disconnecter
@@ -23,10 +22,6 @@ int repl_02157A40_ov_34()
 //On Worldmap Scene Creation
 void hook_020CF7D0_ov_08()
 {
-	//Fix player palettes
-	for(int i = 1873 - 131; i <= 1897 - 131; i++)
-		nFS_UnloadFileByIDFromCache(i);
-
 	*MenuPlayerNumber = 0; //Mario controls Luigi in world map
 }
 
