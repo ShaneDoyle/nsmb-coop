@@ -124,6 +124,9 @@ extern "C" {
 	// 8 = 1-Up
 	void GiveScoreItemForPlayer(int item, int playerNo);
 
+	// Returns how many consoles are connected
+	int GetConsoleCount();
+
 	// Returns a random number
 	int RNG();
 

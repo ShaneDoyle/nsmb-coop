@@ -28,7 +28,7 @@ void hook_020CF7D0_ov_08()
 //Replace world load level system
 void repl_020CEF84_ov_08(int a_SceneID, int a_MvsLMode, int a_World, int a_Level, int a_Area, int a_PlayerNumber, int a_SpawnBitmask, int a_P1Character, int a_P2Character, int a_StartingPowerup, int a_EntranceID, int a12, int a13, int a14, int a15, int a16, int a17)
 {
-	if (GetPlayerCount() == 1)
+	if (GetConsoleCount() == 1)
 	{
 		ChangeSceneToLevel(a_SceneID, a_MvsLMode, a_World, a_Level, a_Area, a_PlayerNumber, a_SpawnBitmask, a_P1Character, a_P2Character, a_StartingPowerup, a_EntranceID, a12, a13, a14, a15, a16, a17);
 	}
@@ -49,7 +49,7 @@ void repl_020CEF84_ov_08(int a_SceneID, int a_MvsLMode, int a_World, int a_Level
 
 //Disable pause menu on worldmap
 void repl_020CE944_ov_08() {
-	if (GetPlayerCount() == 1)
+	if (GetConsoleCount() == 1)
 		asm("BL 0x20C1F14");
 }
 
