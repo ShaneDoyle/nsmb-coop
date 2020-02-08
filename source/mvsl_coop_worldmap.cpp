@@ -47,6 +47,12 @@ void repl_020CEF84_ov_08(int a_SceneID, int a_MvsLMode, int a_World, int a_Level
 	}
 }
 
+//Disable pause menu on worldmap
+void repl_020CE944_ov_08() {
+	if (GetPlayerCount() == 1)
+		asm("BL 0x20C1F14");
+}
+
 //Fix top OAM powerup on worldmap
 int repl_020CF184_ov_08() { return *PlayAsLuigi; }
 

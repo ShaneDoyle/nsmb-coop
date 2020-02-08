@@ -30,9 +30,6 @@
     <ClCompile Include="source\mvsl_coop_worldmap_oam.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="source\mvsl_anymusic_v2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="source\nsmb\keys.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
