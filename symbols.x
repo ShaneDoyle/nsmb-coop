@@ -2623,7 +2623,7 @@ IncrementStarCoinsForPlayer = 0x0202042C;
 MvsLDrawBottomScreenProgressPathIcons = 0x020BE674;
 SetCameraFocusOn = 0x020201A0;
 GetFileIDForBMG = 0x02017190;
-GiveScoreItemForPlayer = 0x020203EC;
+GiveScoreItemForPlayer = 0x0209AB04;
 
 DrawBottomScreenPowerups = 0x020BE828;
 DrawBottomScreenLevelNumbers = 0x020BEEF0;

@@ -67,15 +67,10 @@ int repl_0209ABA8_ov_00() { return 1; } //Allow score incrementation from actors
 
 void nsub_02020300() { asm("MOV R0, #0"); asm("BICS R2, R0, #1"); asm("B 0x02020304"); } //All score goes to Mario instead of local player
 void repl_02020358() { asm("MOV R4, #0"); } //Share player coins (all coins go to Mario)
-void nsub_020203E4() //When Mario gets 1-up, also give Luigi 1-up.
+void repl_020203EC() //When Mario gets 1-up from coins, also give Luigi 1-up.
 {
-	asm("MOV     R1, #0"); //PlayerNumber 0
-	asm("MOV     R0, #8");
-	asm("BL      0x0209AB04"); //Increment1UpForPlayer
-	asm("MOV     R1, #1"); //PlayerNumber 1
-	asm("MOV     R0, #8");
-	asm("BL      0x0209AB04"); //Increment1UpForPlayer
-	asm("B       0x20203F0"); //Return to code
+	for (int i = 0; i < GetPlayerCount(); i++)
+		GiveScoreItemForPlayer(8, i);
 }
 
 //Force Luigi to spawn in the same entrance as Mario
@@ -167,10 +162,14 @@ void repl_0211C470_ov_0A(PlayerActor* player)
 	asm("MOV R0, R4");
 
 	int playerNo = player->P.player;
+	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
 	if (player->P.ButtonsPressed & KEY_A &&
 		GetPlayerDeathState(!playerNo) == 0)
 	{
 		player->P.cases = 1;
+
+		player->actor.position.x = oppositePlayer->actor.position.x - 0x10000;
+		player->actor.position.y = oppositePlayer->actor.position.y;
 
 		((void(*)(void*))0x211EFB0)(player);
 		((void(*)(int, int))0x20200C4)(playerNo, 3);
@@ -188,12 +187,14 @@ void repl_0211C470_ov_0A(PlayerActor* player)
 	}
 	else
 	{
-		PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
 		if (player->info.ViewID == oppositePlayer->info.ViewID)
 		{
-			int zPos = player->actor.position.z;
-			player->actor.position = oppositePlayer->actor.position;
-			player->actor.position.z = zPos;
+			player->actor.position.x = oppositePlayer->actor.position.x;
+		}
+		else
+		{
+			((void(*)(void*, int, int))0x0211EDA0)(player, 0x0211870C, *(int*)0x02127AFC);
+			player->actor.position.y = 0xFFFFFFFF;
 		}
 	}
 }
@@ -210,7 +211,7 @@ void repl_0201E54C(Vec3* entranceData, int playerNo)
 	((u8**)0x0208B0A0)[playerNo][18] = oppositePlayer->info.ViewID;
 
 	entranceData->x = oppositePlayer->actor.position.x;
-	entranceData->y = oppositePlayer->actor.position.y;
+	entranceData->y = 0xFFFFFFFF;
 	entranceData->z = 0;
 }
 
