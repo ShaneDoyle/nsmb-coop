@@ -124,35 +124,16 @@ int repl_0212B318_ov_0B() { return GetPlayerCount() != 1; }
 void repl_02119CB8_ov_0A() {} //Do not freeze timer on player death
 //Do not allow player to respawn so we can control it ourselves
 void repl_0212B334_ov_0B() { asm("MOV R0, R6"); asm("MOV R1, R4"); }
-int repl_0212B338_ov_0B(int playerNo, int lives)
+bool repl_0212B338_ov_0B(int playerNo, int lives)
 {
 	if ((lives == 0 && GetLivesForPlayer(!playerNo) == 0) || GetPlayerDeathState(!playerNo))
 	{
 		ExitLevel(false);
-		return 0; //Do not respawn
+		return false; //Do not respawn
 	}
-	else if (lives == 0)
+	else
 	{
-		return 0;
-	}
-	return 1; //Respawn
-}
-
-//Increment player lives my way
-void nsub_02020544(int playerNo)
-{
-	int* LivesForPlayer = (int*)0x0208B364;
-	if (!(playerNo & 0xFFFFFFFE) && LivesForPlayer[playerNo] < 99)
-		++LivesForPlayer[playerNo];
-
-	if (LivesForPlayer[playerNo] == 1)
-	{
-		PlayerActor* player = GetPtrToPlayerActorByID(playerNo);
-		if (player)
-		{
-			PlayerActor_removeHeldItem(player);
-			((void(*)(void*, void*, int))0x0211EDA0)(player, (void*)0x0211870C, *(int*)0x02127AFC);
-		}
+		return true;
 	}
 }
 
@@ -163,7 +144,8 @@ void repl_0211C470_ov_0A(PlayerActor* player)
 
 	int playerNo = player->P.player;
 	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
-	if (player->P.ButtonsPressed & KEY_A &&
+	if (GetLivesForPlayer(playerNo) != 0 &&
+		player->P.ButtonsPressed & KEY_A &&
 		GetPlayerDeathState(!playerNo) == 0)
 	{
 		player->P.cases = 1;
@@ -187,14 +169,13 @@ void repl_0211C470_ov_0A(PlayerActor* player)
 	}
 	else
 	{
-		if (player->info.ViewID == oppositePlayer->info.ViewID)
+		if (player->info.ViewID != oppositePlayer->info.ViewID)
 		{
-			player->actor.position.x = oppositePlayer->actor.position.x;
+			((void(*)(void*, int, int))0x0211EDA0)(player, 0x0211870C, *(int*)0x02127AFC);
 		}
 		else
 		{
-			((void(*)(void*, int, int))0x0211EDA0)(player, 0x0211870C, *(int*)0x02127AFC);
-			player->actor.position.y = 0xFFFFFFFF;
+			player->actor.position = Vec3(0x7FFFFFFF, 0x7FFFFFFF, 0);
 		}
 	}
 }
@@ -203,15 +184,14 @@ void nsub_0201E504() { asm("MOV R0, R5"); asm("MOV R1, R4"); asm("B 0x0201E54C")
 void repl_0201E54C(Vec3* entranceData, int playerNo)
 {
 	SetPlayerDeathState(playerNo, 2);
-	SetEntranceIdForPlayer(-1, playerNo);
+	SetEntranceIdForPlayer(247, playerNo); //In case entrance 0 isn't "normal" look for entrance 247 (Must be "normal"!).
 	SetCameraForPlayerNo(playerNo, !playerNo);
 
 	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
 
 	((u8**)0x0208B0A0)[playerNo][18] = oppositePlayer->info.ViewID;
 
-	entranceData->x = oppositePlayer->actor.position.x;
-	entranceData->y = 0xFFFFFFFF;
+	*entranceData = oppositePlayer->actor.position;
 	entranceData->z = 0;
 }
 
