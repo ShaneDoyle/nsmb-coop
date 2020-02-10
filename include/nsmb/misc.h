@@ -72,6 +72,29 @@ typedef struct SaveData
 
 extern SaveData saveData;
 
+typedef struct Entrance {
+	u16 x;
+	u16 y;
+	u16 cameraX;
+	u16 cameraY;
+	u8 id;
+	u8 destArea_dpEnd; // destination area OR direct-pipe "end" flag
+	u8 destLevel_path; // destination level OR direct-pipe path ID
+	u8 destWorld;
+	u8 destEntranceID;
+	s8 zoom;
+	u8 type;
+	u8 settings;
+	// settings & 0x80: non-enterable
+	// settings & 0x10: use wavy wipe instead of Mario head transition
+	// settings & 0x08: direct pipe
+	// settings & 0x01: use bottom screen
+	u8 unk10;
+	u8 unk11;
+	s8 zone;
+	u8 destWorldMapNode; // on current world map; destWorld value is ignored
+} Entrance;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -126,6 +149,9 @@ extern "C" {
 
 	// Returns how many consoles are connected
 	int GetConsoleCount();
+
+	// Gets the pointer to an entrance
+	Entrance* GetPtrToEntranceById(int entranceId, int entranceId2);
 
 	// Returns a random number
 	int RNG();

@@ -10,8 +10,6 @@ void repl_020CF880_ov_08() {} //Delete worldmap disconnecter
 
 int repl_02157A40_ov_34()
 {
-	*PlayAsLuigi = *MenuPlayerNumber; //Enable Luigi graphics in world map for Luigi console (also use to store original menu playernumber)
-
 	LoadSaveAndSetCounters(0, 0, &saveData);
 
 	asm("LDR R1, =0x02088BDC");
@@ -22,6 +20,7 @@ int repl_02157A40_ov_34()
 //On Worldmap Scene Creation
 void hook_020CF7D0_ov_08()
 {
+	*PlayAsLuigi = *MenuPlayerNumber; //Enable Luigi graphics in world map for Luigi console (also use to store original menu controller)
 	*MenuPlayerNumber = 0; //Mario controls Luigi in world map
 }
 
