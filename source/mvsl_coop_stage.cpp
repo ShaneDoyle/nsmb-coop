@@ -67,10 +67,15 @@ int repl_0209ABA8_ov_00() { return 1; } //Allow score incrementation from actors
 
 void nsub_02020300() { asm("MOV R0, #0"); asm("BICS R2, R0, #1"); asm("B 0x02020304"); } //All score goes to Mario instead of local player
 void repl_02020358() { asm("MOV R4, #0"); } //Share player coins (all coins go to Mario)
-void repl_020203EC() //When Mario gets 1-up from coins, also give Luigi 1-up.
+void nsub_020203E4() //When Mario gets 1-up, also give Luigi 1-up.
 {
-	for(int i = 0; i < GetPlayerCount(); i++)
-		GiveScoreItemForPlayer(8, i);
+	asm("MOV     R1, #0"); //PlayerNumber 0
+	asm("MOV     R0, #8");
+	asm("BL      0x0209AB04"); //Increment1UpForPlayer
+	asm("MOV     R1, #1"); //PlayerNumber 1
+	asm("MOV     R0, #8");
+	asm("BL      0x0209AB04"); //Increment1UpForPlayer
+	asm("B       0x20203F0"); //Return to code
 }
 
 //Force Luigi to spawn in the same entrance as Mario
