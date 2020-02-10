@@ -5,7 +5,7 @@
 static int CameraForPlayerNo[2] = { 0, 1 };
 extern "C" {
 	int GetCameraForPlayerNo(int playerNo) { return CameraForPlayerNo[playerNo]; };
-	void SetCameraForPlayerNo(int playerNo, int dest) { CameraForPlayerNo[playerNo] = dest; };
+	void SetCameraForPlayerNo(int playerNo, int focusPlayerNo) { CameraForPlayerNo[playerNo] = focusPlayerNo; };
 }
 void nsub_020201A4() { asm("MOV R4, R0"); asm("BL GetCameraForPlayerNo"); asm("B 0x20201A8"); }
 
@@ -87,6 +87,34 @@ void nsub_0215EFF0_ov_36()
 	asm("LDRB    R2, [R2,#8]");
 	asm("STRB    R2, [R1,#9]");
 	asm("B       0x0215EFF4");
+}
+
+//Luigi positioning on entrance spawn
+void hook_0215E920()
+{
+	u8 entranceId = ((u8*)0x020CA8F4)[8];
+	Entrance* entrance = GetPtrToEntranceById(entranceId, entranceId);
+	Vec3* entranceVecs = (Vec3*)0x020CA928;
+
+	switch (entrance->type)
+	{
+	//Normal
+	case 0:
+		break;
+	//Ground pound
+	case 8:
+		entranceVecs[0].x += 16 << 12;
+		break;
+	//Climbing Vine
+	case 21:
+		entranceVecs[0].x += 7 << 12;
+		entranceVecs[1].x += 9 << 12;
+		break;
+	//Any other entrance
+	default:
+		entranceVecs[1].x += 16 << 12;
+		break;
+	}
 }
 
 // ======================================= RESPAWN =======================================

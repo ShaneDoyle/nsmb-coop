@@ -77,7 +77,7 @@ void repl_0213695C_ov_0D()
 void nsub_02138D7C_ov_0D() { asm("MOV R3, #0"); asm("B 0x02138D80"); }
 
 //Bowser level exit
-void hook_0212FCAC_ov_0D() { ExitLevel(true); }
+//void hook_0212FCAC_ov_0D() { ExitLevel(true); }
 
 // MUMMY POKEY =============================
 

@@ -200,6 +200,8 @@
     <None Include="linker.x" />
     <None Include="replaces.x" />
     <None Include="symbols.x" />
+    <None Include="source\nofreeze.s" />
+    <None Include="source\heap_size.s" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="arenaoffs.txt" />
