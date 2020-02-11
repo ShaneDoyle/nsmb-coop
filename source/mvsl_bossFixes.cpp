@@ -1,6 +1,6 @@
 #include "nsmb.h"
 
-// MAIN CAMERA PUSH =============================
+//============================= Main Camera Push =============================
 
 //Allow camera to be pushed for all players
 void nsub_020ACF50_ov_00(int* LevelActor, int Arg2, int Case)
@@ -36,7 +36,7 @@ void nsub_020ACF50_ov_00(int* LevelActor, int Arg2, int Case)
 	}
 }
 
-// BOWSER JR =============================
+//============================= Bowser JR =============================
 
 void repl_0213D0BC_ov_1C() //Victory freeze on ground touch
 {
@@ -64,13 +64,15 @@ void repl_0213F550_ov_1C() //Unfreeze when battle is ready to start
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
 }
 
-// BOWSER =============================
+//============================= World 1: Bowser =============================
 
-//Allow unfreeze for all players
+//Unfreeze both players
 void repl_0213695C_ov_0D()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
+	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
 }
 
 //Fix fireball tracking
@@ -79,15 +81,83 @@ void nsub_02138D7C_ov_0D() { asm("MOV R3, #0"); asm("B 0x02138D80"); }
 //Bowser level exit
 //void hook_0212FCAC_ov_0D() { ExitLevel(true); }
 
-// MUMMY POKEY =============================
+//============================= World 2: Mummy Pokey =============================
 
+//Unfreeze both players
 void repl_02131EDC_ov_10()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
+	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
 }
 
-// FINAL BOSS CONTROLLER =============================
+//============================= World 3: Cheepskipper =============================
+//On delete.
+/*
+void hook_0212FA18_ov_12()
+{
+	
+}
+*/
+
+//============================= World 4: Mega Goomba =============================
+
+//Unfreeze both players
+void repl_0213137C_ov_0E()
+{
+	for (int i = 0; i < GetPlayerCount(); i++)
+	{
+		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
+}
+
+
+//============================= World 5: Petey Piranha =============================
+
+//On create.
+/*
+void hook_0212FB00_ov_0F()
+{
+
+}
+*/
+
+//Unfreeze both players
+void repl_02132A58_ov_0F()
+{
+	for (int i = 0; i < GetPlayerCount(); i++)
+	{
+		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
+}
+void repl_02132BE8_ov_0F()
+{
+	for (int i = 0; i < GetPlayerCount(); i++)
+	{
+		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
+}
+
+//============================= World 6: Monty Tank =============================
+
+//On create.
+/*
+void hook_02134AD0_ov_13()
+{
+
+}
+
+//On delete.
+void hook_02131074_ov_13()
+{
+	
+}
+*/
+
+//============================= World 7: Monty Tank =============================
+
+//============================= World 8: Final Boss Controller =============================
 
 void repl_0213BFA8_ov_1C() { asm("LDR R1, =0x1000001"); asm("BX LR"); } //Bowser Jr. camera spawn fix
 void nsub_0214827C_ov_2B() { asm("MOV R1, R4"); asm("B 0x02148338"); } //Set arguments for function below
@@ -150,4 +220,13 @@ void repl_02148338_ov_2B(PlayerActor* wall_player, EnemyActor* controller)
 		}
 		Index_2P++;
 	}
+}
+
+//============================= Main Boss Controller =============================
+
+//Freeze Player
+void repl_021438AC_ov_28(PlayerActor* front_player)
+{
+	PlayerActor_freeze(GetPtrToPlayerActorByID(0), 1);
+	PlayerActor_freeze(GetPtrToPlayerActorByID(1), 1);
 }
