@@ -227,6 +227,23 @@ void repl_02148338_ov_2B(PlayerActor* wall_player, EnemyActor* controller)
 //Freeze Player
 void repl_021438AC_ov_28(PlayerActor* front_player)
 {
+	//Freeze both players.
 	PlayerActor_freeze(GetPtrToPlayerActorByID(0), 1);
 	PlayerActor_freeze(GetPtrToPlayerActorByID(1), 1);
+	
+	
+	//Find what player activated controller and move other player.
+	PlayerActor* Mario = GetPtrToPlayerActorByID(0);
+	PlayerActor* Luigi = GetPtrToPlayerActorByID(1);
+	
+	if(Mario->actor.position.x > Luigi->actor.position.x)
+	{
+		Luigi->actor.position.x = Mario->actor.position.x - 4096 * 24;
+		Luigi->actor.position.y = Mario->actor.position.y;
+	}
+	else
+	{
+		Mario->actor.position.x = Luigi->actor.position.x - 4096 * 24;
+		Mario->actor.position.y = Luigi->actor.position.y;
+	}
 }
