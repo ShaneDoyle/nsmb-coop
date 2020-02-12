@@ -92,6 +92,12 @@ void repl_02131EDC_ov_10()
 	}
 }
 
+//Disable ground-pound functionality for Mummy Pokey. (Removes weird de-sync issue, not finished!)
+void nsub_02132960_ov_10()
+{
+	asm("BX		LR");
+}
+
 //============================= World 3: Cheepskipper =============================
 //On delete.
 /*
