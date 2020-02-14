@@ -240,3 +240,9 @@ void repl_0215ED54_ov_36() {} //Disable mega mushroom destruction counter
 
 int repl_02152944_ov_36() { return *(int*)0x02085A50; } //Allow Luigi lives on stage intro scene
 int repl_0215293C_ov_36() { return *(int*)0x02085A50; } //Allow Luigi head on stage intro scene
+
+void repl_020FBD70_ov_0A(){} //Disables "Lose" music. (End Flag & Boss)
+
+// ======================================= PLAYER ACTOR =======================================
+
+void repl_021096EC_ov_0A(){asm("BX	LR");} //Disable Mario & Luigi Collision

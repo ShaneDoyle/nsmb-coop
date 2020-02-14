@@ -78,6 +78,19 @@ void repl_0213695C_ov_0D()
 //Fix fireball tracking
 void nsub_02138D7C_ov_0D() { asm("MOV R3, #0"); asm("B 0x02138D80"); }
 
+//Disables "StageZoom" for BowserBattleSwitch.
+void repl_0213A7A4_ov_0D()
+{
+	for (int i = 0; i < GetPlayerCount(); i++)
+		GetPtrToPlayerActorByID(i)->P.jumpBitfield |= 0x1000000;
+}
+
+//Remove Freeze at BowserBattleSwitch.
+void repl_0213AF54_ov_0D()
+{
+	asm("BX		LR");
+}
+
 //Bowser level exit
 //void hook_0212FCAC_ov_0D() { ExitLevel(true); }
 
@@ -233,23 +246,28 @@ void repl_02148338_ov_2B(PlayerActor* wall_player, EnemyActor* controller)
 //Freeze Player
 void repl_021438AC_ov_28(PlayerActor* front_player)
 {
-	//Freeze both players.
+	//Freeze Player 1.
 	PlayerActor_freeze(GetPtrToPlayerActorByID(0), 1);
-	PlayerActor_freeze(GetPtrToPlayerActorByID(1), 1);
 	
-	
-	//Find what player activated controller and move other player.
-	PlayerActor* Mario = GetPtrToPlayerActorByID(0);
-	PlayerActor* Luigi = GetPtrToPlayerActorByID(1);
-	
-	if(Mario->actor.position.x > Luigi->actor.position.x)
+	//Applied only for Co-op.
+	if(GetPlayerCount() > 1)
 	{
-		Luigi->actor.position.x = Mario->actor.position.x - 4096 * 24;
-		Luigi->actor.position.y = Mario->actor.position.y;
-	}
-	else
-	{
-		Mario->actor.position.x = Luigi->actor.position.x - 4096 * 24;
-		Mario->actor.position.y = Luigi->actor.position.y;
+		//Freeze Player 2.
+		PlayerActor_freeze(GetPtrToPlayerActorByID(1), 1);
+		
+		//Find what player activated controller and move other player.
+		PlayerActor* Mario = GetPtrToPlayerActorByID(0);
+		PlayerActor* Luigi = GetPtrToPlayerActorByID(1);
+		
+		if(Mario->actor.position.x > Luigi->actor.position.x)
+		{
+			Luigi->actor.position.x = Mario->actor.position.x - 4096 * 24;
+			Luigi->actor.position.y = Mario->actor.position.y;
+		}
+		else
+		{
+			Mario->actor.position.x = Luigi->actor.position.x - 4096 * 24;
+			Mario->actor.position.y = Luigi->actor.position.y;
+		}
 	}
 }
