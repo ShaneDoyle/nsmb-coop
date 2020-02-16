@@ -2,7 +2,7 @@
 
 // ======================================= CAMERA FUNCTIONS =======================================
 
-static int CameraForPlayerNo[2] = { 0, 1 };
+static int CameraForPlayerNo[2] = { 0 };
 extern "C" {
 	int GetCameraForPlayerNo(int playerNo) { return CameraForPlayerNo[playerNo]; };
 	void SetCameraForPlayerNo(int playerNo, int focusPlayerNo) { CameraForPlayerNo[playerNo] = focusPlayerNo; };
@@ -73,6 +73,8 @@ void repl_020203EC() //When Mario gets 1-up from coins, also give Luigi 1-up.
 		GiveScoreItemForPlayer(8, i);
 }
 
+// ======================================= ENTRANCE POSITIONING =======================================
+
 //Force Luigi to spawn in the same entrance as Mario
 void nsub_0215E5A4_ov_36()
 {
@@ -89,7 +91,8 @@ void nsub_0215EFF0_ov_36()
 	asm("B       0x0215EFF4");
 }
 
-//Luigi positioning on entrance spawn
+//Player positioning on multiplayer entrance spawn
+//entranceVecs[playerNumber]
 void hook_0215E920()
 {
 	u8 entranceId = ((u8*)0x020CA8F4)[8];
@@ -98,12 +101,12 @@ void hook_0215E920()
 
 	switch (entrance->type)
 	{
-	//Normal
-	case 0:
-		break;
-	//Ground pound
-	case 8:
-		entranceVecs[0].x += 16 << 12;
+	//Pipe
+	case 3:
+	case 4:
+	case 5:
+	case 6:
+		entranceVecs[1].x += 16 << 12;
 		break;
 	//Climbing Vine
 	case 21:
@@ -112,8 +115,25 @@ void hook_0215E920()
 		break;
 	//Any other entrance
 	default:
-		entranceVecs[1].x += 16 << 12;
+		entranceVecs[0].x += 8 << 12;
+		entranceVecs[1].x += 8 << 12;
 		break;
+	}
+}
+
+// Center vine head
+void repl_0211C218_ov_0A() { asm("MOV R0, R4"); }
+void repl_0211C21C_ov_0A(PlayerActor* player)
+{
+	if (GetPlayerCount() == 1)
+	{
+		SpawnGrowingEntranceVine(&player->actor.position);
+	}
+	else if (player->actor.playerNumber == 0)
+	{
+		Vec3 pos = player->actor.position;
+		pos.x -= 7 << 12;
+		SpawnGrowingEntranceVine(&pos);
 	}
 }
 
@@ -137,12 +157,9 @@ bool repl_0212B338_ov_0B(int playerNo, int lives)
 	}
 }
 
-void nsub_0211C474_ov_0A() { asm("B 0x0211C4EC"); }
-void repl_0211C470_ov_0A(PlayerActor* player)
+extern "C"
+void PlayerActor_spectateLoop(PlayerActor* player, int playerNo)
 {
-	asm("MOV R0, R4");
-
-	int playerNo = player->P.player;
 	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
 	if (GetLivesForPlayer(playerNo) != 0 &&
 		player->P.ButtonsPressed & KEY_A &&
@@ -169,30 +186,54 @@ void repl_0211C470_ov_0A(PlayerActor* player)
 	}
 	else
 	{
-		if (player->info.ViewID != oppositePlayer->info.ViewID)
+		Entrance** destEntrance = (Entrance**)0x0208B0A0;
+		if (player->info.ViewID != destEntrance[!playerNo]->view)
 		{
+			player->P.enteringAnEntrance = 2;
+			//Call respawn system (Forces entrance reload)
 			((void(*)(void*, int, int))0x0211EDA0)(player, 0x0211870C, *(int*)0x02127AFC);
 		}
-		else
+		else if (!player->P.enteringAnEntrance)
 		{
-			player->actor.position = Vec3(0x7FFFFFFF, 0x7FFFFFFF, 0);
+			player->actor.position.x = 0x2000000;
 		}
 	}
 }
-void repl_0201E4E0() { asm("MOV R2, #1"); }
+//Setup hook for function above
+void nsub_0211C470_ov_0A()
+{
+	asm("MOV R0, R4");
+	asm("LDRB R1, [R4, #0x11E]");
+	asm("BL PlayerActor_spectateLoop");
+	asm("B 0x0211C4EC");
+}
+
+void repl_0201E4E0() { asm("MOV R2, #1"); } //Use my respawn
 void nsub_0201E504() { asm("MOV R0, R5"); asm("MOV R1, R4"); asm("B 0x0201E54C"); }
 void repl_0201E54C(Vec3* entranceData, int playerNo)
 {
-	SetPlayerDeathState(playerNo, 2);
-	SetEntranceIdForPlayer(247, playerNo); //In case entrance 0 isn't "normal" look for entrance 247 (Must be "normal"!).
-	SetCameraForPlayerNo(playerNo, !playerNo);
+	//Change entrance pointer to fake custom entrance
+	static Entrance respawnEntrance = { 0 };
+	Entrance** destEntrance = (Entrance**)0x0208B0A0;
+	destEntrance[playerNo] = &respawnEntrance;
 
-	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
+	SetPlayerDeathState(playerNo, 2); //Set death state as "waiting for respawn"
+	respawnEntrance.view = destEntrance[!playerNo]->view; //Set destination entrance view as opposite player view
 
-	((u8**)0x0208B0A0)[playerNo][18] = oppositePlayer->info.ViewID;
+	PlayerActor* player = GetPtrToPlayerActorByID(playerNo);
 
-	*entranceData = oppositePlayer->actor.position;
-	entranceData->z = 0;
+	if (player->P.enteringAnEntrance != 2) //If not respawning between views
+	{
+		SetCameraForPlayerNo(playerNo, !playerNo);
+
+		PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
+		*entranceData = oppositePlayer->actor.position;
+		entranceData->z = 0;
+	}
+	else
+	{
+		*entranceData = Vec3(destEntrance[!playerNo]->x, destEntrance[!playerNo]->y, 0);
+	}
 }
 
 //Only freeze timer and pause menu on toad houses

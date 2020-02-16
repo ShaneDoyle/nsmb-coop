@@ -91,7 +91,7 @@ typedef struct Entrance {
 	// settings & 0x01: use bottom screen
 	u8 unk10;
 	u8 unk11;
-	s8 zone;
+	s8 view;
 	u8 destWorldMapNode; // on current world map; destWorld value is ignored
 } Entrance;
 
@@ -152,6 +152,9 @@ extern "C" {
 
 	// Gets the pointer to an entrance
 	Entrance* GetPtrToEntranceById(int entranceId, int entranceId2);
+
+	// Spawns a growing entrance vine at specified position
+	void SpawnGrowingEntranceVine(Vec3* pos);
 
 	// Returns a random number
 	int RNG();
