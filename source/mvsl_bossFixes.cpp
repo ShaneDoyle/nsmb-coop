@@ -1,6 +1,6 @@
 #include "nsmb.h"
 
-// MAIN CAMERA PUSH =============================
+//============================= Main Camera Push =============================
 
 //Allow camera to be pushed for all players
 void nsub_020ACF50_ov_00(int* LevelActor, int Arg2, int Case)
@@ -36,7 +36,7 @@ void nsub_020ACF50_ov_00(int* LevelActor, int Arg2, int Case)
 	}
 }
 
-// BOWSER JR =============================
+//============================= Bowser JR =============================
 
 void repl_0213D0BC_ov_1C() //Victory freeze on ground touch
 {
@@ -64,30 +64,119 @@ void repl_0213F550_ov_1C() //Unfreeze when battle is ready to start
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
 }
 
-// BOWSER =============================
+//============================= World 1: Bowser =============================
 
-//Allow unfreeze for all players
+//Unfreeze both players
 void repl_0213695C_ov_0D()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
+	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
 }
 
 //Fix fireball tracking
 void nsub_02138D7C_ov_0D() { asm("MOV R3, #0"); asm("B 0x02138D80"); }
 
+//Disables "StageZoom" for BowserBattleSwitch.
+void repl_0213A7A4_ov_0D()
+{
+	for (int i = 0; i < GetPlayerCount(); i++)
+		GetPtrToPlayerActorByID(i)->P.jumpBitfield |= 0x1000000;
+}
+
+//Remove Freeze at BowserBattleSwitch.
+void repl_0213AF54_ov_0D()
+{
+	asm("BX		LR");
+}
+
 //Bowser level exit
 //void hook_0212FCAC_ov_0D() { ExitLevel(true); }
 
-// MUMMY POKEY =============================
+//============================= World 2: Mummy Pokey =============================
 
+//Unfreeze both players
 void repl_02131EDC_ov_10()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
+	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
 }
 
-// FINAL BOSS CONTROLLER =============================
+//Disable ground-pound functionality for Mummy Pokey. (Removes weird de-sync issue, not finished!)
+void nsub_02132960_ov_10()
+{
+	asm("BX		LR");
+}
+
+//============================= World 3: Cheepskipper =============================
+//On delete.
+/*
+void hook_0212FA18_ov_12()
+{
+	
+}
+*/
+
+//============================= World 4: Mega Goomba =============================
+
+//Unfreeze both players
+void repl_0213137C_ov_0E()
+{
+	for (int i = 0; i < GetPlayerCount(); i++)
+	{
+		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
+}
+
+
+//============================= World 5: Petey Piranha =============================
+
+//On create.
+/*
+void hook_0212FB00_ov_0F()
+{
+
+}
+*/
+
+//Unfreeze both players
+void repl_02132A58_ov_0F()
+{
+	for (int i = 0; i < GetPlayerCount(); i++)
+	{
+		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
+}
+void repl_02132BE8_ov_0F()
+{
+	for (int i = 0; i < GetPlayerCount(); i++)
+	{
+		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
+}
+
+//============================= World 6: Monty Tank =============================
+
+//On create.
+/*
+void hook_02134AD0_ov_13()
+{
+
+}
+
+//On delete.
+void hook_02131074_ov_13()
+{
+	
+}
+*/
+
+//============================= World 7: Monty Tank =============================
+
+//============================= World 8: Final Boss Controller =============================
 
 void repl_0213BFA8_ov_1C() { asm("LDR R1, =0x1000001"); asm("BX LR"); } //Bowser Jr. camera spawn fix
 void nsub_0214827C_ov_2B() { asm("MOV R1, R4"); asm("B 0x02148338"); } //Set arguments for function below
@@ -149,5 +238,36 @@ void repl_02148338_ov_2B(PlayerActor* wall_player, EnemyActor* controller)
 				return;
 		}
 		Index_2P++;
+	}
+}
+
+//============================= Main Boss Controller =============================
+
+//Freeze Player
+void repl_021438AC_ov_28(PlayerActor* front_player)
+{
+	//Freeze Player 1.
+	PlayerActor_freeze(GetPtrToPlayerActorByID(0), 1);
+	
+	//Applied only for Co-op.
+	if(GetPlayerCount() > 1)
+	{
+		//Freeze Player 2.
+		PlayerActor_freeze(GetPtrToPlayerActorByID(1), 1);
+		
+		//Find what player activated controller and move other player.
+		PlayerActor* Mario = GetPtrToPlayerActorByID(0);
+		PlayerActor* Luigi = GetPtrToPlayerActorByID(1);
+		
+		if(Mario->actor.position.x > Luigi->actor.position.x)
+		{
+			Luigi->actor.position.x = Mario->actor.position.x - 4096 * 24;
+			Luigi->actor.position.y = Mario->actor.position.y;
+		}
+		else
+		{
+			Mario->actor.position.x = Luigi->actor.position.x - 4096 * 24;
+			Mario->actor.position.y = Luigi->actor.position.y;
+		}
 	}
 }
