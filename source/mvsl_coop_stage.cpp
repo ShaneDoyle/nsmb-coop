@@ -219,6 +219,8 @@ void repl_0201E54C(Vec3* entranceData, int playerNo)
 
 	SetPlayerDeathState(playerNo, 2); //Set death state as "waiting for respawn"
 	respawnEntrance.view = destEntrance[!playerNo]->view; //Set destination entrance view as opposite player view
+	respawnEntrance.settings &= ~1; //Reset destination entrance bottom screen
+	respawnEntrance.settings |= destEntrance[!playerNo]->settings & 1; //Set destination entrance bottom screen as opposite player setting
 
 	PlayerActor* player = GetPtrToPlayerActorByID(playerNo);
 
@@ -282,8 +284,18 @@ void repl_0215ED54_ov_36() {} //Disable mega mushroom destruction counter
 int repl_02152944_ov_36() { return *(int*)0x02085A50; } //Allow Luigi lives on stage intro scene
 int repl_0215293C_ov_36() { return *(int*)0x02085A50; } //Allow Luigi head on stage intro scene
 
-void repl_020FBD70_ov_0A(){} //Disables "Lose" music. (End Flag & Boss)
+void repl_020FBD70_ov_0A() {} //Disables "Lose" music. (End Flag & Boss)
+
+//Mega Mushroom enemy spawn desync fix
+void nsub_021121EC_ov_0A() { asm("MOV R0, R5"); asm("BL 0x0209E038"); asm("B 0x021121F0"); } //Pass player pointer to next function
+void nsub_0209E038_ov_00() { asm("STMFD SP!, {R4,R5,LR}"); asm("B 0x0209E03C"); } //Save register 5 to stack
+void nsub_0209E040_ov_00() { asm("MOV R5, R0"); asm("B 0x0209E060"); } //Save passed player pointer and skip MvsLMode check
+void nsub_0209E09C_ov_00() { asm("LDMFD SP!, {R4,R5,PC}"); } //Free register 5 from stack
+void nsub_0209E0A8_ov_00() { asm("LDMNEFD SP!, {R4,R5,PC}"); asm("B 0x0209E0AC"); } //Free register 5 from stack
+void nsub_0209E0CC_ov_00() { asm("LDMEQFD SP!, {R4,R5,PC}"); asm("B 0x0209E0D0"); } //Free register 5 from stack
+void repl_0209E0D0_ov_00() { asm("MOV R0, R5"); } //Use passed player pointer from previous function
+void nsub_0209E128_ov_00() { asm("LDMFD SP!, {R4,R5,PC}"); } //Free register 5 from stack
 
 // ======================================= PLAYER ACTOR =======================================
 
-void repl_021096EC_ov_0A(){asm("BX	LR");} //Disable Mario & Luigi Collision
+//void repl_021096EC_ov_0A() {} //Disable Mario & Luigi Collision

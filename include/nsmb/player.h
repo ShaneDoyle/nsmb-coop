@@ -516,7 +516,7 @@ extern "C"
 	PlayerActor* SetPtrToPlayerActorByID(PlayerActor* player, int playerNo);
 
 	// Gets the closest player number to an actor
-	u32 GetClosestPlayer(void* actor, Vec3* actorPos);
+	u32 GetPlayerFacingDirection(void* actor, Vec3* actorPos);
 
 	// Gets the lives for player
 	u32 GetLivesForPlayer(u32 playerNo);

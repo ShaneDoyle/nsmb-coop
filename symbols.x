@@ -2624,7 +2624,7 @@ MvsLDrawBottomScreenProgressPathIcons = 0x020BE674;
 SetCameraFocusOn = 0x020201A0;
 GetFileIDForBMG = 0x02017190;
 GiveScoreItemForPlayer = 0x0209AB04;
-GetClosestPlayer = 0x0209ACD4;
+GetPlayerFacingDirection = 0x0209ACD4;
 SpawnGrowingEntranceVine = 0x020D0CEC;
 
 DrawBottomScreenPowerups = 0x020BE828;
