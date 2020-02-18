@@ -36,7 +36,7 @@ void hook_02164838_ov_36()
 		for (int i = 0; i < GetPlayerCount(); i++)
 		{
 			PlayerActor* Player = GetPtrToPlayerActorByID(i);
-			if(Player->P.physicsStateBitfield & SWIMMING)
+			if(Player->P.collBitfield & IN_LIQUID)
 			{
 				if(GetPlayerDeathState(i) == false)
 				{
@@ -54,7 +54,7 @@ void hook_02164838_ov_36()
 		for (int i = 0; i < GetPlayerCount(); i++)
 		{
 			PlayerActor* Player = GetPtrToPlayerActorByID(i);
-			if(Player->P.physicsStateBitfield & SWIMMING)
+			if(Player->P.collBitfield & IN_LIQUID)
 			{
 				if(GetPlayerDeathState(i) == false)
 				{
