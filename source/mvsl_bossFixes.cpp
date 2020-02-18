@@ -36,7 +36,7 @@ void nsub_020ACF50_ov_00(int* LevelActor, int Arg2, int Case)
 	}
 }
 
-//============================= Bowser JR =============================
+//============================= Bowser Jr. =============================
 
 void repl_0213D0BC_ov_1C() //Victory freeze on ground touch
 {
@@ -70,13 +70,11 @@ void repl_0213F550_ov_1C() //Unfreeze when battle is ready to start
 void repl_0213695C_ov_0D()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
-	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
-	}
 }
 
 //Fix fireball tracking
-void nsub_02138D7C_ov_0D() { asm("MOV R3, #0"); asm("B 0x02138D80"); }
+void repl_02138D7C_ov_0D() { asm("MOV R3, #0"); }
 
 //Disables "StageZoom" for BowserBattleSwitch.
 void repl_0213A7A4_ov_0D()
@@ -86,10 +84,7 @@ void repl_0213A7A4_ov_0D()
 }
 
 //Remove Freeze at BowserBattleSwitch.
-void repl_0213AF54_ov_0D()
-{
-	asm("BX		LR");
-}
+void repl_0213AF54_ov_0D() {}
 
 //Bowser level exit
 //void hook_0212FCAC_ov_0D() { ExitLevel(true); }
@@ -100,16 +95,11 @@ void repl_0213AF54_ov_0D()
 void repl_02131EDC_ov_10()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
-	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
-	}
 }
 
 //Disable ground-pound functionality for Mummy Pokey. (Removes weird de-sync issue, not finished!)
-void nsub_02132960_ov_10()
-{
-	asm("BX		LR");
-}
+void nsub_02132960_ov_10() {}
 
 //============================= World 3: Cheepskipper =============================
 //On delete.
@@ -126,9 +116,7 @@ void hook_0212FA18_ov_12()
 void repl_0213137C_ov_0E()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
-	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
-	}
 }
 
 
@@ -146,16 +134,12 @@ void hook_0212FB00_ov_0F()
 void repl_02132A58_ov_0F()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
-	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
-	}
 }
 void repl_02132BE8_ov_0F()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
-	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
-	}
 }
 
 //============================= World 6: Monty Tank =============================
@@ -174,7 +158,52 @@ void hook_02131074_ov_13()
 }
 */
 
-//============================= World 7: Monty Tank =============================
+//============================= World 7: Lakithunder =============================
+
+//Unfreeze both players.
+void repl_02131554_ov_11()
+{
+	for (int i = 0; i < GetPlayerCount(); i++)
+		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+}
+
+//Force equal zoom
+void hook_0212F9B8_ov_11()
+{
+	int* StageZoomForPlayer = (int*)0x020CADB4;
+	StageZoomForPlayer[1] = StageZoomForPlayer[0];
+}
+
+void repl_0212FD98_ov_11() { asm("MOVS R0, #0"); }
+int repl_02130440_ov_11() { return 0; }
+int repl_02130544_ov_11() { return 0; }
+int repl_02130560_ov_11() { return 0; }
+
+//Virt51 Closest Player
+void repl_02132420_ov_11() {}
+void repl_0213242C_ov_11() {}
+
+//Virt50 Closest Player
+int repl_021325F0_ov_11(EnemyActor* lakithunder)
+{
+	asm("MOV R0, R4"); //Place lakithunder ptr in the argument
+	return GetPlayerFacingDirection(lakithunder, &lakithunder->actor.position);
+}
+
+//Virt49 Closest Player
+int repl_021328D0_ov_11(EnemyActor* lakithunder)
+{
+	asm("MOV R0, R5"); //Place lakithunder ptr in the argument
+	return GetPlayerFacingDirection(lakithunder, &lakithunder->actor.position);
+}
+int repl_021329D8_ov_11(EnemyActor* lakithunder)
+{
+	asm("PUSH {R1-R12}"); //Save all registers
+	asm("MOV R0, R5"); //Place lakithunder ptr in the argument
+	int result = GetPlayerFacingDirection(lakithunder, &lakithunder->actor.position);
+	asm("POP {R1-R12}"); //Recover all registers
+	return result;
+}
 
 //============================= World 8: Final Boss Controller =============================
 
@@ -214,8 +243,9 @@ void repl_02148338_ov_2B(PlayerActor* wall_player, EnemyActor* controller)
 				if (GetPlayerCount() == 1)
 					goto setCutsceneVars;
 
-				player->actor.position = controller->actor.position;
-				player->actor.position.x -= (19 + (i * 3)) * 0x8000;
+				player->actor.position = wall_player->actor.position - (1.5 * 0x10000);
+				//player->actor.position = controller->actor.position;
+				//player->actor.position.x -= (19 + (i * 3)) * 0x8000;
 			}
 		}
 		else if (Index_2P > 77 && Index_2P <= 93)
@@ -243,31 +273,29 @@ void repl_02148338_ov_2B(PlayerActor* wall_player, EnemyActor* controller)
 
 //============================= Main Boss Controller =============================
 
-//Freeze Player
-void repl_021438AC_ov_28(PlayerActor* front_player)
+//Freeze and move player
+void repl_021438AC_ov_28(PlayerActor* wall_player)
 {
-	//Freeze Player 1.
-	PlayerActor_freeze(GetPtrToPlayerActorByID(0), 1);
-	
-	//Applied only for Co-op.
-	if(GetPlayerCount() > 1)
+	PlayerActor_freeze(wall_player, 1);
+
+	if (GetPlayerCount() == 2)
 	{
-		//Freeze Player 2.
-		PlayerActor_freeze(GetPtrToPlayerActorByID(1), 1);
-		
-		//Find what player activated controller and move other player.
-		PlayerActor* Mario = GetPtrToPlayerActorByID(0);
-		PlayerActor* Luigi = GetPtrToPlayerActorByID(1);
-		
-		if(Mario->actor.position.x > Luigi->actor.position.x)
-		{
-			Luigi->actor.position.x = Mario->actor.position.x - 4096 * 24;
-			Luigi->actor.position.y = Mario->actor.position.y;
-		}
-		else
-		{
-			Mario->actor.position.x = Luigi->actor.position.x - 4096 * 24;
-			Mario->actor.position.y = Luigi->actor.position.y;
-		}
+		PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!wall_player->actor.playerNumber);
+		PlayerActor_freeze(oppositePlayer, 1);
+
+		oppositePlayer->actor.position.x = wall_player->actor.position.x - (1.5 * 0x10000);
+		oppositePlayer->actor.position.y = wall_player->actor.position.y;
 	}
+}
+
+//============================= Boss Key =============================
+
+//Victory freeze
+void repl_0214619C_ov_28()
+{
+	u8 playerNo = *(u8*)0x020CA298;
+	GetPtrToPlayerActorByID(playerNo)->P.physicsStateBitfield |= 0x800000;
+
+	if(GetPlayerCount() == 2)
+		GetPtrToPlayerActorByID(!playerNo)->P.jumpBitfield |= 0x1000000;
 }
