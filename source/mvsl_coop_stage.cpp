@@ -142,15 +142,26 @@ void repl_0211C21C_ov_0A(PlayerActor* player)
 int repl_021041F4_ov_0A() { return GetPlayerCount() != 1; }
 int repl_0212B318_ov_0B() { return GetPlayerCount() != 1; }
 void repl_02119CB8_ov_0A() {} //Do not freeze timer on player death
-//Do not allow player to respawn so we can control it ourselves
-void repl_0212B334_ov_0B() { asm("MOV R0, R6"); asm("MOV R1, R4"); }
+void repl_0212B334_ov_0B() { asm("MOV R0, R6"); asm("MOV R1, R4"); } //Do not allow player to respawn so we can control it ourselves
 bool repl_0212B338_ov_0B(int playerNo, int lives)
 {
+	//Variables to check conditions for respawn.
+	u8* LevelBlock1Ptr = *(u8**)0x0208B19C;
+	u8 SpriteSet1 = LevelBlock1Ptr[0];
+	u8 SpriteSet16 = LevelBlock1Ptr[15];
+	
+	//Don't respawn.
 	if ((lives == 0 && GetLivesForPlayer(!playerNo) == 0) || GetPlayerDeathState(!playerNo))
 	{
 		ExitLevel(false);
 		return false; //Do not respawn
 	}
+	//Disable for certain bosses, including Bowser JR. (All bosses except for Monty Tank).
+	else if(SpriteSet1 == 7 || SpriteSet16 == 2 || SpriteSet16 == 3 || SpriteSet16 == 4 || SpriteSet16 == 5 || SpriteSet16 == 6 || SpriteSet16 == 7)
+	{
+		return false;
+	}
+	//Respawn.
 	else
 	{
 		return true;
@@ -160,10 +171,13 @@ bool repl_0212B338_ov_0B(int playerNo, int lives)
 extern "C"
 void PlayerActor_spectateLoop(PlayerActor* player, int playerNo)
 {
+	//Variables to check conditions for respawn.
+	u8* LevelBlock1Ptr = *(u8**)0x0208B19C;
+	u8 SpriteSet16 = LevelBlock1Ptr[15];
 	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
-	if (GetLivesForPlayer(playerNo) != 0 &&
-		player->P.ButtonsPressed & KEY_A &&
-		GetPlayerDeathState(!playerNo) == 0)
+	
+	//Check if player is allowed to respawn or not.
+	if (GetLivesForPlayer(playerNo) != 0 && player->P.ButtonsPressed & KEY_A && GetPlayerDeathState(!playerNo) == 0 && SpriteSet16 != 8)
 	{
 		player->P.cases = 1;
 

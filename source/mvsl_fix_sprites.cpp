@@ -64,8 +64,3 @@ void hook_02164838_ov_36()
 		}
 	}
 }
-void repl_02165534_ov_36(){asm("MOV R3, #1");} //Force Lava (234) to behave like Water.
-void repl_021653EC_ov_36(){asm("MOV R3, #1");} //Force Poisoned Water (259) to behave like Water.
-
-
-
