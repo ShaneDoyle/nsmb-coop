@@ -35,3 +35,15 @@ void repl_0218E630_ov_7B()
 	for (int i = 0; i < GetPlayerCount(); i++)
 		GetPtrToPlayerActorByID(i)->P.physicsStateBitfield |= 0x20000000;
 }
+
+//Fix inventory on toad houses
+void repl_020D24E0_ov_0A()
+{
+	asm("LDRB    R2, [R4, #0x11E]");
+	asm("BX      LR");
+}
+void repl_020D2520_ov_0A()
+{
+	asm("LDRB    R5, [R4, #0x11E]");
+	asm("BX      LR");
+}

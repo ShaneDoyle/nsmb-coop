@@ -243,9 +243,10 @@ void repl_02148338_ov_2B(PlayerActor* wall_player, EnemyActor* controller)
 				if (GetPlayerCount() == 1)
 					goto setCutsceneVars;
 
-				player->actor.position = wall_player->actor.position - (1.5 * 0x10000);
-				//player->actor.position = controller->actor.position;
-				//player->actor.position.x -= (19 + (i * 3)) * 0x8000;
+				//player->actor.position = wall_player->actor.position;
+				//player->actor.position.x -= (1.5 * 0x10000);
+				player->actor.position = controller->actor.position;
+				player->actor.position.x -= (19 + (i * 3)) * 0x8000;
 			}
 		}
 		else if (Index_2P > 77 && Index_2P <= 93)

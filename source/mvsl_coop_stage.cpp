@@ -213,14 +213,14 @@ void nsub_0201E504() { asm("MOV R0, R5"); asm("MOV R1, R4"); asm("B 0x0201E54C")
 void repl_0201E54C(Vec3* entranceData, int playerNo)
 {
 	//Change entrance pointer to fake custom entrance
-	static Entrance respawnEntrance = { 0 };
+	Entrance* respawnEntrance = (Entrance*)0x0208B0CC;
 	Entrance** destEntrance = (Entrance**)0x0208B0A0;
-	destEntrance[playerNo] = &respawnEntrance;
+	destEntrance[playerNo] = &respawnEntrance[playerNo];
 
 	SetPlayerDeathState(playerNo, 2); //Set death state as "waiting for respawn"
-	respawnEntrance.view = destEntrance[!playerNo]->view; //Set destination entrance view as opposite player view
-	respawnEntrance.settings &= ~1; //Reset destination entrance bottom screen
-	respawnEntrance.settings |= destEntrance[!playerNo]->settings & 1; //Set destination entrance bottom screen as opposite player setting
+	respawnEntrance[playerNo].view = destEntrance[!playerNo]->view; //Set destination entrance view as opposite player view
+	respawnEntrance[playerNo].settings &= ~1; //Reset destination entrance bottom screen
+	respawnEntrance[playerNo].settings |= destEntrance[!playerNo]->settings & 1; //Set destination entrance bottom screen as opposite player setting
 
 	PlayerActor* player = GetPtrToPlayerActorByID(playerNo);
 
@@ -265,7 +265,7 @@ void repl_020A2230_ov_00() {
 // ======================================= MISC =======================================
 
 //Disable baphs if player count is bigger than 1 (prevents desyncs)
-void repl_02012584()
+void nsub_02012584()
 {
 	asm("BL GetPlayerCount");
 	asm("CMP R0, #1");
