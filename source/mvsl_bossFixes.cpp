@@ -41,7 +41,9 @@ void nsub_020ACF50_ov_00(int* LevelActor, int Arg2, int Case)
 void repl_0213D0BC_ov_1C() //Victory freeze on ground touch
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
+	{
 		GetPtrToPlayerActorByID(i)->P.jumpBitfield |= 0x1000000;
+	}
 }
 void repl_0213F49C_ov_1C() //Freeze the player while falling
 {
@@ -56,31 +58,39 @@ void repl_0213F4A0_ov_1C() {} //Supports function above ^
 void repl_0213F4B4_ov_1C() //Freeze player when touching the ground after falling
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
+	{
 		PlayerActor_freeze(GetPtrToPlayerActorByID(i), 0);
+	}
 }
 void repl_0213F550_ov_1C() //Unfreeze when battle is ready to start
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
+	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
 }
 
 //============================= World 1: Bowser =============================
 
-//Unfreeze both players
+//Unfreeze both players.
 void repl_0213695C_ov_0D()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
+	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
 }
 
 //Fix fireball tracking
 void repl_02138D7C_ov_0D() { asm("MOV R3, #0"); }
 
-//Disables "StageZoom" for BowserBattleSwitch.
+//Disables "StageZoom" for BowserBattleSwitch and applies "Victory" animation.
 void repl_0213A7A4_ov_0D()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
+	{
 		GetPtrToPlayerActorByID(i)->P.jumpBitfield |= 0x1000000;
+	}
 }
 
 //Remove Freeze at BowserBattleSwitch.
@@ -91,11 +101,13 @@ void repl_0213AF54_ov_0D() {}
 
 //============================= World 2: Mummy Pokey =============================
 
-//Unfreeze both players
+//Unfreeze both players.
 void repl_02131EDC_ov_10()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
+	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
 }
 
 //Disable ground-pound functionality for Mummy Pokey. (Removes weird de-sync issue, not finished!)
@@ -112,11 +124,13 @@ void hook_0212FA18_ov_12()
 
 //============================= World 4: Mega Goomba =============================
 
-//Unfreeze both players
+//Unfreeze both players.
 void repl_0213137C_ov_0E()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
+	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
 }
 
 
@@ -134,15 +148,28 @@ void hook_0212FB00_ov_0F()
 void repl_02132A58_ov_0F()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
+	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
 }
 void repl_02132BE8_ov_0F()
 {
 	for (int i = 0; i < GetPlayerCount(); i++)
+	{
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
 }
 
 //============================= World 6: Monty Tank =============================
+
+//Unfreeze both players.
+void repl_021361E4_ov_13()
+{
+	for (int i = 0; i < GetPlayerCount(); i++)
+	{
+		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
+	}
+}
 
 //On create.
 /*
@@ -277,8 +304,10 @@ void repl_02148338_ov_2B(PlayerActor* wall_player, EnemyActor* controller)
 //Freeze and move player
 void repl_021438AC_ov_28(PlayerActor* wall_player)
 {
+	//Freeze Player 1.
 	PlayerActor_freeze(wall_player, 1);
 
+	//Applied only for Co-op.
 	if (GetPlayerCount() == 2)
 	{
 		PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!wall_player->actor.playerNumber);
