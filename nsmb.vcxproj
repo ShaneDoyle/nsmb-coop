@@ -23,6 +23,7 @@
     <ClCompile Include="source\mvsl_coop_worldmap.cpp" />
     <ClCompile Include="source\mvsl_coop_worldmap_oam.cpp" />
     <ClCompile Include="source\mvsl_finalbosscontroller.cpp" />
+    <ClCompile Include="source\mvsl_fix_sprites.cpp" />
     <ClCompile Include="source\mvsl_saveSystem.cpp" />
     <ClCompile Include="source\mvsl_toad_houses.cpp" />
     <ClCompile Include="source\nsmb\events.cpp" />

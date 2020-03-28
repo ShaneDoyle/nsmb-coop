@@ -13,6 +13,8 @@ int repl_02157A40_ov_34()
 	*PlayAsLuigi = *MenuPlayerNumber; //Enable Luigi graphics in world map for Luigi console (also use to store original menu controller)
 
 	LoadSaveAndSetCounters(0, 0, &saveData);
+	if (((u16*)&saveData.lives)[1] == 0)
+		SetLivesForPlayer(1, 5);
 
 	asm("LDR R1, =0x02088BDC");
 	asm("LDR R1, [R1, #0x20]"); //saveData.currentWorld
