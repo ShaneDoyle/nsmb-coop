@@ -1,2 +1,2 @@
 # nsmb-coop
-Group of ASM hacks that allow NSMB to run singleplayer levels, the worldmap and much more.
+Group of ASM hacks that allow multiplayer NSMB to run singleplayer levels, the worldmap and much more.
