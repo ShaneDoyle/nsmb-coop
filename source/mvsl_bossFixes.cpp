@@ -82,7 +82,7 @@ void repl_0213695C_ov_0D()
 }
 
 //Fix fireball tracking
-void repl_02138D7C_ov_0D() { asm("MOV R3, #0"); }
+void nsub_02138D7C_ov_0D() { asm("MOV R3, #0"); asm("B 0x02138D80"); }
 
 //Disables "StageZoom" for BowserBattleSwitch and applies "Victory" animation.
 void repl_0213A7A4_ov_0D()
