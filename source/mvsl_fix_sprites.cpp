@@ -21,8 +21,8 @@ void repl_021474FC_ov_2F() { asm("MOV R0, #0"); }
 //Fix rotating carry platform (BooHouse, DeleteIfOutOfRange)
 void repl_0218EC4C_ov_76() {}
 
-//Pipe Cannon (Turns it into normal pipe).
-void repl_020F8488_ov_0A() {}
+// Fix pipe cannon desync.
+void nsub_020F8230_ov_0A() { asm("B 0x020F823C"); }
 
 //Red Coin Ring (Both players get items)
 void nsub_0215410C_ov_36(Actor* red_ring)
