@@ -82,7 +82,7 @@ void repl_0213695C_ov_0D()
 }
 
 //Fix fireball tracking
-void repl_02138D7C_ov_0D() { asm("MOV R3, #0"); }
+void nsub_02138D7C_ov_0D() { asm("MOV R3, #0"); asm("B 0x02138D80"); }
 
 //Disables "StageZoom" for BowserBattleSwitch and applies "Victory" animation.
 void repl_0213A7A4_ov_0D()
@@ -95,9 +95,6 @@ void repl_0213A7A4_ov_0D()
 
 //Remove Freeze at BowserBattleSwitch.
 void repl_0213AF54_ov_0D() {}
-
-//Bowser level exit
-//void hook_0212FCAC_ov_0D() { ExitLevel(true); }
 
 //============================= World 2: Mummy Pokey =============================
 
@@ -113,14 +110,22 @@ void repl_02131EDC_ov_10()
 //Disable ground-pound functionality for Mummy Pokey. (Removes weird de-sync issue, not finished!)
 void nsub_02132960_ov_10() {}
 
-//============================= World 3: Cheepskipper =============================
-//On delete.
-/*
-void hook_0212FA18_ov_12()
+//Fix World 4 Unlocker (Mini Mushroom condition).
+void repl_020CE2E0_ov_08()
 {
-	
+	if(GetPowerupForPlayer(0) == 4 && GetPowerupForPlayer(1) == 4)
+	{
+		asm("MOV	R0, #0");
+		asm("CMP	R0, #0");
+	}
+	else
+	{
+		asm("MOV	R0, #0");
+		asm("CMP	R0, #1");
+	}
 }
-*/
+
+//============================= World 3: Cheepskipper =============================
 
 //============================= World 4: Mega Goomba =============================
 
@@ -133,16 +138,7 @@ void repl_0213137C_ov_0E()
 	}
 }
 
-
 //============================= World 5: Petey Piranha =============================
-
-//On create.
-/*
-void hook_0212FB00_ov_0F()
-{
-
-}
-*/
 
 //Unfreeze both players
 void repl_02132A58_ov_0F()
@@ -160,6 +156,21 @@ void repl_02132BE8_ov_0F()
 	}
 }
 
+//Fix World 7 Unlocker (Mini Mushroom condition).
+void repl_020CE300_ov_08()
+{
+	if(GetPowerupForPlayer(0) == 4 && GetPowerupForPlayer(1) == 4)
+	{
+		asm("MOV	R0, #0");
+		asm("CMP	R0, #0");
+	}
+	else
+	{
+		asm("MOV	R0, #0");
+		asm("CMP	R0, #1");
+	}
+}
+
 //============================= World 6: Monty Tank =============================
 
 //Unfreeze both players.
@@ -170,20 +181,6 @@ void repl_021361E4_ov_13()
 		PlayerActor_unfreeze(GetPtrToPlayerActorByID(i));
 	}
 }
-
-//On create.
-/*
-void hook_02134AD0_ov_13()
-{
-
-}
-
-//On delete.
-void hook_02131074_ov_13()
-{
-	
-}
-*/
 
 //============================= World 7: Lakithunder =============================
 
@@ -234,11 +231,18 @@ int repl_021329D8_ov_11(EnemyActor* lakithunder)
 
 //============================= World 8: Final Boss Controller =============================
 
+//Force stage zoom. Maybe look at this in future?
+void hook_02147534_ov_2B()
+{
+	int* StageZoomForPlayer = (int*)0x020CADB4;
+	StageZoomForPlayer[1] = StageZoomForPlayer[0];
+}
 void repl_0213BFA8_ov_1C() { asm("LDR R1, =0x1000001"); asm("BX LR"); } //Bowser Jr. camera spawn fix
 void nsub_0214827C_ov_2B() { asm("MOV R1, R4"); asm("B 0x02148338"); } //Set arguments for function below
 void repl_02148338_ov_2B(PlayerActor* wall_player, EnemyActor* controller)
 {
 	static u8 Index_2P = 0;
+
 
 	wall_player->P.miscActionsBitfield |= 0x80;
 	wall_player->actor.velocity.x = 0;
@@ -270,9 +274,10 @@ void repl_02148338_ov_2B(PlayerActor* wall_player, EnemyActor* controller)
 				if (GetPlayerCount() == 1)
 					goto setCutsceneVars;
 
-				player->actor.position = wall_player->actor.position - (1.5 * 0x10000);
-				//player->actor.position = controller->actor.position;
-				//player->actor.position.x -= (19 + (i * 3)) * 0x8000;
+				//player->actor.position = wall_player->actor.position;
+				//player->actor.position.x -= (1.5 * 0x10000);
+				player->actor.position = controller->actor.position;
+				player->actor.position.x -= (19 + (i * 3)) * 0x8000;
 			}
 		}
 		else if (Index_2P > 77 && Index_2P <= 93)
@@ -297,6 +302,16 @@ void repl_02148338_ov_2B(PlayerActor* wall_player, EnemyActor* controller)
 		Index_2P++;
 	}
 }
+
+//Disable Zoom In.
+void repl_0213A784_ov_0D(){}
+
+//Disable Victory Animation.
+void repl_0213A7A8_ov_0D(){asm("MOV	R0, #2");}
+
+//Fix Final Boss Switch (Stall Animations).
+void repl_02147710_ov_2B(){}
+void repl_02147714_ov_2B(){}
 
 //============================= Main Boss Controller =============================
 
