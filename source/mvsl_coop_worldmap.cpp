@@ -13,6 +13,8 @@ int repl_02157A40_ov_34()
 	*PlayAsLuigi = *MenuPlayerNumber; //Enable Luigi graphics in world map for Luigi console (also use to store original menu controller)
 
 	LoadSaveAndSetCounters(0, 0, &saveData);
+	if (((u16*)&saveData.lives)[1] == 0)
+		SetLivesForPlayer(1, 5);
 
 	asm("LDR R1, =0x02088BDC");
 	asm("LDR R1, [R1, #0x20]"); //saveData.currentWorld
@@ -40,7 +42,7 @@ void repl_020CEF84_ov_08(int a_SceneID, int a_MvsLMode, int a_World, int a_Level
 		PowerupForPlayer[0] = GetPowerupForPlayer(0);
 		PowerupForPlayer[1] = GetPowerupForPlayer(1);
 		
-		ChangeSceneToLevel(a_SceneID, a_MvsLMode, a_World, a_Level, a_Area, *MenuPlayerNumber, 3, 0, 1, 0, a_EntranceID, a12, a13, a14, a15, a16, a17);
+		ChangeSceneToLevel(a_SceneID, a_MvsLMode, a_World, a_Level, 2, *MenuPlayerNumber, 3, 0, 1, 0, a_EntranceID, a12, a13, a14, a15, a16, a17);
 
 		SetPowerupForPlayer(0, PowerupForPlayer[0]);
 		SetPowerupForPlayer(1, PowerupForPlayer[1]);
