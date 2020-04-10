@@ -107,7 +107,7 @@ typedef struct Actor
 #else
 	u8 actorType;    // 11C -- inited to 0
 #endif
-	u8 unk5;                // 11D -- inited to 1
+	u8 isVisible;                // 11D -- inited to 1
 	u8 playerNumber;        // 11E -- inited from createSprite_player
 	u8 actorBitfield;        // 11F -- inited to 0x80
 

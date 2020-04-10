@@ -9,12 +9,12 @@
 
 struct VecFx32
 {
-	Fx32 x, y, z;
+	fx32 x, y, z;
 };
 
 struct VecFx16
 {
-	Fx16 x, y, z;
+	fx16 x, y, z;
 };
 
 #else
@@ -34,11 +34,11 @@ typedef struct
 
 // functions
 
-Fx32 VEC_Mag(VecFx32* in);
+fx32 VEC_Mag(VecFx32* in);
 void VEC_Normalize(VecFx32* in, VecFx32* out);
 void VEC_CrossProduct(VecFx32* in_a, VecFx32* in_b, VecFx32* out);
-Fx32 VEC_DotProduct(VecFx32* in_a, VecFx32* in_b);
+fx32 VEC_DotProduct(VecFx32* in_a, VecFx32* in_b);
 
 void VEC_Fx16Normalize(VecFx16* in, VecFx16* out);
 void VEC_Fx16CrossProduct(VecFx16* in_a, VecFx16* in_b, VecFx16* out);
-Fx32 VEC_Fx16DotProduct(VecFx16* in_a, VecFx16* in_b);
+fx32 VEC_Fx16DotProduct(VecFx16* in_a, VecFx16* in_b);

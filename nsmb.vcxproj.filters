@@ -81,6 +81,9 @@
     <ClCompile Include="source\mvsl_fix_sprites.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="source\player_collide.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\nsmb.h">
@@ -205,6 +208,7 @@
     <None Include="symbols.x" />
     <None Include="source\nofreeze.s" />
     <None Include="source\heap_size.s" />
+    <None Include="source\player_collide_asm.s" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="arenaoffs.txt" />
