@@ -505,6 +505,12 @@ extern "C"
 	// Removes the item the player is holding.
 	void PlayerActor_removeHeldItem(PlayerActor* player);
 
+	// Sets the player actor entrance state.
+	void PlayerActor_setEntranceState(PlayerActor* player, int function_ptr, int thumb);
+
+	// Sets the player actor states as just respawned.
+	void PlayerActor_setRespawnedState(PlayerActor* player);
+
 	// Gets the pointer to the local player.
 	// WARNING: Causes desyncs in multiplayer if used incorrectly!
 	PlayerActor* GetPtrToPlayerActor();
@@ -568,6 +574,25 @@ extern "C"
 
 	// Sets the entrance for player
 	void SetEntranceIdForPlayer(u32 entranceId, u32 playerNo);
+
+	// Gets the starman time for player
+	s32 GetStarmanTimeForPlayer(u32 playerNo);
+
+	// Sets the starman time for player
+	void SetStarmanTimeForPlayer(u32 playerNo, s32 value);
+
+	// Gets the player respawn state
+	void GetRespawnStateForPlayer(u32 playerNo);
+
+	// Sets the player respawn state
+	void SetRespawnStateForPlayer(u32 playerNo, u32 state);
+
+	// Sets the respawning position for player
+	inline void SetRespawnPositionForPlayer(int playerNo, fx32 x, fx32 y) {
+		VecFx32* respawnPos = (VecFx32*)0x0208B0B8;
+		respawnPos[playerNo].x = x;
+		respawnPos[playerNo].y = y;
+	}
 
 #ifdef __cplusplus
 }

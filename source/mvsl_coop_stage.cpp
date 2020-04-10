@@ -9,7 +9,7 @@ extern "C" {
 }
 void nsub_020201A4() { asm("MOV R4, R0"); asm("BL GetCameraForPlayerNo"); asm("B 0x20201A8"); }
 
-void hook_020FF864_ov_0A(PlayerActor* player) { int playerNo = player->P.player; SetCameraForPlayerNo(playerNo, playerNo); }
+void hook_020FF864_ov_0A(PlayerActor* player) { int playerNo = player->actor.playerNumber; SetCameraForPlayerNo(playerNo, playerNo); }
 
 // ======================================= MISC =======================================
 
@@ -139,54 +139,66 @@ void repl_0211C21C_ov_0A(PlayerActor* player)
 
 // ======================================= RESPAWN =======================================
 
+static u8 player_wasDead[2] = { false };
+
 int repl_021041F4_ov_0A() { return GetPlayerCount() != 1; }
 int repl_0212B318_ov_0B() { return GetPlayerCount() != 1; }
 void repl_02119CB8_ov_0A() {} //Do not freeze timer on player death
 void repl_0212B334_ov_0B() { asm("MOV R0, R6"); asm("MOV R1, R4"); } //Do not allow player to respawn so we can control it ourselves
+
+void SetupRespawnLocationForPlayer(int playerNo)
+{
+	Entrance* destEntrance = ((Entrance**)0x0208B0A0)[!playerNo]; //Opposite player entrance
+	u8* SwapScreenOnRespawnForPlayer = (u8*)0x0208B08C;
+	SwapScreenOnRespawnForPlayer[playerNo] = destEntrance->settings & 1;
+
+	player_wasDead[playerNo] = true;
+
+	GetPtrToPlayerActorByID(playerNo)->actor.isVisible = false;
+	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
+	fx32 x = oppositePlayer->actor.position.x;
+	fx32 y = oppositePlayer->actor.position.y;
+	SetRespawnPositionForPlayer(playerNo, x, y);
+}
+
 bool repl_0212B338_ov_0B(int playerNo, int lives)
 {
-	//Variables to check conditions for respawn.
-	u8* LevelBlock1Ptr = *(u8**)0x0208B19C;
-	u8 SpriteSet1 = LevelBlock1Ptr[0];
-	u8 SpriteSet16 = LevelBlock1Ptr[15];
-	
 	//Don't respawn.
 	if ((lives == 0 && GetLivesForPlayer(!playerNo) == 0) || GetPlayerDeathState(!playerNo))
 	{
 		ExitLevel(false);
 		return false; //Do not respawn
 	}
-	//Disable for certain bosses, including Bowser JR. (All bosses except for Monty Tank).
-	else if(SpriteSet1 == 7 || SpriteSet16 == 2 || SpriteSet16 == 3 || SpriteSet16 == 4 || SpriteSet16 == 5 || SpriteSet16 == 6 || SpriteSet16 == 7)
-	{
-		return false;
-	}
+
 	//Respawn.
-	else
-	{
-		return true;
-	}
+	SetupRespawnLocationForPlayer(playerNo);
+	return true;
 }
 
 extern "C"
 void PlayerActor_spectateLoop(PlayerActor* player, int playerNo)
 {
-	//Variables to check conditions for respawn.
-	u8* LevelBlock1Ptr = *(u8**)0x0208B19C;
-	u8 SpriteSet16 = LevelBlock1Ptr[15];
 	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
-	
+
 	//Check if player is allowed to respawn or not.
-	if (GetLivesForPlayer(playerNo) != 0 && player->P.ButtonsPressed & KEY_A && GetPlayerDeathState(!playerNo) == 0 && SpriteSet16 != 8)
+	if (GetLivesForPlayer(playerNo) != 0 &&
+		player->P.ButtonsPressed & KEY_A &&
+		GetPlayerDeathState(!playerNo) == 0)
 	{
 		player->P.cases = 1;
 
 		player->actor.position.x = oppositePlayer->actor.position.x - 0x10000;
 		player->actor.position.y = oppositePlayer->actor.position.y;
 
-		((void(*)(void*))0x211EFB0)(player);
-		((void(*)(int, int))0x20200C4)(playerNo, 3);
-		if (playerNo == *(int*)0x02085A7C)
+		player->actor.isVisible = true;
+
+		player_wasDead[playerNo] = false;
+
+		PlayerActor_setRespawnedState(player);
+		SetRespawnStateForPlayer(playerNo, 3);
+
+		int localPlayerNo = *(int*)0x02085A7C;
+		if (playerNo == localPlayerNo)
 		{
 			int seqNo = Music_GetLevelSeqNo(playerNo);
 			Music_StartMusicNumber(seqNo);
@@ -200,56 +212,66 @@ void PlayerActor_spectateLoop(PlayerActor* player, int playerNo)
 	}
 	else
 	{
-		Entrance** destEntrance = (Entrance**)0x0208B0A0;
-		if (player->info.ViewID != destEntrance[!playerNo]->view)
+		Entrance* destEntrance = ((Entrance**)0x0208B0A0)[!playerNo]; //Opposite player entrance
+		if (player->info.ViewID != destEntrance->view)
 		{
-			player->P.enteringAnEntrance = 2;
-			//Call respawn system (Forces entrance reload)
-			((void(*)(void*, int, int))0x0211EDA0)(player, 0x0211870C, *(int*)0x02127AFC);
-		}
-		else if (!player->P.enteringAnEntrance)
-		{
-			player->actor.position.x = 0x2000000;
+			u8* SwapScreenOnRespawnForPlayer = (u8*)0x0208B08C;
+
+			player->P.enteringAnEntrance = 2; //Force player to wait for the other
+			SwapScreenOnRespawnForPlayer[playerNo] = destEntrance->settings & 1;
+			fx32 x = (destEntrance->x) << 12;
+			fx32 y = (-destEntrance->y) << 12;
+			SetRespawnPositionForPlayer(playerNo, x, y);
+			PlayerActor_setEntranceState(player, 0x0211870C, 0); //Call respawn system (Forces entrance reload)
 		}
 	}
 }
 //Setup hook for function above
 void nsub_0211C470_ov_0A()
 {
-	asm("MOV R0, R4");
-	asm("LDRB R1, [R4, #0x11E]");
-	asm("BL PlayerActor_spectateLoop");
-	asm("B 0x0211C4EC");
+	asm("MOV     R0, R4");
+	asm("LDRB    R1, [R4, #0x11E]");
+	asm("BL      PlayerActor_spectateLoop");
+	asm("B       0x0211C4EC");
 }
 
-void repl_0201E4E0() { asm("MOV R2, #1"); } //Use my respawn
-void nsub_0201E504() { asm("MOV R0, R5"); asm("MOV R1, R4"); asm("B 0x0201E54C"); }
-void repl_0201E54C(Vec3* entranceData, int playerNo)
+//Set camera for player during respawn fade
+void nsub_0201E558()
 {
-	//Change entrance pointer to fake custom entrance
-	Entrance* respawnEntrance = (Entrance*)0x0208B0CC;
-	Entrance** destEntrance = (Entrance**)0x0208B0A0;
-	destEntrance[playerNo] = &respawnEntrance[playerNo];
+	asm("MOV     R0, R4"); //Move R0 to playerNo
+	asm("MOV     R1, R0"); 
+	asm("CMP     R1, #0"); //Move R1 to !playerNo
+	asm("MOVEQ   R1, #1");
+	asm("MOVNE   R1, #0");
+	asm("BL      SetCameraForPlayerNo"); //Change camera
+	asm("MOV     R0, R4"); //Move R0 to playerNo
+	asm("MOV     R1, #2"); //Move R1 to 2
+	asm("BL      SetPlayerDeathState"); //Set player as spectating
+	asm("MOV     R0, #0xC"); //Keep replaced instruction
+	asm("B       0x0201E55C"); //Return to code
+}
 
-	SetPlayerDeathState(playerNo, 2); //Set death state as "waiting for respawn"
-	respawnEntrance[playerNo].view = destEntrance[!playerNo]->view; //Set destination entrance view as opposite player view
-	respawnEntrance[playerNo].settings &= ~1; //Reset destination entrance bottom screen
-	respawnEntrance[playerNo].settings |= destEntrance[!playerNo]->settings & 1; //Set destination entrance bottom screen as opposite player setting
-
-	PlayerActor* player = GetPtrToPlayerActorByID(playerNo);
-
-	if (player->P.enteringAnEntrance != 2) //If not respawning between views
+//Player can't respawn when switching areas
+void hook_0215EB28_ov_36()
+{
+	for (int i = 0; i < GetPlayerCount(); i++)
 	{
-		SetCameraForPlayerNo(playerNo, !playerNo);
+		PlayerActor* player = GetPtrToPlayerActorByID(i);
+		if (player)
+		{
+			if (player_wasDead[i] || GetLivesForPlayer(i) == 0)
+			{
+				SetupRespawnLocationForPlayer(i);
+				PlayerActor_setEntranceState(player, 0x0211870C, 0); //Call respawn system (Forces entrance reload)
+			}
+		}
+	}
+}
 
-		PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
-		*entranceData = oppositePlayer->actor.position;
-		entranceData->z = 0;
-	}
-	else
-	{
-		*entranceData = Vec3(destEntrance[!playerNo]->x, destEntrance[!playerNo]->y, 0);
-	}
+void hook_02006ADC()
+{
+	player_wasDead[0] = 0;
+	player_wasDead[1] = 0;
 }
 
 //Only freeze timer and pause menu on toad houses
@@ -278,6 +300,10 @@ void repl_020A2230_ov_00() {
 
 // ======================================= MISC =======================================
 
+//Fix some bottom screen locking crap that took our time (related to wavy fading transition) :(
+void nsub_0201EB1C() { asm("B 0x0201EB40"); }
+void repl_0201EB4C() {}
+
 //Disable baphs if player count is bigger than 1 (prevents desyncs)
 void nsub_02012584()
 {
@@ -301,14 +327,8 @@ int repl_0215293C_ov_36() { return *(int*)0x02085A50; } //Allow Luigi head on st
 void repl_020FBD70_ov_0A() {} //Disables "Lose" music. (End Flag & Boss)
 
 //Mega Mushroom enemy spawn desync fix
-void nsub_021121EC_ov_0A() { asm("MOV R0, R5"); asm("BL 0x0209E038"); asm("B 0x021121F0"); } //Pass player pointer to next function
-void nsub_0209E038_ov_00() { asm("STMFD SP!, {R4,R5,LR}"); asm("B 0x0209E03C"); } //Save register 5 to stack
-void nsub_0209E040_ov_00() { asm("MOV R5, R0"); asm("B 0x0209E060"); } //Save passed player pointer and skip MvsLMode check
-void nsub_0209E09C_ov_00() { asm("LDMFD SP!, {R4,R5,PC}"); } //Free register 5 from stack
-void nsub_0209E0A8_ov_00() { asm("LDMNEFD SP!, {R4,R5,PC}"); asm("B 0x0209E0AC"); } //Free register 5 from stack
-void nsub_0209E0CC_ov_00() { asm("LDMEQFD SP!, {R4,R5,PC}"); asm("B 0x0209E0D0"); } //Free register 5 from stack
-void repl_0209E0D0_ov_00() { asm("MOV R0, R5"); } //Use passed player pointer from previous function
-void nsub_0209E128_ov_00() { asm("LDMFD SP!, {R4,R5,PC}"); } //Free register 5 from stack
+void repl_02157514_ov_36() {} //Disables Coins spawn from mega mushroom groundpound.
+void repl_02157534_ov_36() {} //Disables Goomba spawn from mega mushroom groundpound.
 
 // ======================================= PLAYER ACTOR =======================================
 

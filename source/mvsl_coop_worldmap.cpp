@@ -42,7 +42,7 @@ void repl_020CEF84_ov_08(int a_SceneID, int a_MvsLMode, int a_World, int a_Level
 		PowerupForPlayer[0] = GetPowerupForPlayer(0);
 		PowerupForPlayer[1] = GetPowerupForPlayer(1);
 		
-		ChangeSceneToLevel(a_SceneID, a_MvsLMode, a_World, a_Level, 2, *MenuPlayerNumber, 3, 0, 1, 0, a_EntranceID, a12, a13, a14, a15, a16, a17);
+		ChangeSceneToLevel(a_SceneID, a_MvsLMode, a_World, a_Level, a_Area, *MenuPlayerNumber, 3, 0, 1, 0, a_EntranceID, a12, a13, a14, a15, a16, a17);
 
 		SetPowerupForPlayer(0, PowerupForPlayer[0]);
 		SetPowerupForPlayer(1, PowerupForPlayer[1]);

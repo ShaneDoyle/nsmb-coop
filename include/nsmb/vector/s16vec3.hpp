@@ -8,16 +8,16 @@ public:
 	void* vtable;
 	union
 	{
-		Fx16 a[3];
+		fx16 a[3];
 		struct
 		{
-			Fx16 x, y, z;
+			fx16 x, y, z;
 		};
 	};
 
 	S16Vec3() : vtable(S16Vec3_vtable), x(0), y(0), z(0) {}
-	S16Vec3(Fx16 n) : vtable(S16Vec3_vtable), x(n), y(n), z(n) {}
-	S16Vec3(Fx16 x_, Fx16 y_, Fx16 z_) : vtable(S16Vec3_vtable), x(x_), y(y_), z(z_) {}
+	S16Vec3(fx16 n) : vtable(S16Vec3_vtable), x(n), y(n), z(n) {}
+	S16Vec3(fx16 x_, fx16 y_, fx16 z_) : vtable(S16Vec3_vtable), x(x_), y(y_), z(z_) {}
 	S16Vec3(const VecFx16& v) : vtable(S16Vec3_vtable), x(v.x), y(v.y), z(v.z) {}
 
 	VecFx16* ToVecFx16() { return cVFx16(x); }
@@ -34,23 +34,23 @@ public:
 	inline S16Vec3& operator /= (const S16Vec3& v) { *this = *this / v; return *this; }
 
 	// V3 <op> Fx
-	inline S16Vec3 operator + (Fx16 n) { S16Vec3 out; S16Vec3::Add(out, *this, n); return out; }
-	inline S16Vec3& operator += (Fx16 n) { *this = *this + n; return *this; }
-	inline S16Vec3 operator - (Fx16 n) { S16Vec3 out; S16Vec3::Sub(out, *this, n); return out; }
-	inline S16Vec3& operator -= (Fx16 n) { *this = *this - n; return *this; }
-	inline S16Vec3 operator * (Fx16 n) { S16Vec3 out; S16Vec3::Mul(out, *this, n); return out; }
-	inline S16Vec3& operator *= (Fx16 n) { *this = *this * n; return *this; }
-	inline S16Vec3 operator / (Fx16 n) { S16Vec3 out; S16Vec3::Div(out, *this, n); return out; }
-	inline S16Vec3& operator /= (Fx16 n) { *this = *this / n; return *this; }
+	inline S16Vec3 operator + (fx16 n) { S16Vec3 out; S16Vec3::Add(out, *this, n); return out; }
+	inline S16Vec3& operator += (fx16 n) { *this = *this + n; return *this; }
+	inline S16Vec3 operator - (fx16 n) { S16Vec3 out; S16Vec3::Sub(out, *this, n); return out; }
+	inline S16Vec3& operator -= (fx16 n) { *this = *this - n; return *this; }
+	inline S16Vec3 operator * (fx16 n) { S16Vec3 out; S16Vec3::Mul(out, *this, n); return out; }
+	inline S16Vec3& operator *= (fx16 n) { *this = *this * n; return *this; }
+	inline S16Vec3 operator / (fx16 n) { S16Vec3 out; S16Vec3::Div(out, *this, n); return out; }
+	inline S16Vec3& operator /= (fx16 n) { *this = *this / n; return *this; }
 
 	// other
 	inline S16Vec3 operator -() { S16Vec3 out(-x, -y, -z); return out; }
 
 	// vector math
-	inline Fx32 Mag() { return S16Vec3::Mag(*this); }
-	inline Fx32 Distance(const S16Vec3& v) { return S16Vec3::Distance(*this, v); }
+	inline fx32 Mag() { return S16Vec3::Mag(*this); }
+	inline fx32 Distance(const S16Vec3& v) { return S16Vec3::Distance(*this, v); }
 	inline S16Vec3& Cross(const S16Vec3& v) { return S16Vec3::Cross(*this, *this, v); }
-	inline Fx32 Dot(const S16Vec3& v) { return S16Vec3::Dot(*this, v); }
+	inline fx32 Dot(const S16Vec3& v) { return S16Vec3::Dot(*this, v); }
 	inline S16Vec3& Normalize() { return S16Vec3::Normalize(*this, *this); }
 
 	// other math
@@ -94,14 +94,14 @@ private:
 		if (in_b.x == 0 || in_b.y == 0 || in_b.z == 0)
 			return out;
 
-		out.x = (Fx16)FX_Div((Fx32)in_a.x, (Fx32)in_b.x);
-		out.y = (Fx16)FX_Div((Fx32)in_a.y, (Fx32)in_b.y);
-		out.z = (Fx16)FX_Div((Fx32)in_a.z, (Fx32)in_b.z);
+		out.x = (fx16)FX_Div((fx32)in_a.x, (fx32)in_b.x);
+		out.y = (fx16)FX_Div((fx32)in_a.y, (fx32)in_b.y);
+		out.z = (fx16)FX_Div((fx32)in_a.z, (fx32)in_b.z);
 		return out;
 	}
 
 	// S16V3 <op> Fx
-	static inline S16Vec3& Add(S16Vec3& out, const S16Vec3& in_a, const Fx16 in_b)
+	static inline S16Vec3& Add(S16Vec3& out, const S16Vec3& in_a, const fx16 in_b)
 	{
 		out.x = in_a.x + in_b;
 		out.y = in_a.y + in_b;
@@ -109,7 +109,7 @@ private:
 		return out;
 	}
 
-	static inline S16Vec3& Sub(S16Vec3& out, const S16Vec3& in_a, const Fx16 in_b)
+	static inline S16Vec3& Sub(S16Vec3& out, const S16Vec3& in_a, const fx16 in_b)
 	{
 		out.x = in_a.x - in_b;
 		out.y = in_a.y - in_b;
@@ -117,7 +117,7 @@ private:
 		return out;
 	}
 
-	static inline S16Vec3& Mul(S16Vec3& out, const S16Vec3& in_a, const Fx16 in_b)
+	static inline S16Vec3& Mul(S16Vec3& out, const S16Vec3& in_a, const fx16 in_b)
 	{
 		out.x = in_a.x * in_b;
 		out.y = in_a.y * in_b;
@@ -125,25 +125,25 @@ private:
 		return out;
 	}
 
-	static inline S16Vec3& Div(S16Vec3& out, const S16Vec3& in_a, const Fx16 in_b)
+	static inline S16Vec3& Div(S16Vec3& out, const S16Vec3& in_a, const fx16 in_b)
 	{
 		if (in_b == 0)
 			return out;
 
-		out.x = (Fx16)FX_Div((Fx32)in_a.x, (Fx32)in_b);
-		out.y = (Fx16)FX_Div((Fx32)in_a.y, (Fx32)in_b);
-		out.z = (Fx16)FX_Div((Fx32)in_a.z, (Fx32)in_b);
+		out.x = (fx16)FX_Div((fx32)in_a.x, (fx32)in_b);
+		out.y = (fx16)FX_Div((fx32)in_a.y, (fx32)in_b);
+		out.z = (fx16)FX_Div((fx32)in_a.z, (fx32)in_b);
 		return out;
 	}
 
 	// vector math
-	static inline Fx32 Mag(const S16Vec3& in)
+	static inline fx32 Mag(const S16Vec3& in)
 	{
 		u64 sq = (u64)in.x * (u64)in.x + (u64)in.y * (u64)in.y + (u64)in.z * (u64)in.z;
-		return (Fx32)SQRT64(sq);
+		return (fx32)SQRT64(sq);
 	}
 
-	static inline Fx32 Distance(const S16Vec3& in_a, const S16Vec3& in_b)
+	static inline fx32 Distance(const S16Vec3& in_a, const S16Vec3& in_b)
 	{
 		return S16Vec3::Mag(*cCS16V3(in_a) - *cCS16V3(in_b));
 	}
@@ -154,7 +154,7 @@ private:
 		return out;
 	}
 
-	static inline Fx32 Dot(const S16Vec3& in_a, const S16Vec3& in_b)
+	static inline fx32 Dot(const S16Vec3& in_a, const S16Vec3& in_b)
 	{
 		return VEC_Fx16DotProduct(cCS16V3(in_a)->ToVecFx16(), cCS16V3(in_b)->ToVecFx16());
 	}

@@ -31,6 +31,7 @@
     <ClCompile Include="source\nsmb\nsbtx.cpp" />
     <ClCompile Include="source\nsmb\ostream.cpp" />
     <ClCompile Include="source\nsmb\ramviewer.cpp" />
+    <ClCompile Include="source\player_collide.cpp" />
     <ClCompile Include="source\test.cpp" />
     <ClCompile Include="source\vs_battle_stars.cpp" />
   </ItemGroup>
@@ -92,6 +93,7 @@
     <None Include="source\nsmb\nocashPrint.s" />
     <None Include="source\nsmb\ostreambuffer.s" />
     <None Include="source\nsmb\ramviewer_asm.s" />
+    <None Include="source\player_collide_asm.s" />
     <None Include="symbols.x" />
   </ItemGroup>
   <ItemGroup>

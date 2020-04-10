@@ -2644,6 +2644,10 @@ GetStoredPowerupForPlayer = 0x02020240;
 SetStoredPowerupForPlayer = 0x02020250;
 GetScoreForPlayer = 0x02020334;
 SetScoreForPlayer = 0x02020344;
+GetRespawnStateForPlayer = 0x020200B4;
+SetRespawnStateForPlayer = 0x020200C4;
+GetStarmanTimeForPlayer = 0x2020178;
+SetStarmanTimeForPlayer = 0x202018C;
 
 RNG = 0x0200E6F4;
 
@@ -2716,6 +2720,8 @@ PlayerActor_unfreeze = 0x0211F2EC;
 PlayerActor_setHeldActor = 0x212b26c;
 PlayerActor_removeHeldActor = 0x212bde0;
 PlayerActor_removeHeldItem = 0x02104C9C;
+PlayerActor_setEntranceState = 0x0211EDA0;
+PlayerActor_setRespawnedState = 0x0211EFB0;
 
 base_ctor = 0x204d2ac;
 
