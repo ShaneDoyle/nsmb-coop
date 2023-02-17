@@ -1,9 +1,33 @@
-build
-bak
-newcode.bin
-newcode.elf
-newcode.sym
-NSMBDS-COOP.nds
-NSMBDS-COOP.sav
-NSMBe5.3_Beta4
-NSMBUS.sav
+## Stuff added for by/for mariomadproductions
+
+# ROM related files
+*.nds
+*.sav
+
+# Original ROM data
+/code/backup/
+
+# Built code
+/code/build/
+
+# Exclude Nitro SDK headers
+/code/include/nitro/
+/code/include/nitro_wl/
+/code/include/nnsys/
+/code/include/nitro.h
+/code/include/nnsys.h
+/code/include/nitro_sp.h
+/code/include/nitro_win32.h
+
+# VS Code
+/code/.vscode
+
+# Operating system files
+*.lnk
+
+# Release files
+*.xdelta
+
+# Temporary code files
+/__tmp
+/code/source/ObjectTable.gen.cpp
