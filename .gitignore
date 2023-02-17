@@ -3,6 +3,7 @@
 # ROM related files
 *.nds
 *.sav
+*.sav.*
 
 # Original ROM data
 /code/backup/
@@ -30,4 +31,3 @@
 
 # Temporary code files
 /__tmp
-/code/source/ObjectTable.gen.cpp
