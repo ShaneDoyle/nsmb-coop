@@ -2638,6 +2638,7 @@ GetCharacterForPlayer = 0x2020260;
 SetCharacterForPlayer = 0x2020270;
 GetLivesForPlayer = 0x02020570;
 SetLivesForPlayer = 0x02020580;
+DecreaseLivesForPlayer = 0x020204E0;
 GetPowerupForPlayer = 0x20201B8;
 SetPowerupForPlayer = 0x20201C8;
 GetStoredPowerupForPlayer = 0x02020240;
@@ -2859,6 +2860,8 @@ sub_2009A30 = 0x02009A30;
 
 Sqrt64 = 0x2046030;
 
+SetMegaMushroomTimeForPlayer = 0x2020150;
+
 /*============ VECTORS ============*/
 
 Vec3_OperatorAdd = 0x2045bdc;
@@ -2888,6 +2891,8 @@ Vec2_TryNormalize = 0x2045cd0;
 Vec2_Cross = 0x2045d74;
 Vec2_Mag = 0x2045e10;
 Vec2_Mag2 = 0x2045dbc;
+
+
 
 /* WIFI STUFF */
 

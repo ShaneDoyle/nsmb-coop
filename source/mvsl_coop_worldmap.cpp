@@ -2,6 +2,7 @@
 
 static u8* PlayAsLuigi = (u8*)(0x2085A50);
 static u8* MenuPlayerNumber = (u8*)(0x20887F0);
+extern u8 GlobalFileNo;
 
 void repl_021578F0_ov_34() { asm("MOVEQ R1, #0"); } //Force MvsLMode = 0
 void nsub_021535A0_ov_34() { SetPlayerCount(2); } //Change mvsl setup crap
@@ -12,7 +13,7 @@ int repl_02157A40_ov_34()
 {
 	*PlayAsLuigi = *MenuPlayerNumber; //Enable Luigi graphics in world map for Luigi console (also use to store original menu controller)
 
-	LoadSaveAndSetCounters(0, 0, &saveData);
+	LoadSaveAndSetCounters(GlobalFileNo, 0, &saveData);
 	if (((u16*)&saveData.lives)[1] == 0)
 		SetLivesForPlayer(1, 5);
 
@@ -21,10 +22,23 @@ int repl_02157A40_ov_34()
 	return WORLDMAP_SCENE; //WORLDMAP_SCENE
 }
 
-//On Worldmap Scene Creation
+//Worldmap Scene Creation
 void hook_020CF7D0_ov_08()
 {
-	*MenuPlayerNumber = 0; //Mario controls Luigi in world map
+	//Mario controls Luigi in world map
+	*MenuPlayerNumber = 0;
+}
+
+//WorldmapScene onExecute
+void hook_020CF034_ov_08()
+{
+	//Game Over.
+	u8 *MarioLives = (u8*) (0x208B364); // Mario's Lives
+	u8 *LuigiLives = (u8*) (0x208B368); // Luigi's Lives
+	if(*MarioLives == 0 && *LuigiLives == 0)
+	{
+		ChangeSceneToLevel(14, 0, 1, 1, 1, *MenuPlayerNumber, 3, 0, 1, 0, 255, 1, 1, 255, 0, 0, -1);
+	}
 }
 
 //Replace world load level system

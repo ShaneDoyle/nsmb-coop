@@ -529,6 +529,9 @@ extern "C"
 
 	// Sets the lives for player
 	void SetLivesForPlayer(u32 playerNo, u32 Lives);
+	
+	// Decreases the lives for the player by 1
+	u32 DecreaseLivesForPlayer(u32 playerNo);
 
 	// Gets the powerup for player
 	u8 GetPowerupForPlayer(u32 playerNo);
@@ -574,6 +577,9 @@ extern "C"
 
 	// Sets the entrance for player
 	void SetEntranceIdForPlayer(u32 entranceId, u32 playerNo);
+	
+	// Sets the entrance for player
+	void SetMegaMushroomTimeForPlayer(u32 playerNo, u16 megaTime);
 
 	// Gets the starman time for player
 	s32 GetStarmanTimeForPlayer(u32 playerNo);

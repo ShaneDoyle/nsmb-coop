@@ -82,7 +82,21 @@ void repl_0213695C_ov_0D()
 }
 
 //Fix fireball tracking
-void nsub_02138D7C_ov_0D() { asm("MOV R3, #0"); asm("B 0x02138D80"); }
+void nsub_02138D7C_ov_0D() 
+{
+	u8* LevelBlock1Ptr = *(u8**)0x0208B19C;
+	u8 SpriteSet1 = LevelBlock1Ptr[0];
+	if(SpriteSet1 != 7)
+	{
+		asm("MOV R3, #0");
+	}
+	else
+	{
+		asm("MOV R3, #2");
+	}
+	
+	asm("B 0x02138D80");
+}
 
 //Disables "StageZoom" for BowserBattleSwitch and applies "Victory" animation.
 void repl_0213A7A4_ov_0D()
@@ -242,7 +256,6 @@ void nsub_0214827C_ov_2B() { asm("MOV R1, R4"); asm("B 0x02148338"); } //Set arg
 void repl_02148338_ov_2B(PlayerActor* wall_player, EnemyActor* controller)
 {
 	static u8 Index_2P = 0;
-
 
 	wall_player->P.miscActionsBitfield |= 0x80;
 	wall_player->actor.velocity.x = 0;

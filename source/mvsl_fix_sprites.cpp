@@ -1,7 +1,7 @@
 #include "nsmb.h"
 
 //Fix Volcano BG
-void repl_020B6B6C() { asm("MOV R1, #0"); }
+void repl_020B6B6C() { asm("MOV R1, #2"); }
 
 //Remove delete range for UnusedSpikeBass (256).
 void repl_021728EC_ov_3A() {}
@@ -54,10 +54,9 @@ void nsub_0215410C_ov_36(Actor* red_ring)
 }
 
 ///Lava (234) & Poisoned Water (259)
-
 void repl_020BBE88_ov_00() {} //Prevent liquid type change on respawn
 
-	//Lava
+//Lava
 void repl_021654F8_ov_36() { asm("MOV R1, #0"); } //Force to Mario
 void repl_0216550C_ov_36() { asm("MOV R0, #0"); } //Force to Mario
 void hook_02165540_ov_36() //Luigi also gets his liquid type changed
@@ -65,7 +64,7 @@ void hook_02165540_ov_36() //Luigi also gets his liquid type changed
 	u8* liquidType = (u8*)0x20CACE0;
 	liquidType[1] = liquidType[0];
 }
-	//Poision
+//Poison
 void repl_021653B4_ov_36() { asm("MOV R1, #0"); } //Force to Mario
 void repl_021653C8_ov_36() { asm("MOV R0, #0"); } //Force to Mario
 void hook_021653F8_ov_36() { hook_02165540_ov_36(); } //Luigi also gets his liquid type changed

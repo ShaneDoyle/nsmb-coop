@@ -8,12 +8,18 @@ void hook_02144024_ov_28()
 {
 	if(Start == false)
 	{
-		Start = true;
 		((u8*)GetSpawnedActor(115, 0, 0))[1384] = 2;
+		Start = true;
 	}
 	
 	if(isEventActive(21))
 	{
+		//Player Number crap for Credits.
+		u8 *PlayerNumber = (u8*) (0x2085A7C);
+		u8* MenuPlayerNumber = (u8*)(0x20887F0);
+		*MenuPlayerNumber = 0;
+		*PlayerNumber = 0;
+		
 		if(FinalBossPeachTimer == 0)
 		{	
 			Music_StartMusicNumber(19);

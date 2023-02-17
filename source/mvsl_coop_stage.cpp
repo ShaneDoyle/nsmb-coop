@@ -161,15 +161,52 @@ void SetupRespawnLocationForPlayer(int playerNo)
 	SetRespawnPositionForPlayer(playerNo, x, y);
 }
 
+//New DecreaseLivesForPlayer that decreases immediately.
+extern "C"
+void DecLivesForPlayer_hook(int playerNo)
+{
+	if(GetLivesForPlayer(playerNo) > 0)
+	{
+		DecreaseLivesForPlayer(playerNo);
+	}
+}
+
+void nsub_02119CA0_ov_0A()
+{
+  asm("LDRSB   R4, [R0,#0x1E]"); //Keep replaced instruction (player number get)
+  asm("MOV     R0, R4"); //Pass playerNo as arg
+  asm("BL      DecLivesForPlayer_hook"); //Run my custom function
+  asm("LDR     R2, =0x020CA898"); //Make sure it doesn't get replaced by the hook
+  asm("B       0x02119CA4"); //Return to code
+}
+
+
+//Remove original DecreaseLivesForPlayer and end level instead.
+void repl_0212B2DC_ov_0B()
+{
+	if(GetPlayerDeathState(0))
+	{
+		if(GetPlayerDeathState(1))
+		{
+			ExitLevel(false);
+		}
+	}
+}
+
+//Respawning.
 bool repl_0212B338_ov_0B(int playerNo, int lives)
 {
 	//Don't respawn.
 	if ((lives == 0 && GetLivesForPlayer(!playerNo) == 0) || GetPlayerDeathState(!playerNo))
 	{
-		ExitLevel(false);
+		//ExitLevel(false);
 		return false; //Do not respawn
 	}
-
+	//Disable for certain bosses, including Bowser JR. (All bosses except for Monty Tank). Also, disable for falling rock level.
+	else if(SpriteSet1 == 5 || SpriteSet1 == 7 ||  SpriteSet16 == 2 || SpriteSet16 == 3 || SpriteSet16 == 4 || SpriteSet16 == 5 || SpriteSet16 == 6 || SpriteSet16 == 7)
+	{
+		return false;
+	}
 	//Respawn.
 	SetupRespawnLocationForPlayer(playerNo);
 	return true;
@@ -179,11 +216,12 @@ extern "C"
 void PlayerActor_spectateLoop(PlayerActor* player, int playerNo)
 {
 	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
-
+	
+	//Check for things we don't want to spawn again for. 
+	bool AutoScroller = (EnemyActor*)GetSpawnedActor(218, 0, 0);
+	
 	//Check if player is allowed to respawn or not.
-	if (GetLivesForPlayer(playerNo) != 0 &&
-		player->P.ButtonsPressed & KEY_A &&
-		GetPlayerDeathState(!playerNo) == 0)
+	if (GetLivesForPlayer(playerNo) != 0 && player->P.ButtonsPressed & KEY_A && GetPlayerDeathState(!playerNo) == 0 && SpriteSet16 != 8 && !AutoScroller)
 	{
 		player->P.cases = 1;
 
@@ -304,6 +342,10 @@ void repl_020A2230_ov_00() {
 void nsub_0201EB1C() { asm("B 0x0201EB40"); }
 void repl_0201EB4C() {}
 
+//Fix some bottom screen locking crap that took our time (related to wavy fading transition) :(
+void nsub_0201EB1C() { asm("B 0x0201EB40"); }
+void repl_0201EB4C() {}
+
 //Disable baphs if player count is bigger than 1 (prevents desyncs)
 void nsub_02012584()
 {
@@ -320,6 +362,8 @@ int repl_021624C8_ov_36() { return *(int*)0x02085A7C; } //Midway point draws fro
 int repl_02162110_ov_36() { return *(int*)0x02085A7C; } //Midway point plays sound at local player position
 
 void repl_0215ED54_ov_36() {} //Disable mega mushroom destruction counter
+void repl_02157514_ov_36(){} //Disables coins spawn from mega mushroom groundpound.
+void repl_02157534_ov_36(){} //Disables Goomba spawn from mega mushroom groundpound.
 
 int repl_02152944_ov_36() { return *(int*)0x02085A50; } //Allow Luigi lives on stage intro scene
 int repl_0215293C_ov_36() { return *(int*)0x02085A50; } //Allow Luigi head on stage intro scene
@@ -332,4 +376,53 @@ void repl_02157534_ov_36() {} //Disables Goomba spawn from mega mushroom groundp
 
 // ======================================= PLAYER ACTOR =======================================
 
-//void repl_021096EC_ov_0A() {} //Disable Mario & Luigi Collision
+void repl_021096EC_ov_0A() {} //Disable Mario & Luigi Collision
+
+//Mario Updater!
+void hook_020201A0()
+{
+	///Death Function (0 Lives).
+	s8 *MarioLives = (s8*) (0x208B364); // Mario's Lives
+	s8 *LuigiLives = (s8*) (0x208B368); // Luigi's Lives
+	
+	PlayerActor* Mario = GetPtrToPlayerActorByID(0);
+	PlayerActor* Luigi = GetPtrToPlayerActorByID(1);
+	
+	//If Mario has no lives.
+	if(*MarioLives <= 0)
+	{
+		if(!GetPlayerDeathState(0))
+		{
+			Mario->P.DeathState = 0x21197FC;
+		}
+	}
+	
+	//If Luigi has no lives.
+	if(*LuigiLives <= 0)
+	{
+		if(!GetPlayerDeathState(1))
+		{
+			Luigi->P.DeathState = 0x21197FC;
+		}
+	}
+}
+
+
+
+/*
+//EndOfLevelFlag__onExecute(). This will cause players to shrink if too close to the flag!
+void hook_0212FCAC_ov_0C()
+{
+	int *MegaMushroomTime = (int*) (0x208B334);
+	int Buffer = (int) (0x208B334);
+	
+	//Remove mega if in range of flag.
+	if(Buffer >= 1)
+	{
+		Music_StopSeq(03);
+		*MegaMushroomTime = 0;
+		int seqNo = Music_GetLevelSeqNo(0);
+		Music_StartMusicNumber(seqNo);
+	}
+}
+*/
