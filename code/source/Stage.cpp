@@ -1,27 +1,36 @@
 #include "nsmb/game.h"
+#include "nsmb/sound.h"
 #include "nsmb/player.h"
-#include "nsmb/system/misc.h"
 #include "nsmb/stage/entity.h"
+#include "nsmb/stage/layout/entrance.h"
+#include "nsmb/graphics/particle.h"
+#include "nsmb/system/input.h"
+#include "nsmb/system/function.h"
+#include "nsmb/system/misc.h"
+
+#include "PlayerSpectate.hpp"
+#include "eprintf.h"
 
 NTR_USED static u32 sTempVar;
+static u8 sPlayerSpectating[2];
+
+asm(R"(
+	SpawnGrowingEntranceVine = 0x020D0CEC
+	_ZN5Stage9exitLevelEm = 0x020A189C
+)");
+extern "C" {
+	void SpawnGrowingEntranceVine(Vec3*);
+}
+namespace Stage {
+	void exitLevel(u32 flag);
+}
 
 // ======================================= GETTERS =======================================
 
 static bool Stage_getLocalPlayerID() { return Game::localPlayerID; }
 static bool Stage_getLuigiMode() { return Game::luigiMode; }
+static bool Stage_getMultiplayer() { return Game::getPlayerCount() > 1; }
 
-/*
-// ======================================= CAMERA FUNCTIONS =======================================
-
-static int CameraForPlayerNo[2] = { 0 };
-extern "C" {
-	int GetCameraForPlayerNo(int playerNo) { return CameraForPlayerNo[playerNo]; };
-	void SetCameraForPlayerNo(int playerNo, int focusPlayerNo) { CameraForPlayerNo[playerNo] = focusPlayerNo; };
-}
-void nsub_020201A4() { asm("MOV R4, R0"); asm("BL GetCameraForPlayerNo"); asm("B 0x20201A8"); }
-
-void hook_020FF864_ov_0A(PlayerActor* player) { int playerNo = player->actor.playerNumber; SetCameraForPlayerNo(playerNo, playerNo); }
-*/
 // ======================================= MISC =======================================
 
 ncp_repl(0x020AECA4, 0, "MOV R1, #1") // Disable background HDMA parallax
@@ -43,7 +52,7 @@ ncp_repl(0x020BED88, 0, "NOP") // Do not draw singleplayer player position indic
 ncp_call(0x020BE5C4, 0)
 bool call_020BE5C4_ov0(u32 playerID)
 {
-	return Game::getPlayer(playerID)/*TODO: && !sPlayerSpectating[playerID]*/;
+	return Game::getPlayer(playerID) && !sPlayerSpectating[playerID];
 }
 
 asm(R"(
@@ -57,28 +66,29 @@ ncp_jump(0x020BF124, 0)
 	B       0x020BF128
 )");
 
-/*
 // Draw bottom screen lives my way
-void nsub_020BEC60_ov_00()
+ncp_call(0x020BF12C, 0)
+void call_020BF12C_ov0()
 {
-	GXOamAttr** liveCounterForPlayer_1P = (GXOamAttr**)0x020CA00C;
-	int x_shift = *rcast<int*>(0x020CC2C4);
+	GXOamAttr** liveCounterForPlayer_1P = rcast<GXOamAttr**>(0x020CA00C);
+	s32 xShift = *rcast<s32*>(0x020CC2C4);
 
-	Game::drawBNCLSpriteSub(6, liveCounterForPlayer_1P[0], OAM::Flags::None, 0, 0, 0, 0, 0, OAM::Settings::None, -x_shift - 64 - 4, 0);
-	Game::drawBNCLSpriteSub(6, liveCounterForPlayer_1P[1], OAM::Flags::None, 0, 0, 0, 0, 0, OAM::Settings::None, -x_shift + 4, 0);
+	Game::drawBNCLSpriteSub(6, liveCounterForPlayer_1P[0], OAM::Flags::None, 0, 0, 0, 0, 0, OAM::Settings::None, -xShift - 64 - 4, 0);
+	Game::drawBNCLSpriteSub(6, liveCounterForPlayer_1P[1], OAM::Flags::None, 0, 0, 0, 0, 0, OAM::Settings::None, -xShift + 4, 0);
 }
 
 // Update lives for both players
-void nsub_020C041C_ov_00() { asm("B 0x020C0444"); }
-void repl_020C0444_ov_00()
+ncp_call(0x020C0444, 0)
+void call_020C0444_ov0()
 {
-	u32* entryTable_1P = (u32*)0x0216F554;
-	GXOamAttr** liveCounterForPlayer_1P = (GXOamAttr**)0x020CA00C;
+	GXOamAttr** entryTable_1P = rcast<GXOamAttr**>(0x0216F554);
+	GXOamAttr** liveCounterForPlayer_1P = rcast<GXOamAttr**>(0x020CA00C);
 
-	OAM_UpdateDigits(liveCounterForPlayer_1P[0], entryTable_1P, GetLivesForPlayer(0), 2, 3);
-	OAM_UpdateDigits(liveCounterForPlayer_1P[1], entryTable_1P, GetLivesForPlayer(1), 2, 3);
+	OAM::updateCounter(liveCounterForPlayer_1P[0], entryTable_1P, Game::getPlayerLives(0), 2, OAM::CounterFlags::UpdateShadow | OAM::CounterFlags::Unk2h);
+	OAM::updateCounter(liveCounterForPlayer_1P[1], entryTable_1P, Game::getPlayerLives(1), 2, OAM::CounterFlags::UpdateShadow | OAM::CounterFlags::Unk2h);
 }
-*/
+ncp_repl(0x020C041C, 0, "B 0x020C0444")
+
 ncp_repl(0x0209AAD0, 0, "BX LR") // Disable MvsL coin score
 ncp_repl(0x020D3350, 10, "NOP") // Disable MvsL coin score for coin actor
 
@@ -94,223 +104,161 @@ void call_020203EC() // When Mario gets 1-up from coins, also give Luigi 1-up.
 	for (s32 i = 0; i < Game::getPlayerCount(); i++)
 		StageEntity::getCollectablePoints(8, i);
 }
-/*
+
 // ======================================= ENTRANCE POSITIONING =======================================
 
-//Force Luigi to spawn in the same entrance as Mario
-void nsub_0215E5A4_ov_36()
-{
-	asm("LDR     R5, =0x020CA8F4");
-	asm("LDRB    R5, [R5,#8]");
-	asm("STRB    R5, [R1,#9]");
-	asm("B       0x0215E5A8");
-}
-void nsub_0215EFF0_ov_36()
-{
-	asm("LDR     R2, =0x020CA8F4");
-	asm("LDRB    R2, [R2,#8]");
-	asm("STRB    R2, [R1,#9]");
-	asm("B       0x0215EFF4");
-}
+asm(R"(
+// Force Luigi to spawn in the same entrance as Mario
+ncp_jump(0x0215E5A4, 54)
+	LDRB    R5, [R1,#8]
+	STRB    R5, [R1,#9]
+	B       0x0215E5A8
 
-//Player positioning on multiplayer entrance spawn
-//entranceVecs[playerNumber]
-void hook_0215E920()
+ncp_jump(0x0215EFF0, 54)
+	LDRB    R2, [R1,#8]
+	STRB    R2, [R1,#9]
+	B       0x0215EFF4
+)");
+
+// Player positioning on multiplayer entrance spawn
+NTR_USED static void Stage_adjustEntrancePosition()
 {
-	u8 entranceId = ((u8*)0x020CA8F4)[8];
-	Entrance* entrance = GetPtrToEntranceById(entranceId, entranceId);
-	Vec3* entranceVecs = (Vec3*)0x020CA928;
+	if (Game::getPlayerCount() == 1)
+		return;
+
+	s8 entranceID = rcast<s8*>(0x020CA8F4)[8];
+	StageEntrance* entrance = Entrance::getEntrance(entranceID);
+	Vec3* entranceVecs = rcast<Vec3*>(0x020CA928);
 
 	switch (entrance->type)
 	{
-	//Pipe
-	case 3:
-	case 4:
-	case 5:
-	case 6:
-		entranceVecs[1].x += 16 << 12;
+	// Pipe
+	case EntranceType::PipeUp:
+	case EntranceType::PipeDown:
+		entranceVecs[0].x += 4 << 12;
+		entranceVecs[1].x -= 4 << 12;
+	case EntranceType::PipeLeft:
+	case EntranceType::PipeRight:
 		break;
-	//Climbing Vine
-	case 21:
-		entranceVecs[0].x += 7 << 12;
-		entranceVecs[1].x += 9 << 12;
+	// Climbing Vine
+	case EntranceType::Vine:
+		//entranceVecs[0].x += 7 << 12;
+		//entranceVecs[1].x += 9 << 12;
+		entranceVecs[1].y -= 16 << 12;
 		break;
-	//Any other entrance
+	// Any other entrance
 	default:
 		entranceVecs[0].x += 8 << 12;
-		entranceVecs[1].x += 8 << 12;
+		entranceVecs[1].x -= 8 << 12;
 		break;
 	}
 }
 
+ncp_repl(0x0215E914, 54, "MOV R1, R6")
+
+asm(R"(
+ncp_jump(0x0215E924, 54)
+	BL      _ZL28Stage_adjustEntrancePositionv
+	B       0x0215E958
+)");
+
 // Center vine head
-void repl_0211C218_ov_0A() { asm("MOV R0, R4"); }
-void repl_0211C21C_ov_0A(PlayerActor* player)
+ncp_repl(0x0211C218, 10, "MOV R0, R4")
+
+ncp_call(0x0211C21C, 10)
+void call_0211C21C_ov10(Player* player)
 {
-	if (GetPlayerCount() == 1)
+	/*if (Game::getPlayerCount() == 1)
 	{
-		SpawnGrowingEntranceVine(&player->actor.position);
+		SpawnGrowingEntranceVine(&player->position);
 	}
-	else if (player->actor.playerNumber == 0)
+	else if (player->linkedPlayerID == 0)
 	{
-		Vec3 pos = player->actor.position;
+		Vec3 pos = player->position;
 		pos.x -= 7 << 12;
 		SpawnGrowingEntranceVine(&pos);
+	}*/
+	if (player->linkedPlayerID == 0)
+	{
+		SpawnGrowingEntranceVine(&player->position);
 	}
 }
 
 // ======================================= RESPAWN =======================================
 
-static u8 player_wasDead[2] = { false };
+ncp_set_call(0x021041F4, 10, Stage_getMultiplayer)
+ncp_set_call(0x0212B318, 11, Stage_getMultiplayer)
+ncp_repl(0x02119CB8, 10, "NOP") // Do not freeze timer on player death
 
-int repl_021041F4_ov_0A() { return GetPlayerCount() != 1; }
-int repl_0212B318_ov_0B() { return GetPlayerCount() != 1; }
-void repl_02119CB8_ov_0A() {} //Do not freeze timer on player death
-void repl_0212B334_ov_0B() { asm("MOV R0, R6"); asm("MOV R1, R4"); } //Do not allow player to respawn so we can control it ourselves
-
-void SetupRespawnLocationForPlayer(int playerNo)
+static bool Stage_playerSpectateState(Player* player, void* arg)
 {
-	Entrance* destEntrance = ((Entrance**)0x0208B0A0)[!playerNo]; //Opposite player entrance
-	u8* SwapScreenOnRespawnForPlayer = (u8*)0x0208B08C;
-	SwapScreenOnRespawnForPlayer[playerNo] = destEntrance->settings & 1;
+	u32 playerID = player->linkedPlayerID;
+	u32 otherID = playerID ^ 1;
 
-	player_wasDead[playerNo] = true;
-
-	GetPtrToPlayerActorByID(playerNo)->actor.isVisible = false;
-	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
-	fx32 x = oppositePlayer->actor.position.x;
-	fx32 y = oppositePlayer->actor.position.y;
-	SetRespawnPositionForPlayer(playerNo, x, y);
-}
-
-//New DecreaseLivesForPlayer that decreases immediately.
-extern "C"
-void DecLivesForPlayer_hook(int playerNo)
-{
-	if(GetLivesForPlayer(playerNo) > 0)
+	s8& step = player->transitionStateStep;
+	if (step == Func::Init)
 	{
-		DecreaseLivesForPlayer(playerNo);
+		step = 1;
+		player->visible = false;
+		sPlayerSpectating[playerID] = true;
+		PlayerSpectate::setTarget(playerID, otherID);
+		return true;
 	}
-}
-
-void nsub_02119CA0_ov_0A()
-{
-  asm("LDRSB   R4, [R0,#0x1E]"); //Keep replaced instruction (player number get)
-  asm("MOV     R0, R4"); //Pass playerNo as arg
-  asm("BL      DecLivesForPlayer_hook"); //Run my custom function
-  asm("LDR     R2, =0x020CA898"); //Make sure it doesn't get replaced by the hook
-  asm("B       0x02119CA4"); //Return to code
-}
-
-
-//Remove original DecreaseLivesForPlayer and end level instead.
-void repl_0212B2DC_ov_0B()
-{
-	if(GetPlayerDeathState(0))
+	if (step == Func::Exit)
 	{
-		if(GetPlayerDeathState(1))
+		player->visible = true;
+		sPlayerSpectating[playerID] = false;
+		return true;
+	}
+
+	Player* other = Game::getPlayer(otherID);
+
+	// Check if player is allowed to respawn or not.
+	if ((player->keysPressed & Keys::A) && Game::getPlayerLives(playerID) != 0  && !Game::getPlayerDead(otherID))
+	{
+		player->position.x = other->position.x - 0x10000;
+		player->position.y = other->position.y;
+
+		player->spawnDefault();
+
+		if (playerID == Game::localPlayerID)
 		{
-			ExitLevel(false);
+			u32 seqID = Entrance::getSpawnMusic(playerID);
+			Sound::playStageBGM(seqID);
 		}
-	}
-}
 
-//Respawning.
-bool repl_0212B338_ov_0B(int playerNo, int lives)
-{
-	//Don't respawn.
-	if ((lives == 0 && GetLivesForPlayer(!playerNo) == 0) || GetPlayerDeathState(!playerNo))
-	{
-		//ExitLevel(false);
-		return false; //Do not respawn
+		Particle::Handler::createParticle(249, player->position);
+		Particle::Handler::createParticle(250, player->position);
+
+		Game::setPlayerDead(playerID, false);
+		PlayerSpectate::setTarget(playerID, playerID);
 	}
-	//Disable for certain bosses, including Bowser JR. (All bosses except for Monty Tank). Also, disable for falling rock level.
-	else if(SpriteSet1 == 5 || SpriteSet1 == 7 ||  SpriteSet16 == 2 || SpriteSet16 == 3 || SpriteSet16 == 4 || SpriteSet16 == 5 || SpriteSet16 == 6 || SpriteSet16 == 7)
-	{
-		return false;
-	}
-	//Respawn.
-	SetupRespawnLocationForPlayer(playerNo);
+
 	return true;
 }
 
-extern "C"
-void PlayerActor_spectateLoop(PlayerActor* player, int playerNo)
+NTR_USED static void Stage_customRespawnCondition(u32 playerID, s32 lives)
 {
-	PlayerActor* oppositePlayer = GetPtrToPlayerActorByID(!playerNo);
-	
-	//Check for things we don't want to spawn again for. 
-	bool AutoScroller = (EnemyActor*)GetSpawnedActor(218, 0, 0);
-	
-	//Check if player is allowed to respawn or not.
-	if (GetLivesForPlayer(playerNo) != 0 && player->P.ButtonsPressed & KEY_A && GetPlayerDeathState(!playerNo) == 0 && SpriteSet16 != 8 && !AutoScroller)
+	if (Game::getPlayerDead(playerID ^ 1))
 	{
-		player->P.cases = 1;
-
-		player->actor.position.x = oppositePlayer->actor.position.x - 0x10000;
-		player->actor.position.y = oppositePlayer->actor.position.y;
-
-		player->actor.isVisible = true;
-
-		player_wasDead[playerNo] = false;
-
-		PlayerActor_setRespawnedState(player);
-		SetRespawnStateForPlayer(playerNo, 3);
-
-		int localPlayerNo = *(int*)0x02085A7C;
-		if (playerNo == localPlayerNo)
-		{
-			int seqNo = Music_GetLevelSeqNo(playerNo);
-			Music_StartMusicNumber(seqNo);
-		}
-
-		SpawnParticle(249, &player->actor.position);
-		SpawnParticle(250, &player->actor.position);
-
-		SetPlayerDeathState(playerNo, 0);
-		SetCameraForPlayerNo(playerNo, playerNo);
+		Stage::exitLevel(0);
+		return;
 	}
-	else
-	{
-		Entrance* destEntrance = ((Entrance**)0x0208B0A0)[!playerNo]; //Opposite player entrance
-		if (player->info.ViewID != destEntrance->view)
-		{
-			u8* SwapScreenOnRespawnForPlayer = (u8*)0x0208B08C;
 
-			player->P.enteringAnEntrance = 2; //Force player to wait for the other
-			SwapScreenOnRespawnForPlayer[playerNo] = destEntrance->settings & 1;
-			fx32 x = (destEntrance->x) << 12;
-			fx32 y = (-destEntrance->y) << 12;
-			SetRespawnPositionForPlayer(playerNo, x, y);
-			PlayerActor_setEntranceState(player, 0x0211870C, 0); //Call respawn system (Forces entrance reload)
-		}
-	}
-}
-//Setup hook for function above
-void nsub_0211C470_ov_0A()
-{
-	asm("MOV     R0, R4");
-	asm("LDRB    R1, [R4, #0x11E]");
-	asm("BL      PlayerActor_spectateLoop");
-	asm("B       0x0211C4EC");
+	Game::getPlayer(playerID)->switchTransitionState(ptmf_cast(Stage_playerSpectateState));
 }
 
-//Set camera for player during respawn fade
-void nsub_0201E558()
-{
-	asm("MOV     R0, R4"); //Move R0 to playerNo
-	asm("MOV     R1, R0");
-	asm("CMP     R1, #0"); //Move R1 to !playerNo
-	asm("MOVEQ   R1, #1");
-	asm("MOVNE   R1, #0");
-	asm("BL      SetCameraForPlayerNo"); //Change camera
-	asm("MOV     R0, R4"); //Move R0 to playerNo
-	asm("MOV     R1, #2"); //Move R1 to 2
-	asm("BL      SetPlayerDeathState"); //Set player as spectating
-	asm("MOV     R0, #0xC"); //Keep replaced instruction
-	asm("B       0x0201E55C"); //Return to code
-}
+asm(R"(
+// Do not allow player to respawn so we can control it ourselves
+ncp_jump(0x0212B334, 11)
+	MOV     R0, R6
+	MOV     R1, R4
+	BL      _ZL28Stage_customRespawnConditionml
+	MOV     R0, #0
+	B       0x0212B33C
+)");
 
+/*
 //Player can't respawn when switching areas
 void hook_0215EB28_ov_36()
 {
@@ -344,21 +292,34 @@ void nsub_0212B908_ov_0B(u8* player)
 		player[1968] = 1;
 		player[454] |= 1;
 	}
-}
+}*/
 
 // ======================================= PAUSE =======================================
 
+asm(R"(
 // Fix desyncs on pause menu
-u16* repl_020A20E8_ov_00(u8* stageScene) { asm("MOV R0, R5"); return &((u16*)0x2087648)[stageScene[25640]]; }
-u8 repl_020A21A4_ov_00(u8* stageScene) { asm("MOV R0, R5"); return stageScene[25640]; }
-u8 repl_020A22D8_ov_00(u8* stageScene) { return repl_020A21A4_ov_00(stageScene); }
-//Disable options on pause menu
-void repl_020A2230_ov_00() {
-	if (GetPlayerCount() == 1)
-		asm("BL 0x20C1F14");
-}
+ncp_jump(0x020A20E8, 0)
+	LDR     R0, =0x6428
+	LDRB    R0, [R5,R0] // R0 = pause menu owner
+	LSLS    R0, R0, #1
+	LDR     R1, =0x02087648
+	ADD     R0, R1, R0 // R1 = &Input::consoleKeysRepeated[R0]
+	B       0x020A20EC
 
-*/
+ncp_call(0x020A21A4, 0)
+ncp_call(0x020A22D8, 0)
+	LDR     R0, =0x6428
+	LDRB    R0, [R5,R0] // R0 = pause menu owner
+	BX      LR
+
+// Disable options on pause menu
+ncp_jump(0x020A2230, 0)
+	BL      _ZN4Game14getPlayerCountEv
+	CMP     R0, #1
+	BLEQ    0x020C1F14
+	B       0x020A24D0
+)");
+
 // ======================================= MISC =======================================
 
 // Fix some bottom screen locking crap that took our time (related to wavy fading transition) :(
@@ -423,6 +384,52 @@ ncp_jump(0x02157414, 54)
 ncp_repl(0x02006E00, "MOV R6, #0") // Clear freezing flag
 ncp_repl(0x02006AE8, "NOP") // Prevent freezing flag being set on level load
 
-// ======================================= PLAYER ACTOR =======================================
+// ======================================= PLAYER =======================================
 
-//void repl_021096EC_ov_0A() {} //Disable Mario & Luigi Collision
+ncp_repl(0x02109B30, 10, "B 0x02109B84") // Mario can not make Luigi fall on head jump
+ncp_repl(0x02109A14, 10, "B 0x02109A68") // Luigi can not make Mario fall on head jump
+
+ncp_repl(0x02109EB4, 10, "MOV R4, #1") // Mario doesn't bump with Luigi
+ncp_repl(0x02109C1C, 10, "MOV R4, #1") // Luigi doesn't bump with Mario
+
+ncp_call(0x021098C8, 10)
+static bool Stage_customSpecialPlayerBump(Player* self, Player* other, fx32& selfCollisionPointX)
+{
+	bool marioOffender = Player::bumpOffender == Player::BumpOffender::Mario;
+	Player* offender = marioOffender ? self : other;
+	Player* victim = marioOffender ? other : self;
+
+	if (offender->checkGroundpoundBump())
+	{
+		s32 direction = StageEntity::unitDirection[(selfCollisionPointX < 0) ^ marioOffender];
+		Vec2 velocity(0xD00 * direction, 0x3000);
+		victim->doPlayerBump(velocity, true);
+		return true;
+	}
+
+	return false;
+}
+
+NTR_USED static bool Stage_blockPlayerCollision()
+{
+	for (s32 i = 0; i < Game::getPlayerCount(); i++)
+	{
+		if (Game::getPlayer(i)->currentPowerup == PowerupState::Mega)
+			return true;
+	}
+	return false;
+}
+
+asm(R"(
+ncp_jump(0x021096EC, 10)
+	BNE     0x021096F0
+	MOV     R0, R9
+	MOV     R1, R8
+	BL      _ZL26Stage_blockPlayerCollisionv
+	CMP     R0, #0
+	BNE     0x021096F0
+	B       0x02109704
+)");
+
+ncp_repl(0x020E3260, 10, "MOV R0, R4") // Fireballs pass through player
+//ncp_repl(0x020E32C4, 10, "ADD SP, SP, #0x10; POP {R4-R6,PC}") // Player immune to fireballs

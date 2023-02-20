@@ -542,3 +542,6 @@ namespace OAM
 	};
 
 }
+
+IMPL_ENUMCLASS_OPERATORS(OAM::Settings);
+IMPL_ENUMCLASS_OPERATORS(OAM::CounterFlags);
