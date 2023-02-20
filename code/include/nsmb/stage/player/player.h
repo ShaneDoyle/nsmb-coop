@@ -78,7 +78,7 @@ public:
 
 	struct JumpCurveAccelTable {
 
-		fx32 jumpGravity;		// 
+		fx32 jumpGravity;		//
 		fx32 jumpAscend;		// applied during the ascending phase, when velocity.y > 2.5
 		fx32 jumpPeak;			// applied shortly before reaching the jump peak, when 1.5 < velocity.y <= 2.5
 		fx32 fallPeak;			// applied shortly after reaching the jump peak, when -2 < velocity.y < 0
@@ -87,21 +87,21 @@ public:
 		fx32 swimDescend;		// applied during the descending phase, when velocity.y < targetVelV; except the velocity can't be less than its target value
 		fx32 spinJumpDescend;	// applied during the descending phase, when velocity.y <= 0; spin drill force hardcoded at 02106270 (ov10)
 		fx32 spinJumpAscend;	// applied during the ascending phase, when velocity.y > 0
-		fx32 unused24;			// 
-		fx32 unused28;			// 
-		fx32 unused2C;			// 
-		fx32 megaJumpGravity;	// 
+		fx32 unused24;			//
+		fx32 unused28;			//
+		fx32 unused2C;			//
+		fx32 megaJumpGravity;	//
 		fx32 megaJumpAscend;	// applied during the ascending phase, when velocity.y > 2.5
 		fx32 megaJumpPeak;		// applied shortly before reaching the jump peak, when 1.5 < velocity.y <= 2.5
 		fx32 megaFallPeak;		// applied shortly after reaching the jump peak, when -2 < velocity.y < 0
-		fx32 unused40;			// 
+		fx32 unused40;			//
 
 	};
 
 	struct JumpCurveLimitTable {
 
 		fx32 standard;			// standard jump/fall vertical velocity limit
-		fx32 unused4;			// 
+		fx32 unused4;			//
 		fx32 wallSlide;			// sliding down a wall
 		fx32 groundPound;		// ground-pounding
 		fx32 megaJump;			// jumping/falling while Mega
@@ -189,6 +189,11 @@ public:
 
 	};
 
+	enum class BumpOffender
+	{
+		Mario = 2,
+		Luigi = 3
+	};
 
 	void setAnimation(u32 id, bool doBlend, FrameMode frameMode, fx32 speed, u16 frame = 0);
 	void setCapAnimation();
@@ -328,7 +333,7 @@ public:
 	bool transitTurn();
 	void unusedVictoryBeginJump();
 	bool unusedVictoryUpdateJump();
-	void transitJump();
+	void transitJump(fx32 velocity);
 	void transitSpawnJump();
 	bool transitUpdateJump();
 	void cutsceneBeginIdlePose();
@@ -384,6 +389,8 @@ public:
 	void transitBeginIdlePose(bool doBlend);
 
 	void setPerspectivePosition(s16 rotation, fx32 scale, const Vec3& position);
+
+	bool checkGroundpoundBump();
 
 	static void activeCallback(ActiveCollider& self, ActiveCollider& other);
 	static void specialActiveCallback(ActiveCollider& self, ActiveCollider& other);
@@ -653,6 +660,7 @@ public:
 	static const JumpCurveLimitTable jumpCurveLimitTables[2];	// [higher jump]
 	static const JumpCurveAccelTable jumpCurveAccelTables[2];	// [higher jump]
 
+	static BumpOffender bumpOffender;
 
 
 	Door* door;

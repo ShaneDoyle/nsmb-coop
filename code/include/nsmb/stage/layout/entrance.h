@@ -36,6 +36,7 @@ enum class EntranceType : u8 {
 
 enum class EntranceFlags : u8 {
 
+	None			= 0x00,
 	SubScreen		= 0x01,
 	LockedPlayer1	= 0x02,
 	LockedPlayer0	= 0x04,
@@ -50,6 +51,7 @@ IMPL_ENUMCLASS_OPERATORS(EntranceFlags);
 
 enum class EntranceTransitionFlags : u8 {
 
+	None			= 0x00,
 	SubScreen		= 0x01,
 	FromMainScreen	= 0x02,
 	FromSubScreen	= 0x04,
@@ -75,6 +77,7 @@ struct StageEntrance {
 	u16 cameraX;
 	u16 cameraY;
 
+	u8 unk8;
 	u8 id;
 	u8 targetStageArea;			// TODO: document behavior when `flags & ConnectedPipe`
 	u8 targetStageIndex;		// If `flags & ConnectedPipe` -> Pipe path ID

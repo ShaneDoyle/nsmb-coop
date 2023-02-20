@@ -3057,7 +3057,7 @@ _ZTV7Texture									= 0x0203c494;
 /*----------------------------------------------------------------*/
 
 _ZN3G3D10initializeEv										= 0x02019b6c;
-_ZN3G3D9shutdownEv											= 0x02019b78;
+_ZN3G3D8shutdownEv											= 0x02019b78;
 _ZN3G3D16getTextureParamsEP13NNSG3dResTex_mRm				= 0x02019afc;
 _ZN3G3D16getPaletteParamsEP13NNSG3dResTex_mRm				= 0x02019a88;
 
@@ -3392,7 +3392,7 @@ _ZN4Game14getPlayerScoreEl							= 0x02020334;
 _ZN4Game14setPlayerScoreEll							= 0x02020344;
 _ZN4Game13addPlayerCoinEl							= 0x02020354;
 _ZN4Game14getPlayerCoinsEl							= 0x0202040C;
-_ZN4Game14getPlayerCoinsEll							= 0x0202041C;
+_ZN4Game14setPlayerCoinsEll							= 0x0202041C;
 _ZN4Game17addPlayerStarCoinEl						= 0x0202042C;
 _ZN4Game18setPlayerStarCoinsEll						= 0x02020444;
 _ZN4Game19addPlayerBattleStarEl						= 0x02020454;
@@ -4468,12 +4468,6 @@ _ZN5Stage18phantomHandsTargetE						= 0x020ca918;
 
 /* arm9_ov11 */
 _ZN5Stage16anmTilesOamTableE						= 0x0212f180;
-_ZN5Stage10stageGroupE								= 0x02085a18;
-_ZN5Stage7stageIDE									= 0x02085a14;
-_ZN5Stage5actIDE									= 0x02085a4c;
-_ZN5Stage10playerDeadE								= 0x0208b328;
-_ZN5Stage14initialPowerupE							= 0x0208b324;
-_ZN5Stage13storedPowerupE							= 0x02085a4c;
 
 
 /* arm9 */
@@ -4913,6 +4907,7 @@ _ZTV13SpinJumpState			= 0x02128474;
 /*---------------------------- player ----------------------------*/
 /*----------------------------------------------------------------*/
 
+_ZN6Player12bumpOffenderE					                = 0x0212AF64;
 
 _ZN6Player12setAnimationEmbNS_9FrameModeElt					= 0x02120BB8;
 _ZN6Player15setCapAnimationEv								= 0x02120A98;
@@ -5106,6 +5101,8 @@ _ZN6Player18beginIdleAnimationEbl							= 0x0211688C;
 _ZN6Player22updateCommonAnimationsEbb						= 0x021160A4;
 _ZN6Player20transitBeginIdlePoseEb							= 0x02115FB0;
 _ZN6Player22setPerspectivePositionEslRK4Vec3				= 0x0210DB4C;
+
+_ZN6Player20checkGroundpoundBumpEv                          = 0x0210ABDC;
 
 _ZN6Player14activeCallbackER14ActiveColliderS1_				= 0x02109614;
 _ZN6Player21specialActiveCallbackER14ActiveColliderS1_		= 0x02109610;
