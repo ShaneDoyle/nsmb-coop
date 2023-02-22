@@ -176,9 +176,7 @@ ncp_call(0x0211C21C, 10)
 void call_0211C21C_ov10(Player* player)
 {
 	s32 playerID = player->linkedPlayerID;
-	s32 alivePlayerID = Stage_getAlivePlayerID();
-
-	if ((alivePlayerID == 2 && playerID == 0) || (playerID == alivePlayerID))
+	if (playerID == 0 || (playerID == 1 && sPlayerSpectating[0]))
 	{
 		SpawnGrowingEntranceVine(&player->position);
 	}
@@ -205,7 +203,7 @@ static bool Stage_playerSpectateState(Player* player, void* arg)
 		PlayerSpectate::setTarget(playerID, otherID);
 		Game::setPlayerDead(playerID, true);
 
-		Stage::stageLayout->scrollLevelDirect();
+		//Stage::stageLayout->scrollLevelDirect();
 
 		u32 seqID = Entrance::getSpawnMusic(playerID);
 		Sound::playStageBGM(seqID);
