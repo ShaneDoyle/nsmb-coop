@@ -18,7 +18,8 @@
 		"dest": "main",
 		"compress": false,
 		"sources": [
-			["source", false]
+			["source", false],
+			["source/util", false]
 		]
 	}, {
 		"dest": "ov8",

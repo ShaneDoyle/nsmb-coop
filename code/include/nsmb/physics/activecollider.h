@@ -174,14 +174,14 @@ public:
 	sym void unlink() __body
 
 	// 020a44b0
-	sym void manualUpdate() __body
+	sym u16 manualUpdate() __body
 
 	// 020a445c
-	sym void unk_020a445c(const Vec3& position, const ActiveColliderInfo& info, u8 layerID) __body
+	sym u16 unk_020a445c(const Vec3& position, const ActiveColliderInfo& info, u8 layerID) __body
 
 	// 020a4434
 	sym static void initSystem() __body
-		
+
 	// 020A3D68
 	Player* getPlayer() const;
 

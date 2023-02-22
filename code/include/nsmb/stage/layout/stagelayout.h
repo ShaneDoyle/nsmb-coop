@@ -8,6 +8,9 @@ class StageLayout : public Object
 {
 public:
 
+	// 020AD06C
+	void scrollLevelDirect();
+
 	// 020af30c
 	void changeTile(u32 x, u32 y, u32 id);
 

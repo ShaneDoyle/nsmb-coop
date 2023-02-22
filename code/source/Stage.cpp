@@ -9,7 +9,7 @@
 #include "nsmb/system/misc.h"
 
 #include "PlayerSpectate.hpp"
-#include "eprintf.h"
+#include "util/eprintf.h"
 
 NTR_USED static u32 sTempVar;
 static u8 sPlayerSpectating[2];
@@ -30,6 +30,15 @@ namespace Stage {
 static bool Stage_getLocalPlayerID() { return Game::localPlayerID; }
 static bool Stage_getLuigiMode() { return Game::luigiMode; }
 static bool Stage_getMultiplayer() { return Game::getPlayerCount() > 1; }
+
+static s32 Stage_getAlivePlayerID()
+{
+	if (sPlayerSpectating[0])
+		return 1;
+	if (sPlayerSpectating[1])
+		return 0;
+	return 2; // both
+}
 
 // ======================================= MISC =======================================
 
@@ -123,7 +132,7 @@ ncp_jump(0x0215EFF0, 54)
 // Player positioning on multiplayer entrance spawn
 NTR_USED static void Stage_adjustEntrancePosition()
 {
-	if (Game::getPlayerCount() == 1)
+	if (Game::getPlayerCount() == 1 || Stage_getAlivePlayerID() != 2)
 		return;
 
 	s8 entranceID = rcast<s8*>(0x020CA8F4)[8];
@@ -142,8 +151,6 @@ NTR_USED static void Stage_adjustEntrancePosition()
 		break;
 	// Climbing Vine
 	case EntranceType::Vine:
-		//entranceVecs[0].x += 7 << 12;
-		//entranceVecs[1].x += 9 << 12;
 		entranceVecs[1].y -= 16 << 12;
 		break;
 	// Any other entrance
@@ -168,17 +175,10 @@ ncp_repl(0x0211C218, 10, "MOV R0, R4")
 ncp_call(0x0211C21C, 10)
 void call_0211C21C_ov10(Player* player)
 {
-	/*if (Game::getPlayerCount() == 1)
-	{
-		SpawnGrowingEntranceVine(&player->position);
-	}
-	else if (player->linkedPlayerID == 0)
-	{
-		Vec3 pos = player->position;
-		pos.x -= 7 << 12;
-		SpawnGrowingEntranceVine(&pos);
-	}*/
-	if (player->linkedPlayerID == 0)
+	s32 playerID = player->linkedPlayerID;
+	s32 alivePlayerID = Stage_getAlivePlayerID();
+
+	if ((alivePlayerID == 2 && playerID == 0) || (playerID == alivePlayerID))
 	{
 		SpawnGrowingEntranceVine(&player->position);
 	}
@@ -199,53 +199,73 @@ static bool Stage_playerSpectateState(Player* player, void* arg)
 	if (step == Func::Init)
 	{
 		step = 1;
+
 		player->visible = false;
 		sPlayerSpectating[playerID] = true;
 		PlayerSpectate::setTarget(playerID, otherID);
+		Game::setPlayerDead(playerID, true);
+
+		Stage::stageLayout->scrollLevelDirect();
+
+		u32 seqID = Entrance::getSpawnMusic(playerID);
+		Sound::playStageBGM(seqID);
+
 		return true;
 	}
 	if (step == Func::Exit)
 	{
-		player->visible = true;
-		sPlayerSpectating[playerID] = false;
 		return true;
 	}
 
-	Player* other = Game::getPlayer(otherID);
-
-	// Check if player is allowed to respawn or not.
-	if ((player->keysPressed & Keys::A) && Game::getPlayerLives(playerID) != 0  && !Game::getPlayerDead(otherID))
+	// Check if player is allowed to respawn or not
+	if (player->getJumpKeyPressed() && Game::getPlayerLives(playerID) != 0 && !Game::getPlayerDead(otherID))
 	{
+		Player* other = Game::getPlayer(otherID);
+
 		player->position.x = other->position.x - 0x10000;
 		player->position.y = other->position.y;
 
 		player->spawnDefault();
 
-		if (playerID == Game::localPlayerID)
-		{
-			u32 seqID = Entrance::getSpawnMusic(playerID);
-			Sound::playStageBGM(seqID);
-		}
-
 		Particle::Handler::createParticle(249, player->position);
 		Particle::Handler::createParticle(250, player->position);
 
-		Game::setPlayerDead(playerID, false);
+		player->visible = true;
+		sPlayerSpectating[playerID] = false;
 		PlayerSpectate::setTarget(playerID, playerID);
+		Game::setPlayerDead(playerID, false);
 	}
 
 	return true;
 }
 
-NTR_USED static void Stage_customRespawnCondition(u32 playerID, s32 lives)
+ncp_call(0x02118DE4, 10)
+static void Stage_beginPlayerSpectate(Player* player)
 {
-	if (Game::getPlayerDead(playerID ^ 1))
+	player->switchMainState(&Player::idleState);
+	player->switchTransitionState(ptmf_cast(Stage_playerSpectateState));
+}
+
+NTR_USED static bool Stage_customRespawnCondition(u32 playerID, s32 lives)
+{
+	u32 otherID = playerID ^ 1;
+	if (Game::getPlayerDead(otherID))
 	{
 		Stage::exitLevel(0);
-		return;
+		return false;
 	}
+	return true;
+}
 
-	Game::getPlayer(playerID)->switchTransitionState(ptmf_cast(Stage_playerSpectateState));
+NTR_USED static bool Stage_customPlayerCreateCase(Player* player)
+{
+	u32 playerID = player->linkedPlayerID;
+	if (Game::getPlayerLives(playerID) == 0 || sPlayerSpectating[playerID])
+	{
+		Stage_beginPlayerSpectate(player);
+		return true;
+	}
+	return false;
 }
 
 asm(R"(
@@ -254,8 +274,16 @@ ncp_jump(0x0212B334, 11)
 	MOV     R0, R6
 	MOV     R1, R4
 	BL      _ZL28Stage_customRespawnConditionml
-	MOV     R0, #0
 	B       0x0212B33C
+
+// Add custom player create case to prevent it from spawning if dead or spectating
+ncp_jump(0x020FFB4C, 10)
+	MOV     R0, R5
+	BL      _ZL28Stage_customPlayerCreateCaseP6Player
+	CMP     R0, #0
+	BNE     0x020FFD7C
+	CMP     R4, #0x14
+	B       0x020FFB50
 )");
 
 /*
