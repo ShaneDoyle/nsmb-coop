@@ -28,7 +28,14 @@ ncp_jump(0x02006AE4)
 	LDR     R12, =_ZN14PlayerSpectate12sLocalTargetE
 	STR     LR, [R12]
 	B       0x02006AE8
+
+/*ncp_jump(0x020BAC90, 0)
+	LDR     R1, =_ZN4Game13localPlayerIDE
+	LDR     R1, [R1]
+	B       0x020BAC94*/
 )");
+
+ncp_repl(0x020BADC4, 0, "NOP")
 
 ncp_repl(0x01FFFD34, ".int _ZN14PlayerSpectate12sLocalTargetE") // (0x01FFFC20) StageActor::doHdma
 ncp_repl(0x01FFFF74, ".int _ZN14PlayerSpectate12sLocalTargetE") // (0x01FFFE10)
@@ -48,8 +55,8 @@ ncp_repl(0x020BB45C, 0, ".int _ZN14PlayerSpectate12sLocalTargetE") // (0x020BB43
 
 // (0x020BBBDC) Player View Setup ----------------
 
-ncp_repl(0x020BC61C, 0, ".int _ZN14PlayerSpectate12sLocalTargetE")
-ncp_repl(0x020BC668, 0, ".int _ZN14PlayerSpectate12sLocalTargetE")
+//ncp_repl(0x020BC61C, 0, ".int _ZN14PlayerSpectate12sLocalTargetE")
+//ncp_repl(0x020BC668, 0, ".int _ZN14PlayerSpectate12sLocalTargetE")
 
 // StageCamera ----------------
 
