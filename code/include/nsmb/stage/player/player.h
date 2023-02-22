@@ -386,6 +386,7 @@ public:
 	void switchMegaAnimation(fx32 speed);
 	void beginIdleAnimation(bool doBlend, fx32 speed);
 	void updateCommonAnimations(bool doBlend, bool unk);
+	bool idleState(void* arg);
 	void transitBeginIdlePose(bool doBlend);
 
 	void setPerspectivePosition(s16 rotation, fx32 scale, const Vec3& position);

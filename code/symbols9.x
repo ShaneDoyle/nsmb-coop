@@ -5099,6 +5099,7 @@ _ZN6Player23switchMegaWalkAnimationEl						= 0x02116C44;
 _ZN6Player19switchMegaAnimationEl							= 0x02116BA0;
 _ZN6Player18beginIdleAnimationEbl							= 0x0211688C;
 _ZN6Player22updateCommonAnimationsEbb						= 0x021160A4;
+_ZN6Player9idleStateEPv						        	    = 0x02115AAC;
 _ZN6Player20transitBeginIdlePoseEb							= 0x02115FB0;
 _ZN6Player22setPerspectivePositionEslRK4Vec3				= 0x0210DB4C;
 
@@ -5413,6 +5414,7 @@ _ZN4BNBL17getRectangleCountEPv = 0x02055aD4;
 /*------------------------- stage layout -------------------------*/
 /*----------------------------------------------------------------*/
 
+_ZN11StageLayout17scrollLevelDirectEv       = 0x020AD06C;
 _ZN11StageLayout10changeTileEmmm			= 0x020af30c;
 _ZN11StageLayout15getTileBehaviorEmml		= 0x020af8f0;
 _ZN11StageLayout10getChunkIDEmm				= 0x020b0308;

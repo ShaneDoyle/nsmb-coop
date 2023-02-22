@@ -1,0 +1,150 @@
+static u8 player_wasDead[2] = { false };
+
+ncp_set_call(0x021041F4, 10, Stage_getMultiplayer)
+ncp_set_call(0x0212B318, 11, Stage_getMultiplayer)
+ncp_repl(0x02119CB8, 10, "NOP") // Do not freeze timer on player death
+
+static void Stage_setupPlayerRespawn(u32 playerID)
+{
+	u32 otherID = playerID ^ 1;
+
+	StageEntrance* destEntrance = Entrance::spawnEntrance[otherID]; // Other player entrance
+	Entrance::transitionFlags[playerID] = bool(destEntrance->flags & EntranceFlags::SubScreen) ? EntranceTransitionFlags::SubScreen : EntranceTransitionFlags::None;
+
+	player_wasDead[playerID] = true;
+
+	Game::getPlayer(playerID)->visible = false;
+
+	Player* other = Game::getPlayer(otherID);
+	fx32 x = other->position.x;
+	fx32 y = other->position.y;
+	Entrance::overrideSpawnPosition(playerID, x, y);
+}
+
+NTR_USED static bool Stage_customRespawnCondition(u32 playerID, s32 lives)
+{
+	if (Game::getPlayerDead(!playerID))
+	{
+		Stage::exitLevel(0);
+		return false; // Don't respawn
+	}
+
+	Stage_setupPlayerRespawn(playerID);
+	return true; // Respawn
+}
+
+// Do not allow player to respawn so we can control it ourselves
+asm(R"(
+ncp_jump(0x0212B334, 11)
+	MOV     R0, R6
+	MOV     R1, R4
+	BL      _ZL28Stage_customRespawnConditionml
+	B       0x0212B33C
+)");
+
+NTR_USED static void Stage_playerSpectateLoop(Player* player, u32 playerID)
+{
+	u32 otherID = playerID ^ 1;
+	Player* other = Game::getPlayer(otherID);
+
+	// Check if player is allowed to respawn or not.
+	if ((player->keysPressed & Keys::A) && Game::getPlayerLives(playerID) != 0  && !Game::getPlayerDead(otherID))
+	{
+		player->transitionStateStep = 1;
+
+		player->position.x = other->position.x - 0x10000;
+		player->position.y = other->position.y;
+
+		player->visible = true;
+
+		player_wasDead[playerID] = false;
+
+		player->spawnDefault();
+		Game::setPlayerVSPipeState(playerID, Game::VSPipeState::PlayerOut);
+
+		if (playerID == Game::localPlayerID)
+		{
+			u32 seqID = Entrance::getSpawnMusic(playerID);
+			Sound::playStageBGM(seqID);
+		}
+
+		Particle::Handler::createParticle(249, player->position);
+		Particle::Handler::createParticle(250, player->position);
+
+		Game::setPlayerDead(playerID, true);
+		PlayerSpectate::setTarget(playerID, playerID);
+	}
+	/*else
+	{
+		StageEntrance* destEntrance = Entrance::spawnEntrance[otherID]; // Opposite player entrance
+		if (player->viewID != destEntrance->viewID)
+		{
+			player->updateLocked = true; // Force player to wait for the other
+
+			Entrance::subScreenSpawn[playerID] = bool(destEntrance->flags & EntranceFlags::SubScreen);
+			fx32 x = (destEntrance->x) << 12;
+			fx32 y = (-destEntrance->y) << 12;
+			SetRespawnPositionForPlayer(playerID, x, y);
+			player->switchTransitionState(Player::viewTransitState); // Call respawn system (Forces entrance reload)
+		}
+	}*/
+}
+
+asm(R"(
+// Setup hook for function above
+ncp_jump(0x0211C470, 10)
+	MOV     R0, R4
+	LDRB    R1, [R4, #0x11E]
+	BL      _ZL24Stage_playerSpectateLoopP6Playerm
+	B       0x0211C4EC
+
+// Set camera for player during respawn fade
+ncp_jump(0x0201E558)
+	MOV     R0, R4 // Move R0 to playerNo
+	MOV     R1, R0
+	CMP     R1, #0 // Move R1 to !playerNo
+	MOVEQ   R1, #1
+	MOVNE   R1, #0
+	BL      SetCameraForPlayerNo // Change camera
+	MOV     R0, R4 // Move R0 to playerNo
+	MOV     R1, #2 // Move R1 to 2
+	BL      SetPlayerDeathState // Set player as spectating
+	MOV     R0, #0xC // Keep replaced instruction
+	B       0x0201E55C // Return to code
+)");
+
+/*
+//Player can't respawn when switching areas
+void hook_0215EB28_ov_36()
+{
+	for (int i = 0; i < GetPlayerCount(); i++)
+	{
+		PlayerActor* player = GetPtrToPlayerActorByID(i);
+		if (player)
+		{
+			if (player_wasDead[i] || GetLivesForPlayer(i) == 0)
+			{
+				SetupRespawnLocationForPlayer(i);
+				PlayerActor_setEntranceState(player, 0x0211870C, 0); //Call respawn system (Forces entrance reload)
+			}
+		}
+	}
+}
+
+void hook_02006ADC()
+{
+	player_wasDead[0] = 0;
+	player_wasDead[1] = 0;
+}
+
+//Only freeze timer and pause menu on toad houses
+void nsub_0212B908_ov_0B(u8* player)
+{
+	if (*(int*)0x02085A18 == 8 || GetPlayerCount() == 1)
+	{
+		*(int*)0x020CA898 |= 0x40;
+		*(int*)0x020CA880 |= 0x10;
+		player[1968] = 1;
+		player[454] |= 1;
+	}
+}*/
