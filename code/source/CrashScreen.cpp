@@ -4,6 +4,10 @@
 #define DEBUG_YELLOW 0xE000
 #define DEBUG_AQUA 0xF000
 
+#define COLOR_WHITE 0
+#define COLOR_YELLOW 1
+#define COLOR_AQUA 2
+
 #define SCR_POS(scrn, x, y) (scrn + 32 * y + x)
 
 asm(R"(
@@ -14,7 +18,7 @@ asm(R"(
 )");
 extern "C"
 {
-	void debug_printf(u16 colors[2], u16* dst, const char* str, ...);
+	void debug_printf(const u16 colors[2], u16* dst, const char* str, ...);
 	void debug_clear();
 	void debug_drawTop();
 	void debug_drawBottom();
@@ -23,11 +27,43 @@ extern "C"
 namespace CrashScreen {
 
 u16 isOpen = true;
-u16 lastIsOpen = true;
+u16 lastIsOpen = false;
 
-static u16 colorWhite[2] = { DEBUG_WHITE, DEBUG_WHITE };
-static u16 colorYellow[2] = { DEBUG_WHITE, DEBUG_YELLOW };
-static u16 colorAqua[2] = { DEBUG_WHITE, DEBUG_AQUA };
+struct TextEntry
+{
+	u8 color, screen;
+	u16 pos;
+	const char* text;
+
+	constexpr TextEntry(u8 color, u8 screen, u8 x, u8 y, const char* text)
+	{
+		this->color = color;
+		this->screen = screen;
+		this->pos = 2 * (32 * y + x);
+		this->text = text;
+	}
+};
+
+const static TextEntry textEntries[] = {
+	TextEntry(COLOR_AQUA, 0, 5, 3, "The game has crashed"),
+	TextEntry(COLOR_WHITE, 0, 2, 6, "Please contact the dev team"),
+	TextEntry(COLOR_WHITE, 0, 4, 7, "Send them the crash dump"),
+	TextEntry(COLOR_WHITE, 0, 7, 10, "Discord contacts:"),
+	TextEntry(COLOR_WHITE, 0, 10, 12, "Shane#3754"),
+	TextEntry(COLOR_WHITE, 0, 6, 14, "TheGameratorT#1850"),
+	TextEntry(COLOR_YELLOW, 0, 4, 19, "(`-`) kinda lonely here"),
+
+	TextEntry(COLOR_AQUA, 1, 2, 4, "Possible actions:"),
+	TextEntry(COLOR_WHITE, 1, 4, 7, "START  > This screen"),
+	TextEntry(COLOR_WHITE, 1, 4, 9, "SELECT > Crash dump"),
+	TextEntry(COLOR_WHITE, 1, 4, 11, "L + R  > Restart")
+};
+
+const static u16 colors[3][2] = {
+	{ DEBUG_WHITE, DEBUG_WHITE },
+	{ DEBUG_WHITE, DEBUG_YELLOW },
+	{ DEBUG_WHITE, DEBUG_AQUA }
+};
 
 void drawDebugScreen()
 {
@@ -38,7 +74,7 @@ void drawDebugScreen()
 void create()
 {
 	// not sure if this actually helps
-	for (int i = 0; i < 4; i++)
+	for (u32 i = 0; i < 4; i++)
 		MI_StopDma(i);
 }
 
@@ -68,11 +104,11 @@ void update()
 		return;
 	}
 
-	if (lastIsOpen != isOpen)
-	{
-		lastIsOpen = isOpen;
-		debug_clear();
-	}
+	if (lastIsOpen == isOpen)
+		return;
+	lastIsOpen = isOpen;
+
+	debug_clear();
 
 	if (!isOpen)
 	{
@@ -80,30 +116,16 @@ void update()
 		return;
 	}
 
-	u16* topScrn = *rcast<u16**>(0x020859EC);
-	u16* btmScrn = *rcast<u16**>(0x020859E8);
+	u16* screens[] = { *rcast<u16**>(0x020859EC), *rcast<u16**>(0x020859E8) };
+
+	for (u32 i = 0; i < sizeof(textEntries) / sizeof(TextEntry); i++)
+	{
+		const TextEntry& e = textEntries[i];
+		debug_printf(colors[e.color], rcast<u16*>(rcast<u8*>(screens[e.screen]) + e.pos), e.text);
+	}
 
 	char* buildTime = rcast<char*>(0x02088BB4);
-
-	debug_printf(colorAqua, SCR_POS(topScrn, 5, 3), "The game has crashed");
-	debug_printf(colorWhite, SCR_POS(topScrn, 2, 6), "Please contact the dev team");
-	debug_printf(colorWhite, SCR_POS(topScrn, 4, 7), "Send them the crash dump");
-	debug_printf(colorWhite, SCR_POS(topScrn, 7, 10), "Discord contacts:");
-	debug_printf(colorWhite, SCR_POS(topScrn, 10, 12), "Shane#3754");
-	debug_printf(colorWhite, SCR_POS(topScrn, 6, 14), "TheGameratorT#1850");
-	debug_printf(colorYellow, SCR_POS(topScrn, 4, 19), "(`-`) kinda lonely here");
-
-	debug_printf(colorAqua, SCR_POS(btmScrn, 2, 4), "Possible actions:");
-	debug_printf(colorWhite, SCR_POS(btmScrn, 4, 7), "START  > This screen");
-	debug_printf(colorWhite, SCR_POS(btmScrn, 4, 9), "SELECT > Crash dump");
-	debug_printf(colorWhite, SCR_POS(btmScrn, 4, 11), "L + R  > Restart");
-
-	// debug_printf(colorAqua, SCR_POS(btmScrn, 2, 14), "GitHub:");
-	// debug_printf(colorAqua, SCR_POS(btmScrn, 2, 16), "NSMBHD:");
-	// debug_printf(colorWhite, SCR_POS(btmScrn, 10, 14), "link1");
-	// debug_printf(colorWhite, SCR_POS(btmScrn, 10, 16), "link2");
-
-	debug_printf(colorYellow, SCR_POS(btmScrn, 1, 22), buildTime);
+	debug_printf(colors[COLOR_YELLOW], SCR_POS(screens[1], 1, 22), buildTime);
 }
 
 }
