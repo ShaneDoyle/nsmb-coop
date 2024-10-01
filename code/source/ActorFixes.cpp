@@ -1,6 +1,14 @@
 #include "nsmb/game.h"
 #include "nsmb/sound.h"
 #include "nsmb/stage/entity3danm.h"
+#include "nsmb/stage/viewshaker.h"
+
+asm(R"(
+	SledgeBro_tryShakePlayer = 0x02174DE4
+)");
+extern "C" {
+	void SledgeBro_tryShakePlayer(StageEntity* _this, s32 playerID);
+}
 
 // Replacement for StageEntity::skipRender that updates the model but doesn't draw it
 static bool ActorFixes_safeSkipRender(StageEntity3DAnm* self)
@@ -11,21 +19,63 @@ static bool ActorFixes_safeSkipRender(StageEntity3DAnm* self)
 	return false;
 }
 
-// Hammer/Fire/Boomerang Bros ---
+// Hammer/Fire/Boomerang Bros -----------------------------------------------------------
 
 ncp_over(0x021754F8, 56) const auto HammerBro_skipRender = ActorFixes_safeSkipRender;
 ncp_over(0x02175730, 56) const auto FireBro_skipRender = ActorFixes_safeSkipRender;
 ncp_over(0x02175614, 56) const auto BoomerangBro_skipRender = ActorFixes_safeSkipRender;
 
-// Red Ring ----------------
+// Sledge Bro -----------------------------------------------------------
+
+ncp_over(0x02175880, 56) const auto SledgeBro_skipRender = ActorFixes_safeSkipRender;
+
+static bool SledgeBro_canTryShakePlayer(StageEntity* self, Player* player)
+{
+	const fx32 range = 0x100000; // 16 tiles
+
+	bool inRange = Math::abs(self->position.x - player->position.x) < range &&
+	               Math::abs(self->position.y - player->position.y) < range;
+
+	return inRange && !Game::getPlayerDead(player->linkedPlayerID);
+}
+
+NTR_USED static void SledgeBro_fixShakePlayer(StageEntity* self)
+{
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		Player* player = Game::getPlayer(playerID);
+
+		if (SledgeBro_canTryShakePlayer(self, player))
+		{
+			ViewShaker::start(3, self->viewID, playerID, false);
+			if (playerID == Game::localPlayerID)
+				SND::playSFX(138, &self->position);
+			SledgeBro_tryShakePlayer(self, playerID);
+		}
+	}
+}
+
+ncp_repl(0x02174614, 56, R"(
+	MOV     R0, R4
+	BL      _ZL24SledgeBro_fixShakePlayerP11StageEntity
+	B       0x02174658
+)");
+
+// Note: ov56:0x02174D98 would break with more than 2 players
+
+// Dorrie -------------------------------------------------------------------------------
+
+ncp_over(0x02148348, 47) const auto Dorrie_skipRender = ActorFixes_safeSkipRender;
+
+// Red Ring -----------------------------------------------------------------------------
 
 /*
 struct RedRingVec3_unsafe
 {
-void* vtbl;
-fx32 x;
-fx32 y;
-fx32 z;
+	void* vtbl;
+	fx32 x;
+	fx32 y;
+	fx32 z;
 };
 
 ncp_call(0x02153F30, 54)
@@ -76,21 +126,21 @@ ncp_over(0x0215410C, 54) /* max over: 0xFC bytes, current: 0xF0 bytes */
 	mov	r4, #0
 	mov	r5, r0
 	sub	sp, sp, #24
-	ldr	r6, .L10
-	ldr	r7, .L10+4
-	ldr	r8, .L10+8
+	ldr	r6, .ring_L10
+	ldr	r7, .ring_L10+4
+	ldr	r8, .ring_L10+8
 	str	r4, [sp, #20]
-.L2:
+.ring_L2:
 	bl	_ZN4Game14getPlayerCountEv
 	cmp	r0, r4
-	bgt	.L6
+	bgt	.ring_L6
 	add	sp, sp, #24
 	pop	{r4, r5, r6, r7, r8, pc}
-.L6:
+.ring_L6:
 	mov	r0, r4
 	bl	_ZN4Game13getPlayerDeadEl
 	cmp	r0, #0
-	bne	.L3
+	bne	.ring_L3
 	mov	r0, r4
 	bl	_ZN4Game9getPlayerEl
 	ldr	r2, [r6]
@@ -99,25 +149,25 @@ ncp_over(0x0215410C, 54) /* max over: 0xFC bytes, current: 0xF0 bytes */
 	and	r3, r3, r2
 	str	r3, [sp, #12]
 	ldr	r2, [r7, r4, lsl #2]
-	ldr	r3, .L10+12
+	ldr	r3, .ring_L10+12
 	sub	r3, r3, r2
 	str	r3, [sp, #16]
 	ldrsb	r3, [r0, #12]
 	bics	r2, r3, #4
 	moveq	r3, r2
-	beq	.L4
+	beq	.ring_L4
 	cmp	r3, #1
-	beq	.L4
-	ldr	r3, .L10+16
+	beq	.ring_L4
+	ldr	r3, .ring_L10+16
 	ldr	r3, [r3]
 	cmp	r4, r3
-	bne	.L5
-	ldr	r0, .L10+20
+	bne	.ring_L5
+	ldr	r0, .ring_L10+20
 	add	r1, r5, #92
 	bl	_ZN3SND7playSFXElPK4Vec3
-.L5:
+.ring_L5:
 	mov	r3, #2
-.L4:
+.ring_L4:
 	add	r3, r3, r8
 	lsl	r3, r3, #2
 	ldr	r1, [r3]
@@ -128,10 +178,10 @@ ncp_over(0x0215410C, 54) /* max over: 0xFC bytes, current: 0xF0 bytes */
 	add	r2, sp, #8
 	orr	r1, r1, r4, lsl #16
 	bl	_ZN5Actor10spawnActorEtmPK4Vec3PK5Vec3sPKlPKa
-.L3:
+.ring_L3:
 	add	r4, r4, #1
-	b	.L2
-.L10:
+	b	.ring_L2
+.ring_L10:
 	.word	_ZN4Game5wrapXE
 	.word	_ZN5Stage7cameraYE
 	.word	8761326
@@ -140,3 +190,59 @@ ncp_over(0x0215410C, 54) /* max over: 0xFC bytes, current: 0xF0 bytes */
 	.word	382
 ncp_endover()
 )");
+
+// Lava (234) & Poisoned Water (259) ----------------------------------------------------
+
+ncp_repl(0x020BBE88, 0, "NOP") // Prevent liquid type change on respawn
+
+asm(R"(
+ncp_call(0x020FE2D8, 10)
+ncp_call(0x020FEB68, 10)
+ncp_call(0x021033EC, 10)
+ncp_call(0x0210E6AC, 10)
+	LDR     R1, =_ZN4Game13localPlayerIDE
+	LDR     R1, [R1]
+	LDRB    R0, [R0,R1]
+	BX      LR
+
+// There is a non-local player access at 0x020A6EA4, but the code never reaches it
+// Just in case, make it return -1 even if a playerID is specified
+ncp_over(0x020A6E9C, 0)
+	MOV     R0, #1
+	NOP
+	NOP
+ncp_endover()
+)");
+
+// TODO: LIQUID POSITION AND LAST LIQUID POSITION
+
+// Misc ---------------------------------------------------------------------------------
+
+//Fix Volcano BG                                    MUST BE CHECKED LATER
+// void repl_020B6B6C() { asm("MOV R1, #2"); }
+
+//Remove delete range for UnusedSpikeBass (256).    PATCH ADDRESS IS INVALID
+//void repl_021728EC_ov_3A() {}
+
+// Fix Rotating Barrel (246) Desync.
+ncp_repl(0x02186F58, 96, "MOV LR, #0")
+
+// Fix horizontal movement mushroom. (DeleteIfOutOfRange) (PROBABLY DOESN'T WORK)
+//void repl_0217FDDC_ov_5A() {}
+
+// Fix Boo (DeleteIfOutOfRange) (PROBABLY DOESN'T WORK)
+//void repl_02175CA4_ov_47() {}
+
+// Fix rotating carry platform (BooHouse, DeleteIfOutOfRange)
+//void repl_0218EC4C_ov_76() {}
+
+// Fix pipe cannon desync.
+ncp_repl(0x020F8230, 10, "B 0x020F823C")
+
+
+
+
+
+
+
+// TODO: CHECK WHAT 020D98DC IS

@@ -29,6 +29,20 @@
 			["source/ov8", false]
 		]
 	}, {
+		"dest": "ov9",
+		"mode": "append",
+		"compress": false,
+		"sources": [
+			["source/ov9", false]
+		]
+	}, {
+		"dest": "ov52",
+		"mode": "append",
+		"compress": false,
+		"sources": [
+			["source/ov52", false]
+		]
+	}, {
 		"dest": "ov123",
 		"mode": "append",
 		"compress": false,

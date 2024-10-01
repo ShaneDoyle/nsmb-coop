@@ -2,6 +2,12 @@
 #include "nsmb/game.h"
 #include "nsmb/stage/player/player.h"
 
+// Notes:
+//   - Commenting out the playerID substitution in StageEntity::skipRender
+//     can be helpful for identifying desync issues.
+//     Specifically, these desyncs may occur when the bone position doesn't
+//     update because the animation isn't playing.
+
 namespace PlayerSpectate {
 
 u32 sLocalTarget;
@@ -68,6 +74,15 @@ ncp_repl(0x020CE654, 10, ".int _ZN14PlayerSpectate12sLocalTargetE")
 ncp_repl(0x020CE408, 10, ".int _ZN14PlayerSpectate12sLocalTargetE")
 ncp_repl(0x020CE460, 10, ".int _ZN14PlayerSpectate12sLocalTargetE")
 
+// Foreground Fog Effect ----------------
+
+ncp_repl(0x020D709C, 10, ".int _ZN14PlayerSpectate12sLocalTargetE")
+ncp_repl(0x020D6FEC, 10, ".int _ZN14PlayerSpectate12sLocalTargetE")
+
+// Misc ----------------
+
 ncp_repl(0x020F7E30, 10, ".int _ZN14PlayerSpectate12sLocalTargetE") // (0x020F7D74) PipeBase::onRender
+
+// todo sound
 
 }

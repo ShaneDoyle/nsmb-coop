@@ -5,11 +5,14 @@
 #include "nsmb/system/function.h"
 #include "util/collisionviewer.hpp"
 #include "util/playerdragger.hpp"
+#include "util/eprintf.h"
 
 namespace Debug
 {
 	bool collisionViewerEnabled = false;
 	bool draggingPlayer[2];
+
+	int tick = 0;
 
 	void update()
 	{
@@ -42,6 +45,19 @@ namespace Debug
 				}
 			}
 		}
+
+		/*if (tick == 60) {
+			Base* base = ProcessManager::getNextObjectByObjectID(Scene::currentSceneID, 0);
+			SceneNode* node = base->link.linkConnect.getNext();
+			while (node != nullptr) {
+				eprintf("%d ", node->object->id);
+				node = node->getNext();
+			}
+			eprintf("\n");
+
+			tick = 0;
+		}
+		tick++;*/
 	}
 
 	void render3D()
