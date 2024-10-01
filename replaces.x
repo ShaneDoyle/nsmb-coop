@@ -1,7 +1,6 @@
 02039A6C: Nothing_Profile @Cheep Cheep Random Generator
 02039AB8: Nothing_Profile @Dorrie
 02039A70: Nothing_Profile @Sushi Spawner (61)
-02039A7C: Nothing_Profile @Enemy-in-Pipe Generator
 02039A24: Nothing_Profile @Balloon Boo (42)
 02039CC4: Nothing_Profile @Carry-through platform (210)
 @02039AF0: Nothing_Profile @Boss Key

@@ -11,7 +11,7 @@ class Player;
 class StageActor : public Actor
 {
 public:
-	
+
 	enum class ColliderPushSide : u8
 	{
 
@@ -63,7 +63,7 @@ public:
 
 	// 020a06dc
 	// returns whether the actor is vertically outside of the stage camera
-	sym bool isOutOfViewVertical() const __rbody
+	sym bool isOutOfViewVertical(const FxRect& boundingBox, s32 playerID) const __rbody
 
 	// 020a069c
 	// Returns the closest player to the entity (and writes back the distance)
@@ -97,7 +97,7 @@ public:
 	sym static void setWrapPositionFunction(u32 wrapType) __body
 
 
-	
+
 	// 020a047c
 	// returns true if the actor's X position is less than the target's X position
 	sym bool isBehindTarget(const StageActor& target) const __rbody
