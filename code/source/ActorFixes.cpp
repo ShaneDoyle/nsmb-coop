@@ -2,6 +2,7 @@
 #include "nsmb/sound.h"
 #include "nsmb/stage/entity3danm.h"
 #include "nsmb/stage/viewshaker.h"
+#include "nsmb/stage/actors/ov71/boo.h"
 
 asm(R"(
 	SledgeBro_tryShakePlayer = 0x02174DE4
@@ -60,8 +61,6 @@ ncp_repl(0x02174614, 56, R"(
 	BL      _ZL24SledgeBro_fixShakePlayerP11StageEntity
 	B       0x02174658
 )");
-
-// Note: ov56:0x02174D98 would break with more than 2 players
 
 // Dorrie -------------------------------------------------------------------------------
 
@@ -215,6 +214,22 @@ ncp_endover()
 )");
 
 // TODO: LIQUID POSITION AND LAST LIQUID POSITION
+
+// Balloon Boo --------------------------------------------------------------------------
+
+ncp_repl(0x0217716C, 71, "NOP") // Pass Boo* instead of &Boo*->position
+
+ncp_call(0x0x02177178, 71)
+bool Boo_fixHasLeftCamera(Boo* self, const FxRect& boundingBox, u8 playerID)
+{
+	Player* player = self->getClosestPlayer(nullptr, nullptr);
+
+	return Stage::isOutsideCamera(self->position, boundingBox, player->linkedPlayerID);
+}
+
+// Rotating Carry Through Wall Platform -------------------------------------------------
+
+ncp_over(0x0218FF54, 118) const auto RotatingCarryThroughWallPlatform_skipRender = ActorFixes_safeSkipRender;
 
 // Misc ---------------------------------------------------------------------------------
 
