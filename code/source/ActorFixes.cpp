@@ -20,6 +20,12 @@ static bool ActorFixes_safeSkipRender(StageEntity3DAnm* self)
 	return false;
 }
 
+// Replacement for Game::getLocalPlayer in some cases
+NTR_USED static Player* ActorFixes_getClosestPlayer(StageEntity* self)
+{
+	return self->getClosestPlayer(nullptr, nullptr);
+}
+
 // Hammer/Fire/Boomerang Bros -----------------------------------------------------------
 
 ncp_over(0x021754F8, 56) const auto HammerBro_skipRender = ActorFixes_safeSkipRender;
@@ -230,6 +236,25 @@ bool Boo_fixHasLeftCamera(Boo* self, const FxRect& boundingBox, u8 playerID)
 // Rotating Carry Through Wall Platform -------------------------------------------------
 
 ncp_over(0x0218FF54, 118) const auto RotatingCarryThroughWallPlatform_skipRender = ActorFixes_safeSkipRender;
+
+// Blockhopper --------------------------------------------------------------------------
+
+ncp_over(0x021784B8, 69) const auto Blockhopper_skipRender = ActorFixes_safeSkipRender;
+
+asm(R"(
+ncp_jump(0x02177260, 69)
+	MOV     R0, R4
+	BL      _ZL27ActorFixes_getClosestPlayerP11StageEntity
+	B       0x02177264
+
+ncp_over(0x021778A4, 69)
+	NOP
+	MOV     R0, R4
+	BL      _ZL27ActorFixes_getClosestPlayerP11StageEntity
+ncp_endover()
+)");
+
+ncp_set_call(0x02177450, 69, ActorFixes_getClosestPlayer)
 
 // Misc ---------------------------------------------------------------------------------
 
