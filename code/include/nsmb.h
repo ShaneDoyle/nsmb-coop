@@ -11,7 +11,7 @@
 #include "nsmb/game.h"
 #include "nsmb/graphics.h"
 #include "nsmb/math.h"
-#include "nsmb/mvslmenu.h"
+#include "nsmb/vsconnect.h"
 #include "nsmb/physics.h"
 #include "nsmb/player.h"
 #include "nsmb/sound.h"
@@ -25,4 +25,3 @@
 #include "nsmb/worldmap.h"
 
 #include "extra/fx.hpp"
-#include "extra/ostream.hpp"
