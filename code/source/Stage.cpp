@@ -114,6 +114,17 @@ void call_020203EC() // When Mario gets 1-up from coins, also give Luigi 1-up.
 		StageEntity::getCollectablePoints(8, i);
 }
 
+ncp_repl(0x020D13B4, 10, "NOP") // Powerups don't despawn
+
+ncp_repl(0x0209B7C0, 0, "NOP") // Permanently destroyed entities do not respawn
+
+ncp_repl(0x020A3430, 0, "MOV R0, #1") // Fix Scene::preCreate getting called 4 times (fixes fading)
+
+// No idea what these do
+// ncp_repl(0x0209B254, 0, "MOV R0, #1")
+// ncp_repl(0x0209BD2C, 0, "MOV R0, #1")
+// ncp_repl(0x020D06E0, 10, "MOV R0, #1")
+
 // ======================================= ENTRANCE POSITIONING =======================================
 
 asm(R"(
