@@ -256,6 +256,30 @@ ncp_endover()
 
 ncp_set_call(0x02177450, 69, ActorFixes_getClosestPlayer)
 
+// Flying Red Block ---------------------------------------------------------------------
+
+asm(R"(
+ncp_over(0x0215BBE4, 54)
+	MOV     R4, R0
+	BL      _ZL27ActorFixes_getClosestPlayerP11StageEntity
+	NOP
+	NOP
+ncp_endover()
+
+ncp_over(0x0215BC48, 54)
+	MOV     R4, R0
+	BL      _ZL27ActorFixes_getClosestPlayerP11StageEntity
+	NOP
+	NOP
+ncp_endover()
+
+ncp_over(0x0215BCCC, 54)
+	MOV     R0, R4
+	BL      _ZL27ActorFixes_getClosestPlayerP11StageEntity
+	NOP
+ncp_endover()
+)");
+
 // Misc ---------------------------------------------------------------------------------
 
 //Fix Volcano BG                                    MUST BE CHECKED LATER
@@ -269,12 +293,6 @@ ncp_repl(0x02186F58, 96, "MOV LR, #0")
 
 // Fix horizontal movement mushroom. (DeleteIfOutOfRange) (PROBABLY DOESN'T WORK)
 //void repl_0217FDDC_ov_5A() {}
-
-// Fix Boo (DeleteIfOutOfRange) (PROBABLY DOESN'T WORK)
-//void repl_02175CA4_ov_47() {}
-
-// Fix rotating carry platform (BooHouse, DeleteIfOutOfRange)
-//void repl_0218EC4C_ov_76() {}
 
 // Fix pipe cannon desync.
 ncp_repl(0x020F8230, 10, "B 0x020F823C")
