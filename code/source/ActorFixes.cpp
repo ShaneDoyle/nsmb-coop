@@ -26,6 +26,13 @@ NTR_USED static Player* ActorFixes_getClosestPlayer(StageEntity* self)
 	return self->getClosestPlayer(nullptr, nullptr);
 }
 
+// Replacement for Game::isOutsideCamera(..., Game::localPlayerID)
+NTR_USED static bool ActorFixes_isOutsideCamera(StageEntity* self, const FxRect& boundingBox, u8 playerID)
+{
+	Player* player = ActorFixes_getClosestPlayer(self);
+	return Stage::isOutsideCamera(self->position, boundingBox, player->linkedPlayerID);
+}
+
 // Hammer/Fire/Boomerang Bros -----------------------------------------------------------
 
 ncp_over(0x021754F8, 56) const auto HammerBro_skipRender = ActorFixes_safeSkipRender;
@@ -224,14 +231,7 @@ ncp_endover()
 // Balloon Boo --------------------------------------------------------------------------
 
 ncp_repl(0x0217716C, 71, "NOP") // Pass Boo* instead of &Boo*->position
-
-ncp_call(0x0x02177178, 71)
-bool Boo_fixHasLeftCamera(Boo* self, const FxRect& boundingBox, u8 playerID)
-{
-	Player* player = self->getClosestPlayer(nullptr, nullptr);
-
-	return Stage::isOutsideCamera(self->position, boundingBox, player->linkedPlayerID);
-}
+ncp_set_call(0x02177178, 71, ActorFixes_isOutsideCamera)
 
 // Rotating Carry Through Wall Platform -------------------------------------------------
 
@@ -279,6 +279,29 @@ ncp_over(0x0215BCCC, 54)
 	NOP
 ncp_endover()
 )");
+
+// Unagi Eel ----------------------------------------------------------------------------
+
+ncp_repl(0x02179A20, 79, "MOV R0, R4") // Pass Unagi* instead of &Unagi*->position
+ncp_set_call(0x02179A44, 79, ActorFixes_safeSkipRender)
+ncp_set_call(0x02179A28, 79, ActorFixes_isOutsideCamera)
+
+asm(R"(
+ncp_call(0x0217ABA4, 79)
+ncp_call(0x0217AEC4, 79)
+	MOV     R0, R4
+	B       _ZL27ActorFixes_getClosestPlayerP11StageEntity
+
+ncp_jump(0x0217B8AC, 79) // Mega bump fix
+	PUSH    {R4,LR}
+	MOV     R4, R0
+	B       0x0217B8B0
+)");
+
+ncp_repl(0x0217B900, 79, "POP {R4,PC}") // Mega bump fix
+
+ncp_repl(0x0217B8C8, 79, "ADD R0, R4, #0x100") // Mega bump fix
+ncp_repl(0x0217B8D0, 79, "LDRSB R0, [R0,#0x1E]") // Mega bump fix
 
 // Misc ---------------------------------------------------------------------------------
 
