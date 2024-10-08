@@ -1,6 +1,5 @@
 02039A6C: Nothing_Profile @Cheep Cheep Random Generator
 02039A70: Nothing_Profile @Sushi Spawner (61)
-02039AAC: Nothing_Profile @Big Eel
 02039DD0: Nothing_Profile @Scroll and Mario stop sideways (277)
 02039D88: Nothing_Profile @Blockhopper
 02039A94: Nothing_Profile @Sledge Bro

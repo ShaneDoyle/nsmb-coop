@@ -123,7 +123,7 @@ namespace Stage
 	bool isOutsideCameraNoWrap(const Vec3& position, const FxRect& boundingBox, u8 playerID);
 	bool isOutsideCameraWrap(const Vec3& position, const FxRect& boundingBox, u8 playerID);
 
-	bool isOutsidePlayerRangeWrap(const Vec3& position, const FxRect& boundingBox, u8 viewID);
+	bool isOutsidePlayerRangeWrap(const Vec3& position, const FxRect& boundingBox, u8 playerID, u8 viewID);
 	bool isOutsidePlayerRangeNoWrap(const Vec3& position, const FxRect& boundingBox, u8 playerID, u8 viewID);
 	bool isOutsidePlayerRange(const Vec3& position, const FxRect& boundingBox);
 
