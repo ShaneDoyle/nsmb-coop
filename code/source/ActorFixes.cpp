@@ -2,7 +2,6 @@
 #include "nsmb/sound.h"
 #include "nsmb/stage/entity3danm.h"
 #include "nsmb/stage/viewshaker.h"
-#include "nsmb/stage/actors/ov71/boo.h"
 
 asm(R"(
 	SledgeBro_tryShakePlayer = 0x02174DE4
@@ -302,6 +301,30 @@ ncp_repl(0x0217B900, 79, "POP {R4,PC}") // Mega bump fix
 
 ncp_repl(0x0217B8C8, 79, "ADD R0, R4, #0x100") // Mega bump fix
 ncp_repl(0x0217B8D0, 79, "LDRSB R0, [R0,#0x1E]") // Mega bump fix
+
+// Spike Bass ---------------------------------------------------------------------------
+
+asm(R"(
+ncp_call(0x02173318, 58)
+	MOV     R0, R4
+	B       _ZL27ActorFixes_getClosestPlayerP11StageEntity
+)");
+
+ncp_call(0x02173370, 58)
+bool SpikeBass_checkZoneForBothPlayers(StageEntity* self, Player* player, u32 zoneID)
+{
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		Player* player = Game::getPlayer(playerID);
+
+		if (self->isPlayerInZone(*player, zoneID))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
 
 // Misc ---------------------------------------------------------------------------------
 

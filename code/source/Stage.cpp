@@ -120,6 +120,8 @@ ncp_repl(0x0209B7C0, 0, "NOP") // Permanently destroyed entities do not respawn
 
 ncp_repl(0x020A3430, 0, "MOV R0, #1") // Fix Scene::preCreate getting called 4 times (fixes fading)
 
+ncp_repl(0x0209AEEC, 0, "MOV R3, #0") // Prevent StageEntity::isOutOfView from returning "true" locally for the player that dies (fixes some enemies despawning on player death)
+
 // No idea what these do
 // ncp_repl(0x0209B254, 0, "MOV R0, #1")
 // ncp_repl(0x0209BD2C, 0, "MOV R0, #1")
