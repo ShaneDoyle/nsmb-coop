@@ -7,6 +7,7 @@
 #include "nsmb/system/input.h"
 #include "nsmb/system/function.h"
 #include "nsmb/system/misc.h"
+#include "nsmb/graphics/fader.h"
 
 #include "PlayerSpectate.hpp"
 #include "util/eprintf.h"
@@ -115,7 +116,6 @@ void call_020203EC() // When Mario gets 1-up from coins, also give Luigi 1-up.
 }
 
 ncp_repl(0x020D13B4, 10, "NOP") // Powerups don't despawn
-
 ncp_repl(0x0209B7C0, 0, "NOP") // Permanently destroyed entities do not respawn
 
 ncp_repl(0x020A3430, 0, "MOV R0, #1") // Fix Scene::preCreate getting called 4 times (fixes fading)
@@ -260,6 +260,7 @@ NTR_USED static bool Stage_customRespawnCondition(u32 playerID, s32 lives)
 	u32 otherID = playerID ^ 1;
 	if (Game::getPlayerDead(otherID))
 	{
+		Game::fader.fadeMaskShape[otherID] = scast<u8>(FadeMask::Shape::Bowser); // Other player also gets the Bowser death screen
 		Stage::exitLevel(0);
 		return false;
 	}
