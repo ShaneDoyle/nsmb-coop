@@ -36,11 +36,39 @@
 			["source/ov9", false]
 		]
 	}, {
+		"dest": "ov50",
+		"mode": "append",
+		"compress": false,
+		"sources": [
+			["source/ov50", false]
+		]
+	}, {
 		"dest": "ov52",
 		"mode": "append",
 		"compress": false,
 		"sources": [
 			["source/ov52", false]
+		]
+	}, {
+		"dest": "ov56",
+		"mode": "append",
+		"compress": false,
+		"sources": [
+			["source/ov56", false]
+		]
+	}, {
+		"dest": "ov58",
+		"mode": "append",
+		"compress": false,
+		"sources": [
+			["source/ov58", false]
+		]
+	}, {
+		"dest": "ov79",
+		"mode": "append",
+		"compress": false,
+		"sources": [
+			["source/ov79", false]
 		]
 	}, {
 		"dest": "ov123",

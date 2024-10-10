@@ -1,17 +1,8 @@
 #include "nsmb/game.h"
-#include "nsmb/sound.h"
 #include "nsmb/stage/entity3danm.h"
-#include "nsmb/stage/viewshaker.h"
-
-asm(R"(
-	SledgeBro_tryShakePlayer = 0x02174DE4
-)");
-extern "C" {
-	void SledgeBro_tryShakePlayer(StageEntity* _this, s32 playerID);
-}
 
 // Replacement for StageEntity::skipRender that updates the model but doesn't draw it
-static bool ActorFixes_safeSkipRender(StageEntity3DAnm* self)
+bool ActorFixes_safeSkipRender(StageEntity3DAnm* self)
 {
 	self->StageEntity::skipRender() ?
 		self->model.disableRendering() :
@@ -20,13 +11,13 @@ static bool ActorFixes_safeSkipRender(StageEntity3DAnm* self)
 }
 
 // Replacement for Game::getLocalPlayer in some cases
-NTR_USED static Player* ActorFixes_getClosestPlayer(StageEntity* self)
+Player* ActorFixes_getClosestPlayer(StageEntity* self)
 {
 	return self->getClosestPlayer(nullptr, nullptr);
 }
 
 // Replacement for Game::isOutsideCamera(..., Game::localPlayerID)
-NTR_USED static bool ActorFixes_isOutsideCamera(StageEntity* self, const FxRect& boundingBox, u8 playerID)
+bool ActorFixes_isOutsideCamera(StageEntity* self, const FxRect& boundingBox, u8 playerID)
 {
 	Player* player = ActorFixes_getClosestPlayer(self);
 	return Stage::isOutsideCamera(self->position, boundingBox, player->linkedPlayerID);
@@ -45,7 +36,7 @@ NTR_USED static Player* ActorFixes_getClosestPlayerFilter(s32 playerID)
 ncp_set_call(0x020A0544, 0, ActorFixes_getClosestPlayerFilter)
 ncp_set_call(0x020A0628, 0, ActorFixes_getClosestPlayerFilter)
 
-NTR_USED static Player* ActorFixes_getClosestPlayerInZone(StageEntity* self, u32 zoneID)
+Player* ActorFixes_getClosestPlayerInZone(StageEntity* self, u32 zoneID)
 {
 	ActorFixes_matchZoneID = zoneID;
 	Player* player = ActorFixes_getClosestPlayer(self);
@@ -58,42 +49,6 @@ NTR_USED static Player* ActorFixes_getClosestPlayerInZone(StageEntity* self, u32
 ncp_over(0x021754F8, 56) const auto HammerBro_skipRender = ActorFixes_safeSkipRender;
 ncp_over(0x02175730, 56) const auto FireBro_skipRender = ActorFixes_safeSkipRender;
 ncp_over(0x02175614, 56) const auto BoomerangBro_skipRender = ActorFixes_safeSkipRender;
-
-// Sledge Bro -----------------------------------------------------------
-
-ncp_over(0x02175880, 56) const auto SledgeBro_skipRender = ActorFixes_safeSkipRender;
-
-static bool SledgeBro_canTryShakePlayer(StageEntity* self, Player* player)
-{
-	const fx32 range = 0x100000; // 16 tiles
-
-	bool inRange = Math::abs(self->position.x - player->position.x) < range &&
-	               Math::abs(self->position.y - player->position.y) < range;
-
-	return inRange && !Game::getPlayerDead(player->linkedPlayerID);
-}
-
-NTR_USED static void SledgeBro_fixShakePlayer(StageEntity* self)
-{
-	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-	{
-		Player* player = Game::getPlayer(playerID);
-
-		if (SledgeBro_canTryShakePlayer(self, player))
-		{
-			ViewShaker::start(3, self->viewID, playerID, false);
-			if (playerID == Game::localPlayerID)
-				SND::playSFX(138, &self->position);
-			SledgeBro_tryShakePlayer(self, playerID);
-		}
-	}
-}
-
-ncp_repl(0x02174614, 56, R"(
-	MOV     R0, R4
-	BL      _ZL24SledgeBro_fixShakePlayerP11StageEntity
-	B       0x02174658
-)");
 
 // Dorrie -------------------------------------------------------------------------------
 
@@ -264,13 +219,13 @@ ncp_over(0x021784B8, 69) const auto Blockhopper_skipRender = ActorFixes_safeSkip
 asm(R"(
 ncp_jump(0x02177260, 69)
 	MOV     R0, R4
-	BL      _ZL27ActorFixes_getClosestPlayerP11StageEntity
+	BL      _Z27ActorFixes_getClosestPlayerP11StageEntity
 	B       0x02177264
 
 ncp_over(0x021778A4, 69)
 	NOP
 	MOV     R0, R4
-	BL      _ZL27ActorFixes_getClosestPlayerP11StageEntity
+	BL      _Z27ActorFixes_getClosestPlayerP11StageEntity
 ncp_endover()
 )");
 
@@ -281,114 +236,24 @@ ncp_set_call(0x02177450, 69, ActorFixes_getClosestPlayer)
 asm(R"(
 ncp_over(0x0215BBE4, 54)
 	MOV     R4, R0
-	BL      _ZL27ActorFixes_getClosestPlayerP11StageEntity
+	BL      _Z27ActorFixes_getClosestPlayerP11StageEntity
 	NOP
 	NOP
 ncp_endover()
 
 ncp_over(0x0215BC48, 54)
 	MOV     R4, R0
-	BL      _ZL27ActorFixes_getClosestPlayerP11StageEntity
+	BL      _Z27ActorFixes_getClosestPlayerP11StageEntity
 	NOP
 	NOP
 ncp_endover()
 
 ncp_over(0x0215BCCC, 54)
 	MOV     R0, R4
-	BL      _ZL27ActorFixes_getClosestPlayerP11StageEntity
+	BL      _Z27ActorFixes_getClosestPlayerP11StageEntity
 	NOP
 ncp_endover()
 )");
-
-// Unagi Eel ----------------------------------------------------------------------------
-
-ncp_repl(0x02179A20, 79, "MOV R0, R4") // Pass Unagi* instead of &Unagi*->position
-ncp_set_call(0x02179A44, 79, ActorFixes_safeSkipRender)
-ncp_set_call(0x02179A28, 79, ActorFixes_isOutsideCamera)
-
-asm(R"(
-ncp_call(0x0217ABA4, 79)
-ncp_call(0x0217AEC4, 79)
-	MOV     R0, R4
-	B       _ZL27ActorFixes_getClosestPlayerP11StageEntity
-
-ncp_jump(0x0217B8AC, 79) // Mega bump fix
-	PUSH    {R4,LR}
-	MOV     R4, R0
-	B       0x0217B8B0
-)");
-
-ncp_repl(0x0217B900, 79, "POP {R4,PC}") // Mega bump fix
-
-ncp_repl(0x0217B8C8, 79, "ADD R0, R4, #0x100") // Mega bump fix
-ncp_repl(0x0217B8D0, 79, "LDRSB R0, [R0,#0x1E]") // Mega bump fix
-
-// Spike Bass ---------------------------------------------------------------------------
-
-ncp_repl(0x021731B4, 58, ".int 0x4BC") // Add a zoneID field
-
-NTR_USED static Player* SpikeBass_fixGetClosestPlayer(StageEntity* self)
-{
-	u32 zoneID = rcast<u32*>(self)[0x4B8 / 4];
-	Player* player = ActorFixes_getClosestPlayerInZone(self, zoneID);
-	return player ? player : ActorFixes_getClosestPlayer(self);
-}
-
-ncp_set_call(0x02172CB0, 58, SpikeBass_fixGetClosestPlayer)
-ncp_set_call(0x02172E4C, 58, SpikeBass_fixGetClosestPlayer)
-
-NTR_USED static Player* SpikeBassSpawner_fixCheckPlayerInView(StageEntity* self)
-{
-	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-	{
-		Player* player = Game::getPlayer(playerID);
-		if (player->viewID == self->viewID)
-		{
-			return player;
-		}
-	}
-	return nullptr;
-}
-
-asm(R"(
-ncp_call(0x02173318, 58)
-	MOV     R0, R4
-	B       _ZL37SpikeBassSpawner_fixCheckPlayerInViewP11StageEntity
-
-ncp_jump(0x021734C8, 58)
-	STR     R2, [R0,#0x4AC] // Keep replaced instruction
-	LDRB    R2, [R4,#0x402] // R2 = SpikeBassSpawner*->zoneID
-	STR     R2, [R0,#0x4B8] // SpikeBass*->zoneID = R2
-	B       0x021734CC      // Return to code
-)");
-
-ncp_call(0x02173370, 58)
-bool SpikeBassSpawner_fixCheckPlayerInZone(StageEntity* self, Player* player, u32 zoneID)
-{
-	return ActorFixes_getClosestPlayerInZone(self, zoneID) != nullptr;
-}
-
-// Jumping Cheep Cheep ------------------------------------------------------------------
-
-NTR_USED static u32 JumpingCheepCheep_cameraX;
-NTR_USED static u32 JumpingCheepCheep_cameraWidth;
-NTR_USED static u32 JumpingCheepCheep_cameraUnk;
-
-NTR_USED static void JumpingCheepCheep_updateVars(StageEntity* self)
-{
-	s32 playerID = ActorFixes_getClosestPlayer(self)->linkedPlayerID;
-	JumpingCheepCheep_cameraX = Stage::cameraX[playerID];
-	JumpingCheepCheep_cameraWidth = Stage::cameraWidth[playerID];
-	JumpingCheepCheep_cameraUnk = rcast<Vec3*>(0x020CAED8)[playerID].x;
-}
-
-ncp_set_hook(0x02147868, 50, JumpingCheepCheep_updateVars)
-ncp_repl(0x02147D10, 50, ".int _ZL25JumpingCheepCheep_cameraX")
-ncp_repl(0x02147D14, 50, ".int _ZL29JumpingCheepCheep_cameraWidth")
-ncp_repl(0x02147D30, 50, ".int _ZL27JumpingCheepCheep_cameraUnk - 4")
-
-ncp_set_call(0x0214762C, 50, JumpingCheepCheep_updateVars)
-ncp_repl(0x02147840, 50, ".int _ZL27JumpingCheepCheep_cameraUnk - 4")
 
 // Misc ---------------------------------------------------------------------------------
 
