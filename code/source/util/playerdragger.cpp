@@ -1,8 +1,8 @@
 #include "playerdragger.hpp"
 
-#include "nsmb/player.h"
-#include "nsmb/system/input.h"
-#include "nsmb/system/function.h"
+#include "nsmb/player.hpp"
+#include "nsmb/system/input.hpp"
+#include "nsmb/system/function.hpp"
 
 fx32 playerDragAccelX = 0;
 fx32 playerDragAccelY = 0;

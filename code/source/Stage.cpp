@@ -1,14 +1,14 @@
-#include "nsmb/game.h"
-#include "nsmb/sound.h"
-#include "nsmb/player.h"
-#include "nsmb/stage/entity.h"
-#include "nsmb/stage/layout/entrance.h"
-#include "nsmb/graphics/particle.h"
-#include "nsmb/system/input.h"
-#include "nsmb/system/function.h"
-#include "nsmb/system/misc.h"
-#include "nsmb/graphics/fader.h"
-#include "nsmb/entity/scene.h"
+#include "nsmb/game.hpp"
+#include "nsmb/sound.hpp"
+#include "nsmb/player.hpp"
+#include "nsmb/stage/entity.hpp"
+#include "nsmb/stage/layout/entrance.hpp"
+#include "nsmb/graphics/particle.hpp"
+#include "nsmb/system/input.hpp"
+#include "nsmb/system/function.hpp"
+#include "nsmb/system/misc.hpp"
+#include "nsmb/graphics/fader.hpp"
+#include "nsmb/entity/scene.hpp"
 
 #include "PlayerSpectate.hpp"
 #include "util/eprintf.h"
@@ -95,8 +95,8 @@ void call_020C0444_ov0()
 	GXOamAttr** entryTable_1P = rcast<GXOamAttr**>(0x0216F554);
 	GXOamAttr** liveCounterForPlayer_1P = rcast<GXOamAttr**>(0x020CA00C);
 
-	OAM::updateCounter(liveCounterForPlayer_1P[0], entryTable_1P, Game::getPlayerLives(0), 2, OAM::CounterFlags::UpdateShadow | OAM::CounterFlags::Unk2h);
-	OAM::updateCounter(liveCounterForPlayer_1P[1], entryTable_1P, Game::getPlayerLives(1), 2, OAM::CounterFlags::UpdateShadow | OAM::CounterFlags::Unk2h);
+	OAM::updateCounter(liveCounterForPlayer_1P[0], entryTable_1P, Game::getPlayerLives(0), 2, OAM::CounterFlags::UpdateShadow | OAM::CounterFlags::NoLeadingZeroes);
+	OAM::updateCounter(liveCounterForPlayer_1P[1], entryTable_1P, Game::getPlayerLives(1), 2, OAM::CounterFlags::UpdateShadow | OAM::CounterFlags::NoLeadingZeroes);
 }
 ncp_repl(0x020C041C, 0, "B 0x020C0444")
 

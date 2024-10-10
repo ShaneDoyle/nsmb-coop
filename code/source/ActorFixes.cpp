@@ -1,5 +1,5 @@
-#include "nsmb/game.h"
-#include "nsmb/stage/entity3danm.h"
+#include "nsmb/game.hpp"
+#include "nsmb/stage/entity3danm.hpp"
 
 // Replacement for StageEntity::skipRender that updates the model but doesn't draw it
 bool ActorFixes_safeSkipRender(StageEntity3DAnm* self)

@@ -1,8 +1,8 @@
-#include "nsmb/game.h"
-#include "nsmb/player.h"
-#include "nsmb/system/save.h"
-#include "nsmb/entity/scene.h"
-#include "nsmb/wifi.h"
+#include "nsmb/game.hpp"
+#include "nsmb/player.hpp"
+#include "nsmb/system/save.hpp"
+#include "nsmb/entity/scene.hpp"
+#include "nsmb/wifi.hpp"
 
 NTR_USED static u8 WorldmapInputOwner = 0; // The ID of the console controlling the worldmap input (MUST BE 0)
 

@@ -1,4 +1,6 @@
-#include "nitro_if.h"
+#pragma once
+
+#include "nsmb_nitro.hpp"
 
 namespace PlayerSpectate {
 

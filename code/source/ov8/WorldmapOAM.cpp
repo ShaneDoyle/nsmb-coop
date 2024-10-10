@@ -1,6 +1,5 @@
-#include "nsmb/player.h"
-#include "nsmb/graphics/2d/oam.h"
-#include "nsmb/wifi.h"
+#include "nsmb/player.hpp"
+#include "nsmb/graphics/2d/oam.hpp"
 
 static GXOamAttr marioHeadList[] = {
 	// Mario Head
