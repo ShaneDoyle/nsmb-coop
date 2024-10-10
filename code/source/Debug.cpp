@@ -1,11 +1,13 @@
-#include "nitro_if.h"
+#include "nsmb_nitro.hpp"
 
-#include "nsmb/entity/scene.h"
-#include "nsmb/system/input.h"
-#include "nsmb/system/function.h"
+#include "nsmb/entity/scene.hpp"
+#include "nsmb/system/input.hpp"
+#include "nsmb/system/function.hpp"
 #include "util/collisionviewer.hpp"
 #include "util/playerdragger.hpp"
 #include "util/eprintf.h"
+
+#include "PlayerSpectate.hpp"
 
 namespace Debug
 {

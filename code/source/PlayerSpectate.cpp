@@ -1,6 +1,7 @@
 #include "PlayerSpectate.hpp"
-#include "nsmb/game.h"
-#include "nsmb/stage/player/player.h"
+
+#include "nsmb/game.hpp"
+#include "nsmb/stage/player/player.hpp"
 
 // Notes:
 //   - Commenting out the playerID substitution in StageEntity::skipRender

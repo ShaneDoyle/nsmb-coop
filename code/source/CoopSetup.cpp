@@ -1,9 +1,9 @@
-#include "nsmb/game.h"
-#include "nsmb/system/save.h"
-#include "nsmb/entity/scene.h"
-#include "nsmb/wifi.h"
+#include "nsmb/game.hpp"
+#include "nsmb/system/save.hpp"
+#include "nsmb/entity/scene.hpp"
+#include "nsmb/wifi.hpp"
 
-ncp_repl(0x021578F0, 52, "MOVEQ R1, #0") // Force MvsLMode = 0
+ncp_repl(0x021578F0, 52, "MOVEQ R1, #0") // Force Game::vsMode = 0
 
 // Replace MvsL load function
 ncp_repl(0x021535A0, 52, R"(

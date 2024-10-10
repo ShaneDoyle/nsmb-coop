@@ -1,7 +1,8 @@
-#include "nsmb/game.h"
-#include "nsmb/sound.h"
-#include "nsmb/stage/entity.h"
-#include "nsmb/stage/viewshaker.h"
+#include "nsmb/game.hpp"
+#include "nsmb/sound.hpp"
+#include "nsmb/stage/entity.hpp"
+#include "nsmb/stage/viewshaker.hpp"
+
 #include "ActorFixes.hpp"
 
 asm(R"(

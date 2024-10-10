@@ -1,4 +1,5 @@
-#include "nsmb/stage/entity.h"
+#include "nsmb/stage/entity.hpp"
+
 #include "ActorFixes.hpp"
 
 // Unagi Eel ----------------------------------------------------------------------------
