@@ -119,15 +119,15 @@ void call_020203EC() // When Mario gets 1-up from coins, also give Luigi 1-up.
 ncp_repl(0x020D13B4, 10, "NOP") // Powerups don't despawn
 ncp_repl(0x0209B7C0, 0, "NOP") // Permanently destroyed entities do not respawn
 
-ncp_repl(0x0201378C, "MOV R0, R4") // Pass Scene* instead of &Game::fader to Stage_fixFadingSetup
-
-ncp_call(0x02013798)
-void Stage_fixFadingSetup(Scene* self, Fader::FadingType type, bool fadeBright, bool staticBlend)
+// Prevent reloading resources on preCreate during multiplayer wait (Fixes fading)
+static bool StageScene_preCreate(Scene* self)
 {
-	if (self->id == scast<u16>(SceneID::Stage) && rcast<u32*>(self)[0x640C / 4])
-		return;
-	Game::fader.setupSceneFading(type, fadeBright, staticBlend);
+	if (rcast<u32*>(self)[0x640C / 4])
+		return true;
+	return self->Scene::preCreate();
 }
+
+ncp_over(0x020C6E68, 0) const auto StageScene_preCreate_vtbl = StageScene_preCreate;
 
 //ncp_repl(0x0209AEEC, 0, "MOV R3, #0") // Prevent StageEntity::isOutOfView from returning "true" locally for the player that dies (fixes some enemies despawning on player death)
 //ncp_repl(0x0209AE88, 0, "MOV R0, #0; BX LR")
