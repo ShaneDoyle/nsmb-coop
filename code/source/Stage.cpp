@@ -143,6 +143,30 @@ u16 Level_createHook() {
 
 // WARNING: Different water heights between views in the same area WILL BREAK.
 
+// Make areas always reload if the area number is not 0
+
+NTR_USED static u8 Stage_forceAreaReload = 0;
+
+asm(R"(
+ncp_jump(0x0201E91C)
+	STR     R0, [R1] // Keep replaced instruction
+	LDR     R0, =_ZL21Stage_forceAreaReload
+	MOV     R1, #1
+	STR     R1, [R0]
+	B       0x0201E920
+
+ncp_jump(0x02119638, 10)
+	LDR     R3, =_ZL21Stage_forceAreaReload
+	LDR     R2, [R3]
+	CMP     R2, #0
+	MOV     R2, #0
+	STR     R2, [R3]
+	BNE     0x02119664
+	B       0x02119640
+)");
+
+ncp_repl(0x0215E4AC, 54, "NOP") // StageScene::setup load the area even if the same
+
 // No idea what these do
 // ncp_repl(0x0209B254, 0, "MOV R0, #1")
 // ncp_repl(0x0209BD2C, 0, "MOV R0, #1")
@@ -318,6 +342,18 @@ ncp_jump(0x020FFB4C, 10)
 	CMP     R4, #0x14
 	B       0x020FFB50
 )");
+
+ncp_call(0x02118980, 10)
+Vec3 Stage_customRespawnEntrance(u8 playerID)
+{
+	u32 otherID = playerID ^ 1;
+	Player* other = Game::getPlayer(otherID);
+
+	Entrance::overrideSpawnPosition(playerID, other->position.x, other->position.y);
+	Entrance::subScreenSpawn[playerID] = Entrance::subScreenSpawn[otherID];
+
+	return Entrance::accessSpawnEntrance(playerID);
+}
 
 /*
 //Player can't respawn when switching areas
