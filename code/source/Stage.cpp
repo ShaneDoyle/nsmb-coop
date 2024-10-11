@@ -129,8 +129,19 @@ static bool StageScene_preCreate(Scene* self)
 
 ncp_over(0x020C6E68, 0) const auto StageScene_preCreate_vtbl = StageScene_preCreate;
 
-//ncp_repl(0x0209AEEC, 0, "MOV R3, #0") // Prevent StageEntity::isOutOfView from returning "true" locally for the player that dies (fixes some enemies despawning on player death)
-//ncp_repl(0x0209AE88, 0, "MOV R0, #0; BX LR")
+ncp_repl(0x020BC224, 0, "NOP") // Do not reset liquid position on player setup
+ncp_repl(0x020BC22C, 0, "NOP") // Do not reset liquid position on player setup
+
+ncp_call(0x020BBAD0, 0)
+u16 Level_createHook() {
+	// Reset liquid on area/level load
+	Stage::liquidPosition[Game::localPlayerID] = -0x1000000;
+	Stage::lastLiquidPosition[Game::localPlayerID] = -0x1000000;
+
+	return Wifi::getConsoleCount(); // Keep replaced instruction
+}
+
+// WARNING: Different water heights between views in the same area WILL BREAK.
 
 // No idea what these do
 // ncp_repl(0x0209B254, 0, "MOV R0, #1")
