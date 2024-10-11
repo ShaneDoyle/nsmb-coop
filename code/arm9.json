@@ -25,6 +25,7 @@
 	}, {
 		"dest": "ov8",
 		"mode": "append",
+		"length": "0x56400",
 		"compress": false,
 		"sources": [
 			["source/ov8", false]
@@ -32,6 +33,7 @@
 	}, {
 		"dest": "ov9",
 		"mode": "append",
+		"length": "0x56400",
 		"compress": false,
 		"sources": [
 			["source/ov9", false]
@@ -39,27 +41,15 @@
 	}, {
 		"dest": "ov50",
 		"mode": "append",
+		"length": "0xBBE0",
 		"compress": false,
 		"sources": [
 			["source/ov50", false]
 		]
 	}, {
-		"dest": "ov52",
-		"mode": "append",
-		"compress": false,
-		"sources": [
-			["source/ov52", false]
-		]
-	}, {
-		"dest": "ov56",
-		"mode": "append",
-		"compress": false,
-		"sources": [
-			["source/ov56", false]
-		]
-	}, {
 		"dest": "ov58",
 		"mode": "append",
+		"length": "0x32E0",
 		"compress": false,
 		"sources": [
 			["source/ov58", false]
@@ -67,6 +57,7 @@
 	}, {
 		"dest": "ov79",
 		"mode": "append",
+		"length": "0x41A0",
 		"compress": false,
 		"sources": [
 			["source/ov79", false]
@@ -74,6 +65,7 @@
 	}, {
 		"dest": "ov123",
 		"mode": "append",
+		"length": "0x3A20",
 		"compress": false,
 		"sources": [
 			["source/ov123", false]

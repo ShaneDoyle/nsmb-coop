@@ -1,5 +1,14 @@
 #include "nsmb/game.hpp"
+#include "nsmb/sound.hpp"
 #include "nsmb/stage/entity3danm.hpp"
+#include "nsmb/stage/viewshaker.hpp"
+
+asm(R"(
+	SledgeBro_tryShakePlayer = 0x02174DE4
+)");
+extern "C" {
+	void SledgeBro_tryShakePlayer(StageEntity* self, s32 playerID);
+}
 
 // Replacement for StageEntity::skipRender that updates the model but doesn't draw it
 bool ActorFixes_safeSkipRender(StageEntity3DAnm* self)
@@ -49,6 +58,42 @@ Player* ActorFixes_getClosestPlayerInZone(StageEntity* self, u32 zoneID)
 ncp_over(0x021754F8, 56) const auto HammerBro_skipRender = ActorFixes_safeSkipRender;
 ncp_over(0x02175730, 56) const auto FireBro_skipRender = ActorFixes_safeSkipRender;
 ncp_over(0x02175614, 56) const auto BoomerangBro_skipRender = ActorFixes_safeSkipRender;
+
+// Sledge Bro -----------------------------------------------------------
+
+ncp_over(0x02175880, 56) const auto SledgeBro_skipRender = ActorFixes_safeSkipRender;
+
+static bool SledgeBro_canTryShakePlayer(StageEntity* self, Player* player)
+{
+	const fx32 range = 0x100000; // 16 tiles
+
+	bool inRange = Math::abs(self->position.x - player->position.x) < range &&
+	               Math::abs(self->position.y - player->position.y) < range;
+
+	return inRange && !Game::getPlayerDead(player->linkedPlayerID);
+}
+
+NTR_USED static void SledgeBro_fixShakePlayer(StageEntity* self)
+{
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		Player* player = Game::getPlayer(playerID);
+
+		if (SledgeBro_canTryShakePlayer(self, player))
+		{
+			ViewShaker::start(3, self->viewID, playerID, false);
+			if (playerID == Game::localPlayerID)
+				SND::playSFX(138, &self->position);
+			SledgeBro_tryShakePlayer(self, playerID);
+		}
+	}
+}
+
+ncp_repl(0x02174614, 56, R"(
+	MOV     R0, R4
+	BL      _ZL24SledgeBro_fixShakePlayerP11StageEntity
+	B       0x02174658
+)");
 
 // Dorrie -------------------------------------------------------------------------------
 
