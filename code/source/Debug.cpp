@@ -1,3 +1,5 @@
+#ifdef NTR_DEBUG
+
 #include "nsmb_nitro.hpp"
 
 #include "nsmb/entity/scene.hpp"
@@ -5,7 +7,6 @@
 #include "nsmb/system/function.hpp"
 #include "util/collisionviewer.hpp"
 #include "util/playerdragger.hpp"
-#include "util/eprintf.h"
 
 #include "PlayerSpectate.hpp"
 
@@ -13,8 +14,6 @@ namespace Debug
 {
 	bool collisionViewerEnabled = false;
 	bool draggingPlayer[2];
-
-	int tick = 0;
 
 	void update()
 	{
@@ -25,6 +24,11 @@ namespace Debug
 			if ((keysHeld & Keys::Select) && (keysPressed & Keys::X))
 			{
 				collisionViewerEnabled = !collisionViewerEnabled;
+			}
+
+			if (keysPressed & Keys::B)
+			{
+				PlayerSpectate::setTarget(i, !PlayerSpectate::getTarget());
 			}
 
 			if (Scene::currentSceneID == u16(SceneID::Stage))
@@ -47,19 +51,6 @@ namespace Debug
 				}
 			}
 		}
-
-		/*if (tick == 60) {
-			Base* base = ProcessManager::getNextObjectByObjectID(Scene::currentSceneID, 0);
-			SceneNode* node = base->link.linkConnect.getNext();
-			while (node != nullptr) {
-				eprintf("%d ", node->object->id);
-				node = node->getNext();
-			}
-			eprintf("\n");
-
-			tick = 0;
-		}
-		tick++;*/
 	}
 
 	void render3D()
@@ -84,3 +75,5 @@ NTR_NAKED void preSwapBufferHook() {asm(R"(
 	BL      NNS_G3dGeFlushBuffer
 	B       0x02004EFC + 4
 )");}
+
+#endif
