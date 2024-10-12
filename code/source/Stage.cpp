@@ -11,7 +11,6 @@
 #include "nsmb/entity/scene.hpp"
 
 #include "PlayerSpectate.hpp"
-#include "util/eprintf.h"
 
 NTR_USED static u32 sTempVar;
 static u8 sPlayerSpectating[2];
@@ -27,7 +26,7 @@ namespace Stage {
 	void exitLevel(u32 flag);
 }
 
-static inline bool Stage_hasLevelFinished() { return *rcast<u32*>(0x020CA8C0); }
+static inline bool Stage_hasLevelFinished() { return *rcast<u32*>(0x020CA8C0) & ~0x80010000; }
 
 // ======================================= GETTERS =======================================
 
