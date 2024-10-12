@@ -27,6 +27,8 @@ namespace Stage {
 	void exitLevel(u32 flag);
 }
 
+static inline bool Stage_hasLevelFinished() { return *rcast<u32*>(0x020CA8C0); }
+
 // ======================================= GETTERS =======================================
 
 static bool Stage_getLocalPlayerID() { return Game::localPlayerID; }
@@ -166,6 +168,18 @@ ncp_jump(0x02119638, 10)
 )");
 
 ncp_repl(0x0215E4AC, 54, "NOP") // StageScene::setup load the area even if the same
+
+ncp_call(0x0211E794, 10)
+bool Player_updateTimesUpTransitionsHook(Player* self)
+{
+	// Do not kill the player that is alive when time = 0
+	if (Stage_hasLevelFinished())
+		return false;
+	return self->updateTimesUpTransitions();
+}
+
+ncp_repl(0x0211B67C, 10, "NOP") // Do not freeze other players on goal
+ncp_repl(0x021305B4, 12, "NOP") // Do not freeze other players on goal
 
 // No idea what these do
 // ncp_repl(0x0209B254, 0, "MOV R0, #1")
@@ -509,9 +523,10 @@ static bool Stage_customSpecialPlayerBump(Player* self, Player* other, fx32& sel
 
 NTR_USED static bool Stage_blockPlayerCollision()
 {
-	for (s32 i = 0; i < Game::getPlayerCount(); i++)
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
-		if (Game::getPlayer(i)->currentPowerup == PowerupState::Mega)
+		Player* player = Game::getPlayer(playerID);
+		if (player->currentPowerup == PowerupState::Mega || Stage_hasLevelFinished())
 			return true;
 	}
 	return false;
