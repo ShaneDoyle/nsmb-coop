@@ -44,148 +44,6 @@ static s32 Stage_getAlivePlayerID()
 	return 2; // both
 }
 
-// ======================================= MISC =======================================
-
-ncp_repl(0x020AECA4, 0, "MOV R1, #1") // Disable background HDMA parallax
-
-ncp_set_call(0x020BD820, 0, Game::getPlayerCount) // Bottom screen background draw
-ncp_set_call(0x020BDA90, 0, Game::getPlayerCount) // Bottom screen background execute
-ncp_set_call(0x020BDC1C, 0, Game::getPlayerCount) // Bottom screen background load
-
-ncp_repl(0x020A3578, 0, "MOV R0, #0") // Draw Luigi's HUD with Mario's values (shared coins)
-ncp_repl(0x020C03F4, 0, "MOV R0, #0") // Display Mario's score instead of local player score
-
-ncp_repl(0x020BE5E8, 0, "MOV R0, #212") // MvsL progress bar uses singleplayer pixel scale
-ncp_repl(0x020BE60C, 0, "MOV R8, #6") // MvsL progress bar uses singleplayer OAM y_shift
-ncp_repl(0x020BE670, 0, ".int 0x020CA104") // MvsL progress bar uses singleplayer OAM addresses
-ncp_repl(0x020BE658, 0, "MOV R0, #7") // MvsL progress bar uses singleplayer BNCL rectangle index
-ncp_repl(0x020BED88, 0, "NOP") // Do not draw singleplayer player position indicators on progress bar
-
-// Hide dead player
-ncp_call(0x020BE5C4, 0)
-bool call_020BE5C4_ov0(u32 playerID)
-{
-	return Game::getPlayer(playerID) && !sPlayerSpectating[playerID];
-}
-
-asm(R"(
-// Draw MvsL progress bar instead of singleplayer
-ncp_jump(0x020BF124, 0)
-	MOV     R1, #0
-	MOV     R2, #0
-	BL      0x020BE674 // Draw the multiplayer one
-	MOV     R0, R4
-	BL      0x020BECC4 // Draw the singleplayer one
-	B       0x020BF128
-)");
-
-// Draw bottom screen lives my way
-ncp_call(0x020BF12C, 0)
-void call_020BF12C_ov0()
-{
-	GXOamAttr** liveCounterForPlayer_1P = rcast<GXOamAttr**>(0x020CA00C);
-	s32 xShift = *rcast<s32*>(0x020CC2C4);
-
-	Game::drawBNCLSpriteSub(6, liveCounterForPlayer_1P[0], OAM::Flags::None, 0, 0, 0, 0, 0, OAM::Settings::None, -xShift - 64 - 4, 0);
-	Game::drawBNCLSpriteSub(6, liveCounterForPlayer_1P[1], OAM::Flags::None, 0, 0, 0, 0, 0, OAM::Settings::None, -xShift + 4, 0);
-}
-
-// Update lives for both players
-ncp_call(0x020C0444, 0)
-void call_020C0444_ov0()
-{
-	GXOamAttr** entryTable_1P = rcast<GXOamAttr**>(0x0216F554);
-	GXOamAttr** liveCounterForPlayer_1P = rcast<GXOamAttr**>(0x020CA00C);
-
-	OAM::updateCounter(liveCounterForPlayer_1P[0], entryTable_1P, Game::getPlayerLives(0), 2, OAM::CounterFlags::UpdateShadow | OAM::CounterFlags::NoLeadingZeroes);
-	OAM::updateCounter(liveCounterForPlayer_1P[1], entryTable_1P, Game::getPlayerLives(1), 2, OAM::CounterFlags::UpdateShadow | OAM::CounterFlags::NoLeadingZeroes);
-}
-ncp_repl(0x020C041C, 0, "B 0x020C0444")
-
-ncp_repl(0x0209AAD0, 0, "BX LR") // Disable MvsL coin score
-ncp_repl(0x020D3350, 10, "NOP") // Disable MvsL coin score for coin actor
-
-ncp_repl(0x0209AC1C, 0, "MOV R0, #1") // Allow score incrementation
-ncp_repl(0x0209ABA8, 0, "MOV R0, #1") // Allow score incrementation from actors
-
-ncp_repl(0x02020300, "MOV R0, #0; NOP") // All score goes to Mario
-ncp_repl(0x02020358, "MOV R4, #0; B 0x02020370") // Share player coins (all coins go to Mario)
-
-ncp_call(0x020203EC)
-void call_020203EC() // When Mario gets 1-up from coins, also give Luigi 1-up.
-{
-	for (s32 i = 0; i < Game::getPlayerCount(); i++)
-		StageEntity::getCollectablePoints(8, i);
-}
-
-ncp_repl(0x020D13B4, 10, "NOP") // Powerups don't despawn
-ncp_repl(0x0209B7C0, 0, "NOP") // Permanently destroyed entities do not respawn
-
-// Prevent reloading resources on preCreate during multiplayer wait (Fixes fading)
-static bool StageScene_preCreate(Scene* self)
-{
-	if (rcast<u32*>(self)[0x640C / 4])
-		return true;
-	return self->Scene::preCreate();
-}
-
-ncp_over(0x020C6E68, 0) const auto StageScene_preCreate_vtbl = StageScene_preCreate;
-
-ncp_repl(0x020BC224, 0, "NOP") // Do not reset liquid position on player setup
-ncp_repl(0x020BC22C, 0, "NOP") // Do not reset liquid position on player setup
-
-ncp_call(0x020BBAD0, 0)
-u16 Level_createHook() {
-	// Reset liquid on area/level load
-	Stage::liquidPosition[Game::localPlayerID] = -0x1000000;
-	Stage::lastLiquidPosition[Game::localPlayerID] = -0x1000000;
-
-	return Wifi::getConsoleCount(); // Keep replaced instruction
-}
-
-// WARNING: Different water heights between views in the same area WILL BREAK.
-
-// Make areas always reload if the area number is not 0
-
-NTR_USED static u8 Stage_forceAreaReload = 0;
-
-asm(R"(
-ncp_jump(0x0201E91C)
-	STR     R0, [R1] // Keep replaced instruction
-	LDR     R0, =_ZL21Stage_forceAreaReload
-	MOV     R1, #1
-	STR     R1, [R0]
-	B       0x0201E920
-
-ncp_jump(0x02119638, 10)
-	LDR     R3, =_ZL21Stage_forceAreaReload
-	LDR     R2, [R3]
-	CMP     R2, #0
-	MOV     R2, #0
-	STR     R2, [R3]
-	BNE     0x02119664
-	B       0x02119640
-)");
-
-ncp_repl(0x0215E4AC, 54, "NOP") // StageScene::setup load the area even if the same
-
-ncp_call(0x0211E794, 10)
-bool Player_updateTimesUpTransitionsHook(Player* self)
-{
-	// Do not kill the player that is alive when time = 0
-	if (Stage_hasLevelFinished())
-		return false;
-	return self->updateTimesUpTransitions();
-}
-
-ncp_repl(0x0211B67C, 10, "NOP") // Do not freeze other players on goal
-ncp_repl(0x021305B4, 12, "NOP") // Do not freeze other players on goal
-
-// No idea what these do
-// ncp_repl(0x0209B254, 0, "MOV R0, #1")
-// ncp_repl(0x0209BD2C, 0, "MOV R0, #1")
-// ncp_repl(0x020D06E0, 10, "MOV R0, #1")
-
 // ======================================= ENTRANCE POSITIONING =======================================
 
 asm(R"(
@@ -432,6 +290,146 @@ ncp_jump(0x020A2230, 0)
 )");
 
 // ======================================= MISC =======================================
+
+ncp_repl(0x020AECA4, 0, "MOV R1, #1") // Disable background HDMA parallax
+
+ncp_set_call(0x020BD820, 0, Game::getPlayerCount) // Bottom screen background draw
+ncp_set_call(0x020BDA90, 0, Game::getPlayerCount) // Bottom screen background execute
+ncp_set_call(0x020BDC1C, 0, Game::getPlayerCount) // Bottom screen background load
+
+ncp_repl(0x020A3578, 0, "MOV R0, #0") // Draw Luigi's HUD with Mario's values (shared coins)
+ncp_repl(0x020C03F4, 0, "MOV R0, #0") // Display Mario's score instead of local player score
+
+ncp_repl(0x020BE5E8, 0, "MOV R0, #212") // MvsL progress bar uses singleplayer pixel scale
+ncp_repl(0x020BE60C, 0, "MOV R8, #6") // MvsL progress bar uses singleplayer OAM y_shift
+ncp_repl(0x020BE670, 0, ".int 0x020CA104") // MvsL progress bar uses singleplayer OAM addresses
+ncp_repl(0x020BE658, 0, "MOV R0, #7") // MvsL progress bar uses singleplayer BNCL rectangle index
+ncp_repl(0x020BED88, 0, "NOP") // Do not draw singleplayer player position indicators on progress bar
+
+// Hide dead player
+ncp_call(0x020BE5C4, 0)
+bool call_020BE5C4_ov0(u32 playerID)
+{
+	return Game::getPlayer(playerID) && !sPlayerSpectating[playerID];
+}
+
+asm(R"(
+// Draw MvsL progress bar instead of singleplayer
+ncp_jump(0x020BF124, 0)
+	MOV     R1, #0
+	MOV     R2, #0
+	BL      0x020BE674 // Draw the multiplayer one
+	MOV     R0, R4
+	BL      0x020BECC4 // Draw the singleplayer one
+	B       0x020BF128
+)");
+
+// Draw bottom screen lives my way
+ncp_call(0x020BF12C, 0)
+void call_020BF12C_ov0()
+{
+	GXOamAttr** liveCounterForPlayer_1P = rcast<GXOamAttr**>(0x020CA00C);
+	s32 xShift = *rcast<s32*>(0x020CC2C4);
+
+	Game::drawBNCLSpriteSub(6, liveCounterForPlayer_1P[0], OAM::Flags::None, 0, 0, 0, 0, 0, OAM::Settings::None, -xShift - 64 - 4, 0);
+	Game::drawBNCLSpriteSub(6, liveCounterForPlayer_1P[1], OAM::Flags::None, 0, 0, 0, 0, 0, OAM::Settings::None, -xShift + 4, 0);
+}
+
+// Update lives for both players
+ncp_call(0x020C0444, 0)
+void call_020C0444_ov0()
+{
+	GXOamAttr** entryTable_1P = rcast<GXOamAttr**>(0x0216F554);
+	GXOamAttr** liveCounterForPlayer_1P = rcast<GXOamAttr**>(0x020CA00C);
+
+	OAM::updateCounter(liveCounterForPlayer_1P[0], entryTable_1P, Game::getPlayerLives(0), 2, OAM::CounterFlags::UpdateShadow | OAM::CounterFlags::NoLeadingZeroes);
+	OAM::updateCounter(liveCounterForPlayer_1P[1], entryTable_1P, Game::getPlayerLives(1), 2, OAM::CounterFlags::UpdateShadow | OAM::CounterFlags::NoLeadingZeroes);
+}
+ncp_repl(0x020C041C, 0, "B 0x020C0444")
+
+ncp_repl(0x0209AAD0, 0, "BX LR") // Disable MvsL coin score
+ncp_repl(0x020D3350, 10, "NOP") // Disable MvsL coin score for coin actor
+
+ncp_repl(0x0209AC1C, 0, "MOV R0, #1") // Allow score incrementation
+ncp_repl(0x0209ABA8, 0, "MOV R0, #1") // Allow score incrementation from actors
+
+ncp_repl(0x02020300, "MOV R0, #0; NOP") // All score goes to Mario
+ncp_repl(0x02020358, "MOV R4, #0; B 0x02020370") // Share player coins (all coins go to Mario)
+
+ncp_call(0x020203EC)
+void call_020203EC() // When Mario gets 1-up from coins, also give Luigi 1-up.
+{
+	for (s32 i = 0; i < Game::getPlayerCount(); i++)
+		StageEntity::getCollectablePoints(8, i);
+}
+
+ncp_repl(0x020D13B4, 10, "NOP") // Powerups don't despawn
+ncp_repl(0x0209B7C0, 0, "NOP") // Permanently destroyed entities do not respawn
+
+// Prevent reloading resources on preCreate during multiplayer wait (Fixes fading)
+static bool StageScene_preCreate(Scene* self)
+{
+	if (rcast<u32*>(self)[0x640C / 4])
+		return true;
+	return self->Scene::preCreate();
+}
+
+ncp_over(0x020C6E68, 0) const auto StageScene_preCreate_vtbl = StageScene_preCreate;
+
+ncp_repl(0x020BC224, 0, "NOP") // Do not reset liquid position on player setup
+ncp_repl(0x020BC22C, 0, "NOP") // Do not reset liquid position on player setup
+
+ncp_call(0x020BBAD0, 0)
+u16 Level_createHook() {
+	// Reset liquid on area/level load
+	Stage::liquidPosition[Game::localPlayerID] = -0x1000000;
+	Stage::lastLiquidPosition[Game::localPlayerID] = -0x1000000;
+
+	return Wifi::getConsoleCount(); // Keep replaced instruction
+}
+
+// WARNING: Different water heights between views in the same area WILL BREAK.
+
+// Make areas always reload if the area number is not 0
+
+NTR_USED static u8 Stage_forceAreaReload = 0;
+
+asm(R"(
+ncp_jump(0x0201E91C)
+	STR     R0, [R1] // Keep replaced instruction
+	LDR     R0, =_ZL21Stage_forceAreaReload
+	MOV     R1, #1
+	STR     R1, [R0]
+	B       0x0201E920
+
+ncp_jump(0x02119638, 10)
+	LDR     R3, =_ZL21Stage_forceAreaReload
+	LDR     R2, [R3]
+	CMP     R2, #0
+	MOV     R2, #0
+	STR     R2, [R3]
+	BNE     0x02119664
+	B       0x02119640
+)");
+
+ncp_repl(0x0215E4AC, 54, "NOP") // StageScene::setup load the area even if the same
+
+ncp_call(0x0211E794, 10)
+bool Player_updateTimesUpTransitionsHook(Player* self)
+{
+	// Do not kill the player that is alive when time = 0
+	if (Stage_hasLevelFinished())
+		return false;
+	return self->updateTimesUpTransitions();
+}
+
+ncp_repl(0x0211B67C, 10, "NOP") // Do not freeze other players on goal
+ncp_repl(0x021305B4, 12, "NOP") // Do not freeze other players on goal
+
+// No idea what these do
+// ncp_repl(0x0209B254, 0, "MOV R0, #1")
+// ncp_repl(0x0209BD2C, 0, "MOV R0, #1")
+// ncp_repl(0x020D06E0, 10, "MOV R0, #1")
 
 // Fix some bottom screen locking crap that took our time (related to wavy fading transition) :(
 ncp_repl(0x0201EB1C, "B 0x0201EB40")
