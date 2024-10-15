@@ -145,7 +145,10 @@ static bool Stage_playerSpectateState(Player* player, void* arg)
 	}
 
 	// Check if player is allowed to respawn or not
-	if (player->getJumpKeyPressed() && Game::getPlayerLives(playerID) != 0 && !Game::getPlayerDead(otherID))
+	if (player->getJumpKeyPressed() &&
+		Game::getPlayerLives(playerID) != 0 &&
+		!Game::getPlayerDead(otherID) &&
+		!Stage_hasLevelFinished())
 	{
 		Player* other = Game::getPlayer(otherID);
 
