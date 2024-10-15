@@ -1,3 +1,4 @@
+#include "nsmb/game.hpp"
 #include "nsmb/player.hpp"
 #include "nsmb/stage/player/player.hpp"
 #include "nsmb/filesystem/cache.hpp"
@@ -6,10 +7,33 @@
 
 #include "ActorFixes.hpp"
 
+
+// VERY IMPORTANT
+// CURRENTLY THE BOWSER FRAME HEAP ALLOCATION IS DEALLOCATED UNSAFELY
+// IT IS ALMOST PURE LUCK THAT IT WORKS, SO PLEASE LOOK AT IT AFTER THIS RELEASE!
+
+
+
 asm("SetupFSCacheToUseOverlay55 = 0x021726C0");
 extern "C" void SetupFSCacheToUseOverlay55();
 
 int NNS_EXTRA_G3dTexUnload(NNSG3dResTex* pTex);
+
+void BossFixes_beginCutsceneAllPlayers()
+{
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		Game::getPlayer(playerID)->beginCutscene(0);
+	}
+}
+
+void BossFixes_endCutsceneAllPlayers()
+{
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		Game::getPlayer(playerID)->endCutscene();
+	}
+}
 
 //============================= Main Camera Push =============================
 
@@ -73,25 +97,11 @@ void call_0213F4A0_ov28()
 
 // Freeze player when touching the ground after falling
 
-ncp_call(0x0213F4B4, 28)
-void call_0213F4B4_ov28()
-{
-	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-	{
-		Game::getPlayer(playerID)->beginCutscene(0);
-	}
-}
+ncp_set_call(0x0213F4B4, 28, BossFixes_beginCutsceneAllPlayers)
 
 // Unfreeze when battle is ready to start
 
-ncp_call(0x0213F550, 28)
-void call_0213F550_ov28()
-{
-	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-	{
-		Game::getPlayer(playerID)->endCutscene();
-	}
-}
+ncp_set_call(0x0213F550, 28, BossFixes_endCutsceneAllPlayers)
 
 // Fix Blue Shell hit
 
@@ -152,3 +162,45 @@ ncp_repl(0x0213298C, 16, "ADD R0, R4, #0x100; LDRSB R0, [R0,#0x1E]") // Fix grou
 
 ncp_repl(0x021327EC, 16, "ADD R0, R5, #0x100") // Fix shell hit
 ncp_repl(0x021327FC, 16, "LDRSB R0, [R0,#0x1E]") // Fix shell hit
+
+//============================= World 3: Cheepskipper =============================
+
+//============================= World 4: Mega Goomba =============================
+
+// Unfreeze both players
+ncp_set_call(0x0213137C, 14, BossFixes_endCutsceneAllPlayers)
+
+//============================= Main Boss Controller =============================
+
+// Freeze and move player
+ncp_call(0x021438AC, 40)
+void call_021438AC_ov40(Player* closestPlayer)
+{
+	// Freeze Player 1
+	closestPlayer->beginCutscene(1);
+
+	// Applied only for Co-op
+	if (Game::getPlayerCount() == 2)
+	{
+		Player* oppositePlayer = Game::getPlayer(!closestPlayer->linkedPlayerID);
+		oppositePlayer->beginCutscene(1);
+		oppositePlayer->position.x = closestPlayer->position.x - scast<s32>(1.5 * 0x10000);
+		oppositePlayer->position.y = closestPlayer->position.y;
+	}
+}
+
+//============================= Boss Key =============================
+
+// Victory freeze
+
+ncp_call(0x0214619C, 40)
+void call_0214619C_ov40()
+{
+	Game::getPlayer(Game::localPlayerID)->physicsFlag.bossDefeated = true;
+
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++) {
+		if (playerID != Game::localPlayerID) {
+			Game::getPlayer(playerID)->actionFlag.bowserJrBeaten = true;
+		}
+	}
+}
