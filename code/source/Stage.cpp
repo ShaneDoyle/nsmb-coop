@@ -13,7 +13,6 @@
 #include "PlayerSpectate.hpp"
 
 NTR_USED static u32 sTempVar;
-static u8 sPlayerSpectating[2];
 
 asm(R"(
 	SpawnGrowingEntranceVine = 0x020D0CEC
@@ -36,9 +35,9 @@ static bool Stage_getMultiplayer() { return Game::getPlayerCount() > 1; }
 
 static s32 Stage_getAlivePlayerID()
 {
-	if (sPlayerSpectating[0])
+	if (PlayerSpectate::isSpectating(0))
 		return 1;
-	if (sPlayerSpectating[1])
+	if (PlayerSpectate::isSpectating(1))
 		return 0;
 	return 2; // both
 }
@@ -105,7 +104,7 @@ ncp_call(0x0211C21C, 10)
 void call_0211C21C_ov10(Player* player)
 {
 	s32 playerID = player->linkedPlayerID;
-	if (playerID == 0 || (playerID == 1 && sPlayerSpectating[0]))
+	if (playerID == 0 || (playerID == 1 && PlayerSpectate::isSpectating(0)))
 	{
 		SpawnGrowingEntranceVine(&player->position);
 	}
@@ -117,10 +116,10 @@ ncp_set_call(0x021041F4, 10, Stage_getMultiplayer)
 ncp_set_call(0x0212B318, 11, Stage_getMultiplayer)
 ncp_repl(0x02119CB8, 10, "NOP") // Do not freeze timer on player death
 
-static bool Stage_playerSpectateState(Player* player, void* arg)
+
+static bool Stage_playerDeadState(Player* player, void* arg)
 {
 	u32 playerID = player->linkedPlayerID;
-	u32 otherID = playerID ^ 1;
 
 	s8& step = player->transitionStateStep;
 	if (step == Func::Init)
@@ -128,14 +127,6 @@ static bool Stage_playerSpectateState(Player* player, void* arg)
 		step = 1;
 
 		player->visible = false;
-		sPlayerSpectating[playerID] = true;
-		PlayerSpectate::setTarget(playerID, otherID);
-		Game::setPlayerDead(playerID, true);
-
-		//Stage::stageLayout->scrollLevelDirect();
-
-		u32 seqID = Entrance::getSpawnMusic(playerID);
-		Sound::playStageBGM(seqID);
 
 		return true;
 	}
@@ -143,6 +134,8 @@ static bool Stage_playerSpectateState(Player* player, void* arg)
 	{
 		return true;
 	}
+
+	u32 otherID = playerID ^ 1;
 
 	// Check if player is allowed to respawn or not
 	if (player->getJumpKeyPressed() &&
@@ -161,7 +154,6 @@ static bool Stage_playerSpectateState(Player* player, void* arg)
 		Particle::Handler::createParticle(250, player->position);
 
 		player->visible = true;
-		sPlayerSpectating[playerID] = false;
 		PlayerSpectate::setTarget(playerID, playerID);
 		Game::setPlayerDead(playerID, false);
 	}
@@ -169,11 +161,28 @@ static bool Stage_playerSpectateState(Player* player, void* arg)
 	return true;
 }
 
-ncp_call(0x02118DE4, 10)
-static void Stage_beginPlayerSpectate(Player* player)
+static void Stage_beginPlayerSpectate(u32 playerID)
+{
+	PlayerSpectate::setTarget(playerID, playerID ^ 1);
+	Game::setPlayerDead(playerID, true);
+}
+
+static void Stage_switchToPlayerSpectateState(Player* player)
 {
 	player->switchMainState(&Player::idleState);
-	player->switchTransitionState(ptmf_cast(Stage_playerSpectateState));
+	player->switchTransitionState(ptmf_cast(Stage_playerDeadState));
+}
+
+NTR_USED static bool Stage_customPlayerCreateCase(Player* player)
+{
+	u32 playerID = player->linkedPlayerID;
+	if (Game::getPlayerLives(playerID) == 0 || PlayerSpectate::isSpectating(playerID))
+	{
+		Stage_beginPlayerSpectate(player->linkedPlayerID);
+		Stage_switchToPlayerSpectateState(player);
+		return true;
+	}
+	return false;
 }
 
 NTR_USED static bool Stage_customRespawnCondition(u32 playerID, s32 lives)
@@ -188,15 +197,20 @@ NTR_USED static bool Stage_customRespawnCondition(u32 playerID, s32 lives)
 	return true;
 }
 
-NTR_USED static bool Stage_customPlayerCreateCase(Player* player)
+ncp_call(0x02118968, 10)
+static void Stage_customRespawnReset(Player* player)
 {
-	u32 playerID = player->linkedPlayerID;
-	if (Game::getPlayerLives(playerID) == 0 || sPlayerSpectating[playerID])
-	{
-		Stage_beginPlayerSpectate(player);
-		return true;
-	}
-	return false;
+	player->reset(); // Keep replaced instruction
+	Stage_beginPlayerSpectate(player->linkedPlayerID);
+}
+
+ncp_call(0x02118DE4, 10)
+static void Stage_customPlayerRespawnCreateCase(Player* player)
+{
+	Stage_switchToPlayerSpectateState(player);
+
+	u32 seqID = Entrance::getSpawnMusic(player->linkedPlayerID);
+	Sound::playStageBGM(seqID);
 }
 
 asm(R"(
@@ -293,6 +307,13 @@ ncp_jump(0x020A2230, 0)
 
 // ======================================= MISC =======================================
 
+ncp_call(0x02006B28)
+void Stage_loadLevelHook(const void* pSrc, u32 offset, u32 szByte)
+{
+	GX_LoadBGPltt(pSrc, offset, szByte); // Keep replaced instruction
+	PlayerSpectate::reset();
+}
+
 ncp_repl(0x020AECA4, 0, "MOV R1, #1") // Disable background HDMA parallax
 
 ncp_set_call(0x020BD820, 0, Game::getPlayerCount) // Bottom screen background draw
@@ -312,7 +333,7 @@ ncp_repl(0x020BED88, 0, "NOP") // Do not draw singleplayer player position indic
 ncp_call(0x020BE5C4, 0)
 bool call_020BE5C4_ov0(u32 playerID)
 {
-	return Game::getPlayer(playerID) && !sPlayerSpectating[playerID];
+	return Game::getPlayer(playerID) && !PlayerSpectate::isSpectating(playerID);
 }
 
 asm(R"(
@@ -492,8 +513,46 @@ ncp_jump(0x02157414, 54)
 
 // TODO: Fix Mega Mushroom destruction counter
 
-ncp_repl(0x02006E00, "MOV R6, #0") // Clear freezing flag
-ncp_repl(0x02006AE8, "NOP") // Prevent freezing flag being set on level load
+asm(R"(
+// Prevent freezing flag being set on level load
+ncp_jump(0x02006AA0)
+	LDR     R0, =_ZN4Game11playerCountE
+	B       0x02006AA4
+
+ncp_over(0x02006AB0)
+	CMP     R0, #1
+	MOVGT   R0, #1
+	MOVLE   R0, #0
+ncp_endover()
+)");
+
+// Prevent particle handler from always updating in VS mode
+// This should allow Mario Vs Luigi mods to freeze the particles if they want
+ncp_repl(0x02022C50, "B 0x02022C7C")
+
+// Only disable the particle handler on transitions and powerup change in singleplayer
+ncp_call(0x021207F0, 10)
+void Stage_fixTransitParticles()
+{
+	if (Game::getPlayerCount() == 1)
+		Particle::Handler::disable();
+}
+
+ncp_repl(0x0212B92C, 11, "NOP") // Do not freeze on transitions
+ncp_repl(0x0212B930, 11, "NOP") // Do not freeze on transitions
+
+// Do not know what this does yet
+/*asm(R"(
+ncp_jump(0x020BE184, 0)
+	LDR     R0, =_ZN4Game11playerCountE
+	B       0x020BE188
+
+ncp_over(0x020BE18C, 0)
+	CMP     R0, #1
+	MOVGT   R0, #1
+	MOVLE   R0, #0
+ncp_endover()
+)");*/
 
 // ======================================= PLAYER =======================================
 
