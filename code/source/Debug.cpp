@@ -28,7 +28,7 @@ namespace Debug
 
 			if (keysPressed & Keys::B)
 			{
-				PlayerSpectate::setTarget(i, !PlayerSpectate::getTarget());
+				PlayerSpectate::setTarget(i, !PlayerSpectate::getTarget(i));
 			}
 
 			if (Scene::currentSceneID == u16(SceneID::Stage))

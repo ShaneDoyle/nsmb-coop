@@ -23,7 +23,7 @@ void BossFixes_beginCutsceneAllPlayers()
 {
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
-		Game::getPlayer(playerID)->beginCutscene(0);
+		Game::getPlayer(playerID)->beginCutscene(false);
 	}
 }
 
@@ -37,13 +37,13 @@ void BossFixes_endCutsceneAllPlayers()
 
 //============================= Main Camera Push =============================
 
-u32 BossFixes_sCurrentLoopPlayerID = 0;
+u32 BossFixes_currentLoopPlayerID = 0;
 
 // Allow camera to be pushed for all players
 
 asm(R"(
 _Z29BossFixes_pushPlayerCameraFixiii:
-	LDR     R12, =BossFixes_sCurrentLoopPlayerID
+	LDR     R12, =BossFixes_currentLoopPlayerID
 	B       0x020ACF54
 )");
 
@@ -54,7 +54,7 @@ void BossFixes_pushPlayerCamera(int a, int b, int c)
 {
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
-		BossFixes_sCurrentLoopPlayerID = playerID;
+		BossFixes_currentLoopPlayerID = playerID;
 		BossFixes_pushPlayerCameraFix(a, b, c);
 	}
 }
@@ -113,6 +113,13 @@ ncp_repl(0x0213FF5C, 28, "LDRSB R0, [R0,#0x1E]")
 ncp_repl(0x0213FFC4, 28, "ADD R1, R0, #0x100")
 ncp_repl(0x0213FFCC, 28, "LDRSB R0, [R1,#0x1E]")
 
+// Bowser Jr. camera spawn fix
+asm(R"(
+ncp_jump(0x0213BFA8, 28)
+	LDR     R1, =0x1000001
+	B       0x0213BFAC
+)");
+
 //============================= World 1: Bowser =============================
 
 //ncp_set_call(0x02138808, 13, FS::Cache::loadFileToOverlay) // Bowser's Model
@@ -154,6 +161,35 @@ void BossFixes_bowserW1_loadFix(ModelAnm* self, u32 animID, FrameCtrl::Type type
 	self->init(animID, type, speed, startFrame);
 }
 
+// Unfreeze both players
+
+ncp_set_call(0x0213695C, 13, BossFixes_endCutsceneAllPlayers)
+
+// Fix fireball tracking
+
+asm(R"(
+ncp_jump(0x02138D7C, 13)
+	PUSH    {R0,R2,LR}
+	BL      _Z27ActorFixes_getClosestPlayerP11StageEntity
+	ADD     R3, R0, #0x100
+	LDRSB   R3, [R3,#0x1E] // linkedPlayerID
+	POP     {R0,R2,LR}
+	B       0x02138D80
+)");
+
+// Disables "StageZoom" for BowserBattleSwitch and applies "Victory" animation
+ncp_call(0x0213A7A4, 13)
+void call_0213A7A4_ov13()
+{
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		Game::getPlayer(playerID)->actionFlag.bowserJrBeaten = true;
+	}
+}
+
+// Remove Freeze at BowserBattleSwitch
+ncp_repl(0x0213AF54, 13, "NOP")
+
 //============================= World 2: Mummy Pokey =============================
 
 ncp_over(0x02133AF0, 16) const auto MummyPokey_skipRender = ActorFixes_safeSkipRender;
@@ -176,16 +212,22 @@ ncp_set_call(0x0213137C, 14, BossFixes_endCutsceneAllPlayers)
 ncp_call(0x021438AC, 40)
 void call_021438AC_ov40(Player* closestPlayer)
 {
-	// Freeze Player 1
-	closestPlayer->beginCutscene(1);
+	// Player that reached the Boss barrier
+	closestPlayer->beginCutscene(true);
 
-	// Applied only for Co-op
-	if (Game::getPlayerCount() == 2)
+	// Other players
+	s32 order = 1;
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
-		Player* oppositePlayer = Game::getPlayer(!closestPlayer->linkedPlayerID);
-		oppositePlayer->beginCutscene(1);
-		oppositePlayer->position.x = closestPlayer->position.x - scast<s32>(1.5 * 0x10000);
-		oppositePlayer->position.y = closestPlayer->position.y;
+		if (closestPlayer->linkedPlayerID == playerID)
+			continue;
+
+		Player* player = Game::getPlayer(playerID);
+		player->beginCutscene(true);
+		player->position.x = closestPlayer->position.x - scast<s32>(1.25 * 0x10000) * order;
+		player->position.y = closestPlayer->position.y;
+
+		order++;
 	}
 }
 
@@ -198,8 +240,10 @@ void call_0214619C_ov40()
 {
 	Game::getPlayer(Game::localPlayerID)->physicsFlag.bossDefeated = true;
 
-	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++) {
-		if (playerID != Game::localPlayerID) {
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		if (playerID != Game::localPlayerID)
+		{
 			Game::getPlayer(playerID)->actionFlag.bowserJrBeaten = true;
 		}
 	}
