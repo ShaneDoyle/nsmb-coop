@@ -1,0 +1,22 @@
+
+asm(R"(
+	BossController_transitionState = 0x02143550
+	BossController_switchState = 0x021439EC
+	BossController_sTransitionState = 0x02146C08
+	func209C2F8 = 0x0209C2F8
+    func20AD06C = 0x020AD06C
+)");
+
+extern "C"
+{
+	BossController_PTMF BossController_sTransitionState;
+	void BossController_switchState(StageEntity* self, BossController_PTMF* ptmf);
+	bool BossController_transitionState(StageEntity* self);
+	void func209C2F8(u8 playerID);
+    void func20AD06C(StageLayout* stageLayout);
+}
+
+Vec3* bgPos = rcast<Vec3*>(0x020CAEB8);
+bgPos[playerID] = Game::getPlayer(playerID)->position;
+func209C2F8(playerID); // clear bg state for player?
+func20AD06C(Stage::stageLayout); // force update?
