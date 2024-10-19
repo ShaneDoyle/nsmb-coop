@@ -25,7 +25,8 @@ namespace Stage {
 	void exitLevel(u32 flag);
 }
 
-static inline bool Stage_hasLevelFinished() { return *rcast<u32*>(0x020CA8C0) & ~0x80010000; }
+static inline bool Stage_isBossFight() { return *rcast<u32*>(0x020CA8C0) & 0x80000000; }
+static inline bool Stage_hasLevelFinished() { return *rcast<u32*>(0x020CA8C0) & 1; }
 
 // ======================================= GETTERS =======================================
 
@@ -137,14 +138,19 @@ static bool Stage_playerDeadState(Player* player, void* arg)
 
 	u32 otherID = playerID ^ 1;
 
+	Player* other = Game::getPlayer(otherID);
+
+	// Always match the spectating player's position
+	player->position.x = other->position.x;
+	player->position.y = other->position.y;
+
 	// Check if player is allowed to respawn or not
 	if (player->getJumpKeyPressed() &&
 		Game::getPlayerLives(playerID) != 0 &&
 		!Game::getPlayerDead(otherID) &&
+		!Stage_isBossFight() &&
 		!Stage_hasLevelFinished())
 	{
-		Player* other = Game::getPlayer(otherID);
-
 		player->position.x = other->position.x - 0x10000;
 		player->position.y = other->position.y;
 

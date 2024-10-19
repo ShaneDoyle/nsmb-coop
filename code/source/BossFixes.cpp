@@ -24,20 +24,20 @@ u32 BossFixes_currentLoopPlayerID = 0;
 // Allow camera to be pushed for all players
 
 asm(R"(
-BossFixes_pushPlayerCameraFix:
+BossFixes_setCameraBoundFix:
 	LDR     R12, =BossFixes_currentLoopPlayerID
 	B       0x020ACF54
 )");
 
-extern "C" void BossFixes_pushPlayerCameraFix(StageLayout* self, fx32 bound, u32 side);
+extern "C" void BossFixes_setCameraBoundFix(StageLayout* self, fx32 bound, u32 side);
 
 ncp_jump(0x020ACF50, 0)
-void BossFixes_pushPlayerCamera(StageLayout* self, fx32 bound, u32 side)
+void BossFixes_setCameraBound(StageLayout* self, fx32 bound, u32 side)
 {
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
 		BossFixes_currentLoopPlayerID = playerID;
-		BossFixes_pushPlayerCameraFix(self, bound, side);
+		BossFixes_setCameraBoundFix(self, bound, side);
 	}
 }
 
@@ -51,17 +51,17 @@ struct BossController_PTMF
 	u32 adj;
 };
 
-static BossController_PTMF BossController_sCustomTransitionState = { nullptr, 0 };
+static BossController_PTMF BossController_sCustomTransition = { nullptr, 0 };
 
 ncp_over(0x02143994, 40)
-const static BossController_PTMF* BossController_sCustomTransitionState_ptr = &BossController_sCustomTransitionState;
+const static BossController_PTMF* BossController_sCustomTransition_ptr = &BossController_sCustomTransition;
 
 asm(R"(
 	Zone_get = 0x0201EEF8
 	BossController_limitFightToZone = 0x02142F14
 	BossController_transitionState = 0x02143550
 	BossController_switchState = 0x021439EC
-	BossController_sTransitionState = 0x02146C08
+	BossController_sTransition = 0x02146C08
 )");
 
 extern "C"
@@ -70,7 +70,7 @@ extern "C"
 	void BossController_limitFightToZone(StageEntity* self);
 	void BossController_switchState(StageEntity* self, BossController_PTMF* ptmf);
 	bool BossController_transitionState(StageEntity* self);
-	BossController_PTMF BossController_sTransitionState;
+	BossController_PTMF BossController_sTransition;
 }
 
 bool BossController_coopTransitionState(StageEntity* self)
@@ -111,38 +111,24 @@ bool BossController_coopTransitionState(StageEntity* self)
 	{
 		step++;
 
-		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-			Game::getPlayer(playerID)->beginCutscene(true);
-
-		Player* closestPlayer = self->getClosestPlayer(nullptr, nullptr);
-
-		// Move player that reached the Boss barrier closer to Bowser to give space to the other player
-		//closestPlayer->position.x += 24fx;
-
-		// Other player
-		Player* otherPlayer = Game::getPlayer(closestPlayer->linkedPlayerID ^ 1);
-		otherPlayer->position.x = closestPlayer->position.x - 16fx;
-		otherPlayer->position.y = closestPlayer->position.y;
-
-		// Below code is for an eventual 4-player update.
-		// Requires fixing the camera first, right now it must be aligned
-		// to the right side because Bowser Jr. spawns the boss when Bowser Jr.
-		// goes out of the camera.
+		Player* closestPlayer = ActorFixes_getClosestPlayer(self);
+		closestPlayer->beginCutscene(true);
 
 		// Other players
-		/*s32 order = 1;
+		s32 order = 1;
 		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 		{
 			if (closestPlayer->linkedPlayerID == playerID)
 				continue;
 
 			Player* player = Game::getPlayer(playerID);
-			player->beginCutscene(true);
-			player->position.x = closestPlayer->position.x - (1.25fx * 16fx) * order;
+			player->position.x = closestPlayer->position.x - 16fx * order;
 			player->position.y = closestPlayer->position.y;
+			player->updateCollision(false); // Prevent falling through semi-solid
+			player->beginCutscene(true);
 
 			order++;
-		}*/
+		}
 
 		return true;
 	}
@@ -153,7 +139,7 @@ bool BossController_coopTransitionState(StageEntity* self)
 
 		FxRect zoneArea;
 		Zone_get(CutsceneZoneID, &zoneArea);
-		BossFixes_pushPlayerCamera(Stage::stageLayout, scast<s16>(zoneArea.x >> 12), 1);
+		BossFixes_setCameraBound(Stage::stageLayout, scast<s16>(zoneArea.x >> 12), 1);
 
 		return true;
 	}
@@ -182,7 +168,7 @@ bool BossController_coopTransitionState(StageEntity* self)
 		if ((Game::fader.fadingState[0] & 1) != 0)
             return true;
 
-		BossController_switchState(self, &BossController_sTransitionState);
+		BossController_switchState(self, &BossController_sTransition);
 		return true;
 	}
 
@@ -198,14 +184,14 @@ void call_021438AC_ov40(Player* closestPlayer)
 	if (playerCount == 1)
 	{
 		Game::getPlayer(Game::localPlayerID)->beginCutscene(true);
-		BossController_sCustomTransitionState.func = BossController_transitionState;
+		BossController_sCustomTransition.func = BossController_transitionState;
 	}
 	else
 	{
 		for (s32 playerID = 0; playerID < playerCount; playerID++)
 			Game::getPlayer(playerID)->beginCutscene(false); // Gets set to true later in BossController_coopTransitionState
 
-		BossController_sCustomTransitionState.func = BossController_coopTransitionState;
+		BossController_sCustomTransition.func = BossController_coopTransitionState;
 	}
 }
 
@@ -213,7 +199,7 @@ ncp_call(0x0214393C, 40)
 void BossController_customPushPlayerCamera(StageLayout* self, fx32 bound, u32 side)
 {
 	if (Game::getPlayerCount() == 1)
-		BossFixes_pushPlayerCamera(self, bound, side);
+		BossFixes_setCameraBound(self, bound, side);
 
 	// For coop it gets handled by BossController_coopTransitionState
 }
@@ -397,12 +383,16 @@ ncp_repl(0x0213AF54, 13, "NOP")
 
 ncp_over(0x02133AF0, 16) const auto MummyPokey_skipRender = ActorFixes_safeSkipRender;
 
+ncp_set_call(0x02131EDC, 16, BossFixes_endCutsceneAllPlayers)
+
 ncp_repl(0x0213298C, 16, "ADD R0, R4, #0x100; LDRSB R0, [R0,#0x1E]") // Fix ground pound hit
 
 ncp_repl(0x021327EC, 16, "ADD R0, R5, #0x100") // Fix shell hit
 ncp_repl(0x021327FC, 16, "LDRSB R0, [R0,#0x1E]") // Fix shell hit
 
 //============================= World 3: Cheepskipper =============================
+
+ncp_set_call(0x02131748, 18, BossFixes_endCutsceneAllPlayers)
 
 //============================= World 4: Mega Goomba =============================
 
@@ -416,13 +406,8 @@ ncp_set_call(0x0213137C, 14, BossFixes_endCutsceneAllPlayers)
 ncp_call(0x0214619C, 40)
 void call_0214619C_ov40()
 {
-	Game::getPlayer(Game::localPlayerID)->physicsFlag.bossDefeated = true;
-
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
-		if (playerID != Game::localPlayerID)
-		{
-			Game::getPlayer(playerID)->actionFlag.bowserJrBeaten = true;
-		}
+		Game::getPlayer(playerID)->physicsFlag.bossDefeated = true;
 	}
 }
