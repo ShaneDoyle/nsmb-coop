@@ -2,6 +2,9 @@
 #include "nsmb/sound.hpp"
 #include "nsmb/stage/entity3danm.hpp"
 #include "nsmb/stage/viewshaker.hpp"
+#include "nsmb/system/function.hpp"
+
+//#include "PlayerSpectate.hpp"
 
 asm(R"(
 	SledgeBro_tryShakePlayer = 0x02174DE4
@@ -298,6 +301,112 @@ ncp_over(0x0215BCCC, 54)
 	BL      _Z27ActorFixes_getClosestPlayerP11StageEntity
 	NOP
 ncp_endover()
+)");
+
+// Warp Cannon ---------------------------------------------------------------------
+
+struct WarpCannon_PTMF
+{
+	bool (*func)(StageEntity*);
+	u32 adj;
+};
+
+asm(R"(
+	WarpCannon_sAfterShoot = 0x0217FE60
+	WarpCannon_switchState = 0x0217F7D4
+)");
+
+extern "C"
+{
+	WarpCannon_PTMF WarpCannon_sAfterShoot;
+	bool WarpCannon_switchState(StageEntity* self, WarpCannon_PTMF* ptmf);
+}
+
+ncp_repl(0x0217F6C8, 89, "MOV R2, #0") // Force player 0 to be shot
+
+bool WarpCannon_shootOtherPlayersState(StageEntity* self)
+{
+	const u32 ShootInterval = 10;
+
+	ModelAnm& modelAnm = *rcast<ModelAnm*>(rcast<s8*>(self) + 0x48C);
+	u32& waitingInCannon = rcast<u32*>(self)[0x6D8 / 4];
+	u16& playersShot = rcast<u16*>(self)[0x6E8 / 2];
+	s8& step = rcast<s8*>(self)[0x6F5];
+
+	if (step == Func::Init)
+	{
+		step++;
+		waitingInCannon = 0; // Stop updating player 0
+		playersShot = 1; // Player 0 already shot by the time it reaches here
+
+		//for (s32 playerID = 1; playerID < Game::getPlayerCount(); playerID++)
+		//	PlayerSpectate::setTarget(playerID, 0);
+
+		return true;
+	}
+
+	if (step == Func::Exit)
+	{
+		return true;
+	}
+
+	modelAnm.frameController.update();
+
+	if (step < ShootInterval + 1)
+	{
+		step++;
+		return true;
+	}
+
+	if (playersShot == Game::getPlayerCount())
+	{
+		WarpCannon_switchState(self, &WarpCannon_sAfterShoot);
+		return true;
+	}
+
+	step = 1;
+
+	Player* player = Game::getPlayer(playersShot);
+
+	s16 angleX = -rcast<s16*>(self)[0x6E4 / 2];
+	s16 angleY = rcast<s16*>(self)[0x6E0 / 2] + 0x4400;
+	Vec3& position = *rcast<Vec3*>(rcast<u8*>(self) + 0x534);
+
+	player->waitInCannon(*self, position, angleX, angleY);
+	player->shootFromCannon(*self, 4fx, angleX, 0x6000, 1);
+
+	playersShot++;
+
+	return true;
+}
+
+static WarpCannon_PTMF WarpCannon_sShootOtherPlayers = { WarpCannon_shootOtherPlayersState, 0 };
+
+ncp_call(0x0217F218, 89)
+void WarpCannon_customSwitchStateAfterShoot(StageEntity* self, WarpCannon_PTMF* ptmf)
+{
+	if (Game::getPlayerCount() == 1)
+	{
+		WarpCannon_switchState(self, ptmf); // ptmf == WarpCannon_sAfterShoot
+		return;
+	}
+
+	WarpCannon_switchState(self, &WarpCannon_sShootOtherPlayers);
+}
+
+asm(R"(
+// Allow more than 1 player to enter the cannon
+ncp_jump(0x0217F618, 89)
+	LDRH    R1, [R0,#0xE8]
+	ADD     R1, R1, #1
+	B       0x0217F61C
+
+ncp_jump(0x0217F5E0, 89)
+	LDR     R1, =_ZN4Game11playerCountE
+	LDR     R1, [R1]
+	CMP     R0, R1
+	BEQ     0x0217F6B4
+	B       0x0217F5E8
 )");
 
 // Misc ---------------------------------------------------------------------------------
