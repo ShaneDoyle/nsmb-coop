@@ -1,10 +1,13 @@
 #include "nsmb/game.hpp"
 #include "nsmb/player.hpp"
 #include "nsmb/stage/player/player.hpp"
+#include "nsmb/stage/entity.hpp"
+#include "nsmb/stage/misc.hpp"
 #include "nsmb/filesystem/cache.hpp"
+#include "nsmb/graphics/fader.hpp"
 #include "nsmb/graphics/3d/modelanm.hpp"
 #include "nsmb/graphics/3d/blendmodelanm.hpp"
-#include "nsmb/stage.hpp"
+#include "nsmb/system/function.hpp"
 
 #include "ActorFixes.hpp"
 
@@ -13,28 +16,6 @@
 // CURRENTLY THE BOWSER FRAME HEAP ALLOCATION IS DEALLOCATED UNSAFELY
 // IT IS ALMOST PURE LUCK THAT IT WORKS, SO PLEASE LOOK AT IT AFTER THIS RELEASE!
 
-
-
-asm("SetupFSCacheToUseOverlay55 = 0x021726C0");
-extern "C" void SetupFSCacheToUseOverlay55();
-
-int NNS_EXTRA_G3dTexUnload(NNSG3dResTex* pTex);
-
-void BossFixes_beginCutsceneAllPlayers()
-{
-	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-	{
-		Game::getPlayer(playerID)->beginCutscene(false);
-	}
-}
-
-void BossFixes_endCutsceneAllPlayers()
-{
-	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-	{
-		Game::getPlayer(playerID)->endCutscene();
-	}
-}
 
 //============================= Main Camera Push =============================
 
@@ -57,6 +38,227 @@ void BossFixes_pushPlayerCamera(StageLayout* self, fx32 bound, u32 side)
 	{
 		BossFixes_currentLoopPlayerID = playerID;
 		BossFixes_pushPlayerCameraFix(self, bound, side);
+	}
+}
+
+//============================= Main Boss Controller =============================
+
+const u8 CutsceneZoneID = 65;
+
+struct BossController_PTMF
+{
+	bool (*func)(StageEntity*);
+	u32 adj;
+};
+
+static BossController_PTMF BossController_sCustomTransitionState = { nullptr, 0 };
+
+ncp_over(0x02143994, 40)
+const static BossController_PTMF* BossController_sCustomTransitionState_ptr = &BossController_sCustomTransitionState;
+
+asm(R"(
+	Zone_get = 0x0201EEF8
+	BossController_limitFightToZone = 0x02142F14
+	BossController_transitionState = 0x02143550
+	BossController_switchState = 0x021439EC
+	BossController_sTransitionState = 0x02146C08
+)");
+
+extern "C"
+{
+	void* Zone_get(u8 id, FxRect* area);
+	void BossController_limitFightToZone(StageEntity* self);
+	void BossController_switchState(StageEntity* self, BossController_PTMF* ptmf);
+	bool BossController_transitionState(StageEntity* self);
+	BossController_PTMF BossController_sTransitionState;
+}
+
+bool BossController_coopTransitionState(StageEntity* self)
+{
+	const u32 FadeWaitDurationFrames = 30;
+
+	s8& step = rcast<s8*>(self)[0x53A];
+
+	if (step == Func::Init)
+	{
+		step++;
+
+		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+		{
+			// Begin fade out
+			Game::fader.fadeMaskShape[playerID] = FadeMask::getCharacterFadeMaskID(Game::getPlayerCharacter(playerID));
+			Game::fader.fadingState[playerID] |= 0x28;
+		}
+
+		return true;
+	}
+
+	if (step == Func::Exit)
+	{
+		return true;
+	}
+
+	if (step == 1)
+	{
+		// Wait for fade out
+		if ((Game::fader.fadingState[0] & 8) == 0)
+			step++;
+
+		return true;
+	}
+
+	if (step == 2)
+	{
+		step++;
+
+		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+			Game::getPlayer(playerID)->beginCutscene(true);
+
+		Player* closestPlayer = self->getClosestPlayer(nullptr, nullptr);
+
+		// Move player that reached the Boss barrier closer to Bowser to give space to the other player
+		//closestPlayer->position.x += 24fx;
+
+		// Other player
+		Player* otherPlayer = Game::getPlayer(closestPlayer->linkedPlayerID ^ 1);
+		otherPlayer->position.x = closestPlayer->position.x - 16fx;
+		otherPlayer->position.y = closestPlayer->position.y;
+
+		// Below code is for an eventual 4-player update.
+		// Requires fixing the camera first, right now it must be aligned
+		// to the right side because Bowser Jr. spawns the boss when Bowser Jr.
+		// goes out of the camera.
+
+		// Other players
+		/*s32 order = 1;
+		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+		{
+			if (closestPlayer->linkedPlayerID == playerID)
+				continue;
+
+			Player* player = Game::getPlayer(playerID);
+			player->beginCutscene(true);
+			player->position.x = closestPlayer->position.x - (1.25fx * 16fx) * order;
+			player->position.y = closestPlayer->position.y;
+
+			order++;
+		}*/
+
+		return true;
+	}
+
+	if (step == 3)
+	{
+		step++;
+
+		FxRect zoneArea;
+		Zone_get(CutsceneZoneID, &zoneArea);
+		BossFixes_pushPlayerCamera(Stage::stageLayout, scast<s16>(zoneArea.x >> 12), 1);
+
+		return true;
+	}
+
+	if (step < 3 + FadeWaitDurationFrames)
+	{
+		step++;
+		// Make up time for the background to catch up with the camera
+		return true;
+	}
+
+	if (step == 3 + FadeWaitDurationFrames)
+	{
+		step++;
+
+		// Begin fade in
+		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+			Game::fader.fadingState[playerID] |= 0x5;
+
+		return true;
+	}
+
+	if (step == 4 + FadeWaitDurationFrames)
+	{
+		// Wait for fade in
+		if ((Game::fader.fadingState[0] & 1) != 0)
+            return true;
+
+		BossController_switchState(self, &BossController_sTransitionState);
+		return true;
+	}
+
+	return true;
+}
+
+// Setup the cutscene transition
+ncp_call(0x021438AC, 40)
+void call_021438AC_ov40(Player* closestPlayer)
+{
+	s32 playerCount = Game::getPlayerCount();
+
+	if (playerCount == 1)
+	{
+		Game::getPlayer(Game::localPlayerID)->beginCutscene(true);
+		BossController_sCustomTransitionState.func = BossController_transitionState;
+	}
+	else
+	{
+		for (s32 playerID = 0; playerID < playerCount; playerID++)
+			Game::getPlayer(playerID)->beginCutscene(false); // Gets set to true later in BossController_coopTransitionState
+
+		BossController_sCustomTransitionState.func = BossController_coopTransitionState;
+	}
+}
+
+ncp_call(0x0214393C, 40)
+void BossController_customPushPlayerCamera(StageLayout* self, fx32 bound, u32 side)
+{
+	if (Game::getPlayerCount() == 1)
+		BossFixes_pushPlayerCamera(self, bound, side);
+
+	// For coop it gets handled by BossController_coopTransitionState
+}
+
+ncp_call(0x02142A38, 40)
+void BossController_customLimitFightToZone(StageEntity* self)
+{
+	if (Game::getPlayerCount() == 1)
+		BossController_limitFightToZone(self);
+
+	// For coop it gets handled by the unfreezing of each actor
+}
+
+// ============================= Misc =============================
+
+asm("SetupFSCacheToUseOverlay55 = 0x021726C0");
+extern "C" void SetupFSCacheToUseOverlay55();
+
+int NNS_EXTRA_G3dTexUnload(NNSG3dResTex* pTex);
+
+void BossFixes_beginCutsceneAllPlayers()
+{
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		Game::getPlayer(playerID)->beginCutscene(false);
+	}
+}
+
+void BossFixes_endCutsceneAllPlayers()
+{
+	s32 playerCount = Game::getPlayerCount();
+
+	for (s32 playerID = 0; playerID < playerCount; playerID++)
+	{
+		Game::getPlayer(playerID)->endCutscene();
+	}
+
+	if (playerCount > 1)
+	{
+		// End the coop transition by restoring the camera
+		StageEntity* bossController = scast<StageEntity*>(ProcessManager::getNextObjectByObjectID(114));
+		if (bossController != nullptr)
+		{
+			BossController_limitFightToZone(bossController);
+		}
 	}
 }
 
@@ -206,176 +408,6 @@ ncp_repl(0x021327FC, 16, "LDRSB R0, [R0,#0x1E]") // Fix shell hit
 
 // Unfreeze both players
 ncp_set_call(0x0213137C, 14, BossFixes_endCutsceneAllPlayers)
-
-//============================= Main Boss Controller =============================
-
-struct BossController_PTMF
-{
-	bool (*func)(StageEntity*);
-	u32 adj;
-};
-
-static BossController_PTMF BossController_sCustomTransitionState = { nullptr, 0 };
-
-ncp_over(0x02143994, 40)
-const static BossController_PTMF* BossController_sCustomTransitionState_ptr = &BossController_sCustomTransitionState;
-
-asm(R"(
-	BossController_transitionState = 0x02143550
-	BossController_switchState = 0x021439EC
-	BossController_sTransitionState = 0x02146C08
-)");
-
-extern "C"
-{
-	void BossController_switchState(StageEntity* self, BossController_PTMF* ptmf);
-	bool BossController_transitionState(StageEntity* self);
-	BossController_PTMF BossController_sTransitionState;
-}
-
-bool BossController_coopTransitionState(StageEntity* self)
-{
-	const u32 FadeWaitDurationFrames = 30;
-
-	s8& step = rcast<s8*>(self)[0x53A];
-
-	if (step == Func::Init)
-	{
-		step++;
-
-		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-		{
-			// Begin fade out
-			Game::fader.fadeMaskShape[playerID] = FadeMask::getCharacterFadeMaskID(Game::getPlayerCharacter(playerID));
-			Game::fader.fadingState[playerID] |= 0x28;
-		}
-
-		return true;
-	}
-
-	if (step == Func::Exit)
-	{
-		return true;
-	}
-
-	if (step == 1)
-	{
-		// Wait for fade out
-		if ((Game::fader.fadingState[0] & 8) == 0)
-			step++;
-
-		return true;
-	}
-
-	if (step == 2)
-	{
-		step++;
-
-		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-			Game::getPlayer(playerID)->beginCutscene(true);
-
-		Player* closestPlayer = self->getClosestPlayer(nullptr, nullptr);
-
-		// Move player that reached the Boss barrier closer to Bowser to give space to the other player
-		closestPlayer->position.x += 24fx;
-
-		// Other player
-		Player* otherPlayer = Game::getPlayer(closestPlayer->linkedPlayerID ^ 1);
-		otherPlayer->position.x = closestPlayer->position.x - 16fx;
-		otherPlayer->position.y = closestPlayer->position.y;
-
-		// Below code is for an eventual 4-player update.
-		// Requires fixing the camera first, right now it must be aligned
-		// to the right side because Bowser Jr. spawns the boss when Bowser Jr.
-		// goes out of the camera.
-
-		// Other players
-		/*s32 order = 1;
-		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-		{
-			if (closestPlayer->linkedPlayerID == playerID)
-				continue;
-
-			Player* player = Game::getPlayer(playerID);
-			player->beginCutscene(true);
-			player->position.x = closestPlayer->position.x - (1.25fx * 16fx) * order;
-			player->position.y = closestPlayer->position.y;
-
-			order++;
-		}*/
-
-		return true;
-	}
-
-	if (step == 3)
-	{
-		step++;
-
-		s16 bound = scast<s16>(rcast<fx32*>(self)[0x514 / 4] >> 12);
-		BossFixes_pushPlayerCamera(Stage::stageLayout, bound, 1);
-
-		return true;
-	}
-
-	if (step < 3 + FadeWaitDurationFrames)
-	{
-		step++;
-		// Make up time for the background to catch up with the camera
-		return true;
-	}
-
-	if (step == 3 + FadeWaitDurationFrames)
-	{
-		step++;
-
-		// Begin fade in
-		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-			Game::fader.fadingState[playerID] |= 0x5;
-
-		return true;
-	}
-
-	if (step == 4 + FadeWaitDurationFrames)
-	{
-		// Wait for fade in
-		if ((Game::fader.fadingState[0] & 1) != 0)
-            return true;
-
-		BossController_switchState(self, &BossController_sTransitionState);
-		return true;
-	}
-
-	return true;
-}
-
-// Setup the cutscene transition
-ncp_call(0x021438AC, 40)
-void call_021438AC_ov40(Player* closestPlayer)
-{
-	s32 playerCount = Game::getPlayerCount();
-
-	if (playerCount == 1)
-	{
-		Game::getPlayer(Game::localPlayerID)->beginCutscene(true);
-		BossController_sCustomTransitionState.func = BossController_transitionState;
-	}
-	else
-	{
-		for (s32 playerID = 0; playerID < playerCount; playerID++)
-			Game::getPlayer(playerID)->beginCutscene(false); // Gets set to true later in BossController_coopTransitionState
-
-		BossController_sCustomTransitionState.func = BossController_coopTransitionState;
-	}
-}
-
-ncp_call(0x0214393C, 40)
-void BossController_customPushPlayerCamera(StageLayout* self, fx32 bound, u32 side)
-{
-	if (Game::getPlayerCount() == 1)
-		BossFixes_pushPlayerCamera(self, bound, side);
-
-	// For coop it gets handled by BossController_coopTransitionState
-}
 
 //============================= Boss Key =============================
 
