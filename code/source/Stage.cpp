@@ -429,7 +429,7 @@ NTR_USED static void Stage_decideForceAreaReload()
 	if (Stage_forceAreaReload == 1) // Already set to reload
 		return;
 
-	StageObject* stageObjs = Stage::stageBlocks.stageObjs; // 12
+	StageObject* stageObjs = Stage::stageBlocks.stageObjs;
 	for (u32 i = 0; ; i++)
 	{
 		StageObject* stageObj = &stageObjs[i];
@@ -459,7 +459,7 @@ ncp_jump(0x0201E928)
 	BL      _ZL27Stage_decideForceAreaReloadv
 	B       0x0201E92C
 
-// Custom variable to determines if reload happens
+// Custom variable determines if reload happens
 ncp_jump(0x02119638, 10)
 	LDR     R3, =_ZL21Stage_forceAreaReload
 	LDR     R2, [R3]
@@ -596,6 +596,16 @@ ncp_repl(0x02109A14, 10, "B 0x02109A68") // Luigi can not make Mario fall on hea
 
 ncp_repl(0x02109EB4, 10, "MOV R4, #1") // Mario doesn't bump with Luigi
 ncp_repl(0x02109C1C, 10, "MOV R4, #1") // Luigi doesn't bump with Mario
+
+static bool Stage_customJumpOnPlayer(Player* self, fx32 force, u16 duration, bool playSFX, bool noConsecutive, s8 variation)
+{
+	if (self->physicsFlag.swimming)
+		return false;
+	return self->doJump(force, duration, playSFX, noConsecutive, variation);
+}
+
+ncp_set_call(0x02109AB8, 10, Stage_customJumpOnPlayer)
+ncp_set_call(0x02109BD4, 10, Stage_customJumpOnPlayer)
 
 ncp_call(0x021098C8, 10)
 static bool Stage_customSpecialPlayerBump(Player* self, Player* other, fx32& selfCollisionPointX)
