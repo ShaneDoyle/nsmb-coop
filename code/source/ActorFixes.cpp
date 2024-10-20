@@ -375,6 +375,11 @@ bool WarpCannon_shootOtherPlayersState(StageEntity* self)
 	player->waitInCannon(*self, position, angleX, angleY);
 	player->shootFromCannon(*self, 4fx, angleX, 0x6000, 1);
 
+	if (Game::getPlayerCharacter(playersShot) == 0)
+		SND::playSFX(68, &self->position);
+	else
+		SND::playSFX(320, &self->position);
+
 	playersShot++;
 
 	return true;
