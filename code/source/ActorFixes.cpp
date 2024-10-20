@@ -368,7 +368,7 @@ bool WarpCannon_shootOtherPlayersState(StageEntity* self)
 
 	Player* player = Game::getPlayer(playersShot);
 
-	s16 angleX = -rcast<s16*>(self)[0x6E4 / 2];
+	s16 angleX = -rcast<s16*>(self)[0x6E4 / 2] - (0x200 * playersShot);
 	s16 angleY = rcast<s16*>(self)[0x6E0 / 2] + 0x4400;
 	Vec3& position = *rcast<Vec3*>(rcast<u8*>(self) + 0x534);
 
