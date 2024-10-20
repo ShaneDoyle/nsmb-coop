@@ -81,6 +81,13 @@ ncp_repl(0x020CE460, 10, ".int _ZN14PlayerSpectate11localTargetE")
 ncp_repl(0x020D709C, 10, ".int _ZN14PlayerSpectate11localTargetE")
 ncp_repl(0x020D6FEC, 10, ".int _ZN14PlayerSpectate11localTargetE")
 
+// Liquid ----------------
+
+ncp_repl(0x02164824, 54, ".int _ZN14PlayerSpectate11localTargetE")
+ncp_repl(0x0216496C, 54, ".int _ZN14PlayerSpectate11localTargetE")
+ncp_repl(0x02165CA4, 54, ".int _ZN14PlayerSpectate11localTargetE")
+ncp_repl(0x02165E10, 54, ".int _ZN14PlayerSpectate11localTargetE")
+
 // Misc ----------------
 
 ncp_repl(0x020F7E30, 10, ".int _ZN14PlayerSpectate11localTargetE") // (0x020F7D74) PipeBase::onRender
