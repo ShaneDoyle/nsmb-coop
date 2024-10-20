@@ -417,13 +417,35 @@ u16 Level_createHook() {
 	return Wifi::getConsoleCount(); // Keep replaced instruction
 }
 
-// WARNING: Different water heights between views in the same area WILL BREAK.
+// WARNING: Different water heights between views in the same area WILL BREAK. (Forced area reload is the fix)
 
 // Make areas always reload if the area number is not 0
+// Or if there are liquids in the level
 
 NTR_USED static u8 Stage_forceAreaReload = 0;
 
+NTR_USED static void Stage_decideForceAreaReload()
+{
+	if (Stage_forceAreaReload == 1) // Already set to reload
+		return;
+
+	StageObject* stageObjs = Stage::stageBlocks.stageObjs; // 12
+	for (u32 i = 0; ; i++)
+	{
+		StageObject* stageObj = &stageObjs[i];
+		u16 stageObjID = stageObj->id;
+		if (stageObjID == -1) // Array end
+			break;
+		if (stageObjID == 231 || stageObjID == 234 || stageObjID == 259) // Liquid
+		{
+			Stage_forceAreaReload = 1;
+			break;
+		}
+	}
+}
+
 asm(R"(
+// Force reload if destination area number is not 0
 ncp_jump(0x0201E91C)
 	STR     R0, [R1] // Keep replaced instruction
 	LDR     R0, =_ZL21Stage_forceAreaReload
@@ -431,6 +453,13 @@ ncp_jump(0x0201E91C)
 	STR     R1, [R0]
 	B       0x0201E920
 
+// Force reload if extra checks say so
+ncp_jump(0x0201E928)
+	STRB    R1, [R0] // Keep replaced instruction
+	BL      _ZL27Stage_decideForceAreaReloadv
+	B       0x0201E92C
+
+// Custom variable to determines if reload happens
 ncp_jump(0x02119638, 10)
 	LDR     R3, =_ZL21Stage_forceAreaReload
 	LDR     R2, [R3]
