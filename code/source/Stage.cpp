@@ -1,3 +1,5 @@
+#include "Stage.hpp"
+
 #include "nsmb/game.hpp"
 #include "nsmb/sound.hpp"
 #include "nsmb/player.hpp"
@@ -24,9 +26,6 @@ extern "C" {
 namespace Stage {
 	void exitLevel(u32 flag);
 }
-
-static inline bool Stage_isBossFight() { return *rcast<u32*>(0x020CA8C0) & 0x80000000; }
-static inline bool Stage_hasLevelFinished() { return *rcast<u32*>(0x020CA8C0) & 1; }
 
 // ======================================= GETTERS =======================================
 
@@ -588,64 +587,3 @@ ncp_over(0x020BE18C, 0)
 	MOVLE   R0, #0
 ncp_endover()
 )");*/
-
-// ======================================= PLAYER =======================================
-
-ncp_repl(0x02109B30, 10, "B 0x02109B84") // Mario can not make Luigi fall on head jump
-ncp_repl(0x02109A14, 10, "B 0x02109A68") // Luigi can not make Mario fall on head jump
-
-ncp_repl(0x02109EB4, 10, "MOV R4, #1") // Mario doesn't bump with Luigi
-ncp_repl(0x02109C1C, 10, "MOV R4, #1") // Luigi doesn't bump with Mario
-
-static bool Stage_customJumpOnPlayer(Player* self, fx32 force, u16 duration, bool playSFX, bool noConsecutive, s8 variation)
-{
-	if (self->physicsFlag.swimming)
-		return false;
-	return self->doJump(force, duration, playSFX, noConsecutive, variation);
-}
-
-ncp_set_call(0x02109AB8, 10, Stage_customJumpOnPlayer)
-ncp_set_call(0x02109BD4, 10, Stage_customJumpOnPlayer)
-
-ncp_call(0x021098C8, 10)
-static bool Stage_customSpecialPlayerBump(Player* self, Player* other, fx32& selfCollisionPointX)
-{
-	bool marioOffender = Player::bumpOffender == Player::BumpOffender::Mario;
-	Player* offender = marioOffender ? self : other;
-	Player* victim = marioOffender ? other : self;
-
-	if (offender->checkGroundpoundBump())
-	{
-		s32 direction = StageEntity::unitDirection[(selfCollisionPointX < 0) ^ marioOffender];
-		Vec2 velocity(0xD00 * direction, 0x3000);
-		victim->doPlayerBump(velocity, true);
-		return true;
-	}
-
-	return false;
-}
-
-NTR_USED static bool Stage_blockPlayerCollision()
-{
-	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-	{
-		Player* player = Game::getPlayer(playerID);
-		if (player->currentPowerup == PowerupState::Mega || Stage_hasLevelFinished())
-			return true;
-	}
-	return false;
-}
-
-asm(R"(
-ncp_jump(0x021096EC, 10)
-	BNE     0x021096F0
-	MOV     R0, R9
-	MOV     R1, R8
-	BL      _ZL26Stage_blockPlayerCollisionv
-	CMP     R0, #0
-	BNE     0x021096F0
-	B       0x02109704
-)");
-
-ncp_repl(0x020E3260, 10, "MOV R0, R4") // Fireballs pass through player
-//ncp_repl(0x020E32C4, 10, "ADD SP, SP, #0x10; POP {R4-R6,PC}") // Player immune to fireballs
