@@ -55,11 +55,20 @@ ncp_repl(0x0209ADAC, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x0209AD1C
 //ncp_repl(0x020A9D34, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020A9D34) CollisionMgr::getTileTypeAbs
 //ncp_repl(0x020ACF38, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020ACE0C) StageLayout::unk_20ACE0C
 ncp_repl(0x020AD26C, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020AD06C) StageLayout::scrollLevelDirect
-ncp_repl(0x020AEA0C, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020AEA0C) StageLayout::bgStuffLoop
+ncp_repl(0x020AEA0C, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020AEA0C) StageLayout::updateOnMainLoopEnd
 ncp_repl(0x020AF748, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020AF30C) StageLayout::changeTile
 ncp_repl(0x020B8D20, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020B8CA8) StageLayout::unk_20B8CA8
 ncp_repl(0x020BACC0, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020BAA5C) StageLayout::onUpdate
 ncp_repl(0x020BB45C, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020BB430) StageLayout::onRender
+
+/*asm(R"(
+// StageLayout::onUpdate does not track background for now
+// let the stage copy the player position for the time being
+ncp_jump(0x020BAC90, 0)
+	LDR     R1, =_ZN4Game13localPlayerIDE
+	LDR     R1, [R1]
+	B       0x020BAC94
+)");*/
 
 // (0x020BBBDC) Player View Setup ----------------
 
@@ -87,6 +96,21 @@ ncp_repl(0x02164824, 54, ".int _ZN14PlayerSpectate11localTargetE")
 ncp_repl(0x0216496C, 54, ".int _ZN14PlayerSpectate11localTargetE")
 ncp_repl(0x02165CA4, 54, ".int _ZN14PlayerSpectate11localTargetE")
 ncp_repl(0x02165E10, 54, ".int _ZN14PlayerSpectate11localTargetE")
+
+// StageEntity::skipRender overrides ----------------
+
+ncp_repl(0x020DBF14, 10, ".int _ZN14PlayerSpectate11localTargetE")
+ncp_repl(0x020DD46C, 10, ".int _ZN14PlayerSpectate11localTargetE")
+ncp_repl(0x0212FC14, 20, ".int _ZN14PlayerSpectate11localTargetE")
+ncp_repl(0x02141FE4, 35, ".int _ZN14PlayerSpectate11localTargetE")
+ncp_repl(0x0214E4D4, 42, ".int _ZN14PlayerSpectate11localTargetE")
+ncp_repl(0x02146DA8, 46, ".int _ZN14PlayerSpectate11localTargetE")
+ncp_repl(0x02172C1C, 60, ".int _ZN14PlayerSpectate11localTargetE")
+ncp_repl(0x02176438, 66, ".int _ZN14PlayerSpectate11localTargetE")
+ncp_repl(0x02179A50, 79, ".int _ZN14PlayerSpectate11localTargetE")
+ncp_repl(0x02179B64, 81, ".int _ZN14PlayerSpectate11localTargetE")
+ncp_repl(0x0217A950, 81, ".int _ZN14PlayerSpectate11localTargetE")
+ncp_repl(0x0218CC6C, 119, ".int _ZN14PlayerSpectate11localTargetE")
 
 // Misc ----------------
 

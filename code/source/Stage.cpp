@@ -19,12 +19,14 @@ NTR_USED static u32 sTempVar;
 asm(R"(
 	SpawnGrowingEntranceVine = 0x020D0CEC
 	_ZN5Stage9exitLevelEm = 0x020A189C
+	_ZN5Stage4zoomE = 0x020CADB4
 )");
 extern "C" {
 	void SpawnGrowingEntranceVine(Vec3*);
 }
 namespace Stage {
 	void exitLevel(u32 flag);
+	fx32 zoom[2];
 }
 
 // ======================================= GETTERS =======================================
@@ -142,6 +144,8 @@ static bool Stage_playerDeadState(Player* player, void* arg)
 	// Always match the spectating player's position
 	player->position.x = other->position.x;
 	player->position.y = other->position.y;
+
+	Stage::zoom[playerID] = Stage::zoom[otherID];
 
 	// Check if player is allowed to respawn or not
 	if (player->getJumpKeyPressed() &&
