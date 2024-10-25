@@ -57,7 +57,6 @@ ncp_over(0x02143994, 40)
 const static BossController_PTMF* BossController_sCustomTransition_ptr = &BossController_sCustomTransition;
 
 asm(R"(
-	Zone_get = 0x0201EEF8
 	BossController_limitFightToZone = 0x02142F14
 	BossController_transitionState = 0x02143550
 	BossController_switchState = 0x021439EC
@@ -66,7 +65,6 @@ asm(R"(
 
 extern "C"
 {
-	void* Zone_get(u8 id, FxRect* area);
 	void BossController_limitFightToZone(StageEntity* self);
 	void BossController_switchState(StageEntity* self, BossController_PTMF* ptmf);
 	bool BossController_transitionState(StageEntity* self);
@@ -137,8 +135,8 @@ bool BossController_coopTransitionState(StageEntity* self)
 	{
 		step++;
 
-		FxRect zoneArea;
-		Zone_get(CutsceneZoneID, &zoneArea);
+		Rectangle<fx32> zoneArea;
+		StageZone::get(CutsceneZoneID, &zoneArea);
 		BossFixes_setCameraBound(Stage::stageLayout, scast<s16>(zoneArea.x >> 12), 1);
 
 		return true;
