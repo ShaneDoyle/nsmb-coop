@@ -39,6 +39,15 @@ ncp_repl(0x02006A04, "B 0x02006A1C") // Do not change powerup when loading level
 		asm("BL 0x20C1F14");
 }*/
 
+// Disable options on pause menu
+asm(R"(
+ncp_jump(0x020CE944, 8)
+	BL      _ZN4Game14getPlayerCountEv
+	CMP     R0, #1
+	BLEQ    0x020C1F14
+	B       0x020CECA4
+)");
+
 static u32 Worldmap_getCurrentAid() { return Wifi::currentAid; }
 
 // Fix top OAM powerup on worldmap
