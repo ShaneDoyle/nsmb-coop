@@ -292,13 +292,14 @@ void nsub_0212B908_ov_0B(u8* player)
 
 asm(R"(
 // Fix desyncs on pause menu
-ncp_jump(0x020A20E8, 0)
-	LDR     R0, =0x6428
-	LDRB    R0, [R5,R0] // R0 = pause menu owner
-	LSLS    R0, R0, #1
-	LDR     R1, =0x02087648
-	ADD     R0, R1, R0 // R1 = &Input::consoleKeysRepeated[R0]
-	B       0x020A20EC
+ncp_call(0x020A20EC, 0)
+ncp_call(0x020A2280, 0)
+ncp_call(0x020A23B4, 0)
+	ADD     R1, R5, #0x6000
+	LDRB    R1, [R1,#0x428] // R1 = pause menu owner
+	MOV     R1, R1,LSL#1
+	LDRH    R1, [R0,R1] // R1 = Input::consoleKeysRepeated[R1]
+	BX      LR
 
 ncp_call(0x020A21A4, 0)
 ncp_call(0x020A22D8, 0)
