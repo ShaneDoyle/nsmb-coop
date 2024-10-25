@@ -11,7 +11,7 @@ static u8 Player_jumpedOnAnimState[2];
 static void Player_updateJumpedOnAnimation(Player* self)
 {
 	constexpr u32 GrowFrames = 8;
-	constexpr fx32 MaxHeightReduction = 0x400;
+	constexpr fx32 HeightReduction = 0x400;
 
 	u8& animState = Player_jumpedOnAnimState[self->linkedPlayerID];
 	if (animState == PLAYER_JUMPED_ON_ANIM_STATE_WAIT)
@@ -33,7 +33,8 @@ static void Player_updateJumpedOnAnimation(Player* self)
 		return;
 	}
 
-	self->scale.y = (MaxHeightReduction / GrowFrames) * animState + (originalScale - MaxHeightReduction);
+	fx32 scaledHeightReduction = FX_Div(FX_Mul(HeightReduction, self->modelScale), Player::constantsSmall.scale);
+	self->scale.y = (scaledHeightReduction / GrowFrames) * animState + (originalScale - scaledHeightReduction);
 
 	animState++;
 
