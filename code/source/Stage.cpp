@@ -26,7 +26,7 @@ extern "C" {
 }
 namespace Stage {
 	void exitLevel(u32 flag);
-	fx32 zoom[2];
+	extern fx32 zoom[2];
 }
 
 // ======================================= GETTERS =======================================
