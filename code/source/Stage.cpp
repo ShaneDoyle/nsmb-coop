@@ -592,3 +592,14 @@ ncp_over(0x020BE18C, 0)
 	MOVLE   R0, #0
 ncp_endover()
 )");*/
+
+// Fix stage zoom on view edges
+asm(R"(
+ncp_jump(0x020BA1C4, 0)
+	MOV     R5, R3
+	LDR     R3, =_ZL8sTempVar
+	STR     R5, [R3]
+	B       0x020BA1C8
+)");
+
+ncp_repl(0x020B8D20, 0, ".int _ZL8sTempVar")

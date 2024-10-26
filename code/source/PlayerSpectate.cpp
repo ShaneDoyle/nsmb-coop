@@ -57,7 +57,6 @@ ncp_repl(0x0209ADAC, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x0209AD1C
 ncp_repl(0x020AD26C, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020AD06C) StageLayout::scrollLevelDirect
 ncp_repl(0x020AEA0C, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020AEA0C) StageLayout::updateOnMainLoopEnd
 ncp_repl(0x020AF748, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020AF30C) StageLayout::changeTile
-ncp_repl(0x020B8D20, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020B8CA8) StageLayout::unk_20B8CA8
 ncp_repl(0x020BACC0, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020BAA5C) StageLayout::onUpdate
 ncp_repl(0x020BB45C, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020BB430) StageLayout::onRender
 
