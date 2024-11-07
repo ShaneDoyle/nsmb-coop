@@ -4,13 +4,14 @@
 #include "nsmb/sound.hpp"
 #include "nsmb/player.hpp"
 #include "nsmb/stage/entity.hpp"
-#include "nsmb/stage/layout/entrance.hpp"
+#include "nsmb/stage/layout/data/entrance.hpp"
 #include "nsmb/graphics/particle.hpp"
 #include "nsmb/system/input.hpp"
 #include "nsmb/system/function.hpp"
 #include "nsmb/system/misc.hpp"
 #include "nsmb/graphics/fader.hpp"
 #include "nsmb/entity/scene.hpp"
+#include "nsmb/wifi.hpp"
 
 #include "PlayerSpectate.hpp"
 
@@ -418,7 +419,7 @@ u16 Level_createHook() {
 	Stage::liquidPosition[Game::localPlayerID] = -0x1000000;
 	Stage::lastLiquidPosition[Game::localPlayerID] = -0x1000000;
 
-	return Wifi::getConsoleCount(); // Keep replaced instruction
+	return Wifi::getCommunicatingConsoleCount(); // Keep replaced instruction
 }
 
 // WARNING: Different water heights between views in the same area WILL BREAK. (Forced area reload is the fix)
