@@ -2,7 +2,7 @@
 #include "nsmb/player.hpp"
 #include "nsmb/system/save.hpp"
 #include "nsmb/entity/scene.hpp"
-#include "nsmb/wifi.hpp"
+#include "nsmb/net.hpp"
 
 NTR_USED static u8 WorldmapInputOwner = 0; // The ID of the console controlling the worldmap input (MUST BE 0)
 
@@ -48,20 +48,20 @@ ncp_jump(0x020CE944, 8)
 	B       0x020CECA4
 )");
 
-static u32 Worldmap_getCurrentAid() { return Wifi::currentAid; }
+static u32 Worldmap_getLocalAid() { return Net::localAid; }
 
 // Fix top OAM powerup on worldmap
-ncp_repl(0x020CF70C, 8, ".int _ZN4Wifi10currentAidE")
+ncp_repl(0x020CF70C, 8, ".int _ZN3Net8localAidE")
 
 // Fix player on worldmap
-ncp_set_call(0x020CE2A4, 8, Worldmap_getCurrentAid)
-ncp_set_call(0x020D5C18, 8, Worldmap_getCurrentAid)
-ncp_set_call(0x020D5FC0, 8, Worldmap_getCurrentAid)
-ncp_set_call(0x020D83D4, 8, Worldmap_getCurrentAid)
-ncp_set_call(0x020D8D30, 8, Worldmap_getCurrentAid)
-ncp_set_call(0x020D8D44, 8, Worldmap_getCurrentAid)
+ncp_set_call(0x020CE2A4, 8, Worldmap_getLocalAid)
+ncp_set_call(0x020D5C18, 8, Worldmap_getLocalAid)
+ncp_set_call(0x020D5FC0, 8, Worldmap_getLocalAid)
+ncp_set_call(0x020D83D4, 8, Worldmap_getLocalAid)
+ncp_set_call(0x020D8D30, 8, Worldmap_getLocalAid)
+ncp_set_call(0x020D8D44, 8, Worldmap_getLocalAid)
 
-ncp_call(0x020D63C0, 8) u32 call_020D63C0_ov8() { return Game::getPlayerPowerup(Wifi::currentAid); }
+ncp_call(0x020D63C0, 8) u32 call_020D63C0_ov8() { return Game::getPlayerPowerup(Net::localAid); }
 
 ncp_repl(0x020CE5C0, 8, ".int _ZL18WorldmapInputOwner")
 ncp_repl(0x020CED08, 8, ".int _ZL18WorldmapInputOwner")
