@@ -4,7 +4,39 @@
 #include "nsmb/entity/scene.hpp"
 #include "nsmb/net.hpp"
 
+asm(R"(
+	Worldmap_onCreate = 0x020CF7C8
+)");
+extern "C"
+{
+	s32 Worldmap_onCreate(Scene* self);
+}
+
 NTR_USED static u8 WorldmapInputOwner = 0; // The ID of the console controlling the worldmap input (MUST BE 0)
+static u8 WorldmapSyncWaiting = 0;
+
+// Sync the worldmap load
+static s32 Worldmap_onCreate_ext(Scene* self)
+{
+	if (!WorldmapSyncWaiting)
+	{
+		Worldmap_onCreate(self);
+
+		if (Net::isConnected())
+			Net::setMarker(0);
+
+		WorldmapSyncWaiting = 1;
+	}
+
+	if (Net::isConnected() && !Net::checkMarker(0))
+		return -1;
+
+	Net::clearMarker(0);
+	WorldmapSyncWaiting = 0;
+	return 1;
+}
+
+ncp_over(0x020E67EC, 8) const auto WorldmapScene_onCreate_vtbl = Worldmap_onCreate_ext;
 
 ncp_repl(0x020CF880, 8, "NOP") // Prevent the worldmap from disconnecting multiplayer
 
