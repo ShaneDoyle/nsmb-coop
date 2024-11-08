@@ -2,6 +2,7 @@
 #include "nsmb/player.hpp"
 #include "nsmb/stage/player/player.hpp"
 #include "nsmb/stage/entity.hpp"
+#include "nsmb/stage/entity3danm.hpp"
 #include "nsmb/stage/misc.hpp"
 #include "nsmb/filesystem/cache.hpp"
 #include "nsmb/graphics/fader.hpp"
@@ -10,6 +11,7 @@
 #include "nsmb/system/function.hpp"
 
 #include "ActorFixes.hpp"
+#include "PlayerSpectate.hpp"
 
 
 // VERY IMPORTANT
@@ -19,35 +21,48 @@
 
 //============================= Main Camera Push =============================
 
-u32 BossFixes_currentLoopPlayerID = 0;
+u32 BossFixes_setCameraBoundPlayerID = 0;
 
 // Allow camera to be pushed for all players
 
 asm(R"(
-BossFixes_setCameraBoundFix:
-	LDR     R12, =BossFixes_currentLoopPlayerID
+BossFixes_setCameraBound:
+	LDR     R12, =BossFixes_setCameraBoundPlayerID
 	B       0x020ACF54
 )");
 
-extern "C" void BossFixes_setCameraBoundFix(StageLayout* self, fx32 bound, u32 side);
+extern "C" void BossFixes_setCameraBound(StageLayout* self, s16 bound, u32 side);
 
 ncp_jump(0x020ACF50, 0)
-void BossFixes_setCameraBound(StageLayout* self, fx32 bound, u32 side)
+void BossFixes_setCameraBoundAll(StageLayout* self, s16 bound, u32 side)
 {
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
-		BossFixes_currentLoopPlayerID = playerID;
-		BossFixes_setCameraBoundFix(self, bound, side);
+		BossFixes_setCameraBoundPlayerID = playerID;
+		BossFixes_setCameraBound(self, bound, side);
 	}
+}
+
+void BossFixes_matchPlayerCameraBounds(s32 playerID, s32 matchPlayerID)
+{
+	s16 boundX = Stage::cameraX[matchPlayerID] >> FX32_SHIFT;
+
+	BossFixes_setCameraBoundPlayerID = playerID;
+	BossFixes_setCameraBound(Stage::stageLayout, boundX, 1);
+	BossFixes_setCameraBound(Stage::stageLayout, boundX + 256, 0);
+}
+
+void BossFixes_setZoomAll(fx32 zoom, u32 delay, u8 zero, u8 unk)
+{
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+		Stage::setZoom(zoom, delay, playerID, unk);
 }
 
 //============================= Main Boss Controller =============================
 
-const u8 CutsceneZoneID = 65;
-
 struct BossController_PTMF
 {
-	bool (*func)(StageEntity*);
+	bool (*func)(StageEntity3DAnm*);
 	u32 adj;
 };
 
@@ -57,7 +72,7 @@ ncp_over(0x02143994, 40)
 const static BossController_PTMF* BossController_sCustomTransition_ptr = &BossController_sCustomTransition;
 
 asm(R"(
-	BossController_limitFightToZone = 0x02142F14
+	BossController_bindCameraToZone = 0x02142F14
 	BossController_transitionState = 0x02143550
 	BossController_switchState = 0x021439EC
 	BossController_sTransition = 0x02146C08
@@ -65,13 +80,13 @@ asm(R"(
 
 extern "C"
 {
-	void BossController_limitFightToZone(StageEntity* self);
-	void BossController_switchState(StageEntity* self, BossController_PTMF* ptmf);
-	bool BossController_transitionState(StageEntity* self);
+	void BossController_bindCameraToZone(StageEntity3DAnm* self);
+	void BossController_switchState(StageEntity3DAnm* self, BossController_PTMF* ptmf);
+	bool BossController_transitionState(StageEntity3DAnm* self);
 	BossController_PTMF BossController_sTransition;
 }
 
-bool BossController_coopTransitionState(StageEntity* self)
+bool BossController_coopTransitionState(StageEntity3DAnm* self)
 {
 	const u32 FadeWaitDurationFrames = 30;
 
@@ -96,13 +111,18 @@ bool BossController_coopTransitionState(StageEntity* self)
 		return true;
 	}
 
+	auto commonEnd = [self]() -> bool {
+		self->model.frameController.update();
+		return true;
+	};
+
 	if (step == 1)
 	{
 		// Wait for fade out
 		if ((Game::fader.fadingState[0] & 8) == 0)
 			step++;
 
-		return true;
+		return commonEnd();
 	}
 
 	if (step == 2)
@@ -128,25 +148,33 @@ bool BossController_coopTransitionState(StageEntity* self)
 			order++;
 		}
 
-		return true;
+		return commonEnd();
 	}
 
 	if (step == 3)
 	{
 		step++;
 
-		Rectangle<fx32> zoneArea;
-		StageZone::get(CutsceneZoneID, &zoneArea);
-		BossFixes_setCameraBound(Stage::stageLayout, scast<s16>(zoneArea.x >> 12), 1);
+		// Match the camera of the player in front
 
-		return true;
+		Player* closestPlayer = ActorFixes_getClosestPlayer(self);
+
+		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+		{
+			if (closestPlayer->linkedPlayerID == playerID)
+				continue;
+
+			BossFixes_matchPlayerCameraBounds(playerID, closestPlayer->linkedPlayerID);
+		}
+
+		return commonEnd();
 	}
 
 	if (step < 3 + FadeWaitDurationFrames)
 	{
 		step++;
 		// Make up time for the background to catch up with the camera
-		return true;
+		return commonEnd();
 	}
 
 	if (step == 3 + FadeWaitDurationFrames)
@@ -157,20 +185,20 @@ bool BossController_coopTransitionState(StageEntity* self)
 		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 			Game::fader.fadingState[playerID] |= 0x5;
 
-		return true;
+		return commonEnd();
 	}
 
 	if (step == 4 + FadeWaitDurationFrames)
 	{
 		// Wait for fade in
 		if ((Game::fader.fadingState[0] & 1) != 0)
-            return true;
+			return commonEnd();
 
 		BossController_switchState(self, &BossController_sTransition);
-		return true;
+		return commonEnd();
 	}
 
-	return true;
+	return commonEnd();
 }
 
 // Setup the cutscene transition
@@ -194,19 +222,19 @@ void call_021438AC_ov40(Player* closestPlayer)
 }
 
 ncp_call(0x0214393C, 40)
-void BossController_customPushPlayerCamera(StageLayout* self, fx32 bound, u32 side)
+void BossController_customSetCameraBoundAll(StageLayout* self, fx32 bound, u32 side)
 {
 	if (Game::getPlayerCount() == 1)
-		BossFixes_setCameraBound(self, bound, side);
+		BossFixes_setCameraBoundAll(self, bound, side);
 
 	// For coop it gets handled by BossController_coopTransitionState
 }
 
 ncp_call(0x02142A38, 40)
-void BossController_customLimitFightToZone(StageEntity* self)
+void BossController_customBindCameraToZone(StageEntity3DAnm* self)
 {
 	if (Game::getPlayerCount() == 1)
-		BossController_limitFightToZone(self);
+		BossController_bindCameraToZone(self);
 
 	// For coop it gets handled by the unfreezing of each actor
 }
@@ -238,10 +266,10 @@ void BossFixes_endCutsceneAllPlayers()
 	if (playerCount > 1)
 	{
 		// End the coop transition by restoring the camera
-		StageEntity* bossController = scast<StageEntity*>(ProcessManager::getNextObjectByObjectID(114));
+		StageEntity3DAnm* bossController = scast<StageEntity3DAnm*>(ProcessManager::getNextObjectByObjectID(114));
 		if (bossController != nullptr)
 		{
-			BossController_limitFightToZone(bossController);
+			BossController_bindCameraToZone(bossController);
 		}
 	}
 }
@@ -365,17 +393,159 @@ ncp_jump(0x02138D7C, 13)
 )");
 
 // Disables "StageZoom" for BowserBattleSwitch and applies "Victory" animation
-ncp_call(0x0213A7A4, 13)
+/*ncp_call(0x0213A7A4, 13)
 void call_0213A7A4_ov13()
 {
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
 		Game::getPlayer(playerID)->actionFlag.bowserJrBeaten = true;
 	}
+}*/
+
+struct BossBattleSwitch_PTMF
+{
+	bool (*func)(StageEntity*);
+	u32 adj;
+};
+
+asm(R"(
+	Bowser_getBattleState = 0x0213884C
+	BossBattleSwitch_switchState = 0x0213B1DC
+)");
+
+extern "C"
+{
+	s32 Bowser_getBattleState();
+	bool BossBattleSwitch_switchState(StageEntity* self, BossBattleSwitch_PTMF ptmf);
 }
 
-// Remove Freeze at BowserBattleSwitch
-ncp_repl(0x0213AF54, 13, "NOP")
+Player* BossBattleSwitch_linkedPlayer = nullptr;
+fx32 BossBattleSwitch_linkedPlayerCameraX = 0;
+
+// For the players that didn't hit the switch
+bool Player_bossDefeatNotLinkedTransitState(Player* self, void* arg)
+{
+	s8& step = self->transitionStateStep;
+
+	s32 playerID = self->linkedPlayerID;
+
+	if (step == Func::Init)
+	{
+		step++;
+		return true;
+	}
+	if (step == Func::Exit)
+	{
+		return true;
+	}
+
+	if (step == 1)
+	{
+		// Wait for player that hit the button to start animation
+		if (BossBattleSwitch_linkedPlayer->transitionStateStep == 3 && !self->actionFlag.noGround)
+		{
+			self->bossBeginVictoryPose();
+			step++;
+		}
+	}
+	else if (step == 2)
+	{
+		// Wait for barrier blocks to start breaking
+		if (BossBattleSwitch_linkedPlayer->transitionStateStep == 6)
+		{
+			if (ActorFixes_isPlayerInZone(self, 66))
+			{
+				self->switchTransitionState(&Player::bossVictoryTransitState);
+				step = 5; // Skip some steps in the state we just switched to
+			}
+			else
+			{
+				self->setAnimation(0, true, Player::FrameMode::Restart, 1fx);
+				PlayerSpectate::setTarget(playerID, BossBattleSwitch_linkedPlayer->linkedPlayerID);
+				step++;
+			}
+		}
+	}
+
+	self->updateAnimation();
+
+	return true;
+}
+
+void Player_beginBossDefeatCutsceneNotLinked(Player* self)
+{
+	self->switchMainState(&Player::idleState);
+	self->switchTransitionState(ptmf_cast(Player_bossDefeatNotLinkedTransitState));
+}
+
+Player* BossBattleSwitch_onBowserDead(Player* linkedPlayer)
+{
+	if (Game::getPlayerCount() == 1)
+		return linkedPlayer;
+
+	BossBattleSwitch_linkedPlayer = linkedPlayer;
+
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		if (playerID == linkedPlayer->linkedPlayerID)
+			continue;
+
+		Player* player = Game::getPlayer(playerID);
+		Player_beginBossDefeatCutsceneNotLinked(player);
+	}
+
+	return linkedPlayer;
+}
+
+void BossBattleSwitch_afterHitState_beforeUpdate(StageEntity3DAnm* self)
+{
+	BossBattleSwitch_linkedPlayerCameraX = Stage::cameraX[self->linkedPlayerID];
+}
+
+asm(R"(
+// Store the player ID that hit the switch
+ncp_over(0x0213B2DC, 13) /* max over: 0x30 bytes, current: 0x2C bytes */
+	LDRB    R2, [R1,#0x11C]
+	CMP     R2, #1
+	BXNE    LR
+	LDRB    R1, [R1,#0x11E]
+	STRB    R1, [R0,#0x11E]
+	ADD     R0, R0, 0x400
+	LDRH    R1, [R0,#0xA6]
+	CMP     R1, #0
+	MOVEQ   R1, #1
+	STRHEQ  R1, [R0,#0xAE]
+	BX      LR
+ncp_endover()
+
+ncp_jump(0x0213A7AC, 13)
+	BL      _ZN4Game9getPlayerEl
+	BL      _Z29BossBattleSwitch_onBowserDeadP6Player
+	B       0x0213A7B0
+
+ncp_jump(0x0213A53C, 13)
+	PUSH    {R1}
+	MOV     R0, R5
+	BL      _Z43BossBattleSwitch_afterHitState_beforeUpdateP16StageEntity3DAnm
+	POP     {R1}
+	LDRSH   R0, [R1,#0xA2]
+	B       0x0213A540
+)");
+
+// Use the stored player ID
+ncp_repl(0x0213A718, 13, "LDRB R0, [R5,#0x11E]")
+ncp_repl(0x0213A7A8, 13, "LDRB R0, [R5,#0x11E]")
+ncp_repl(0x0213A8AC, 13, "LDRB R0, [R5,#0x11E]")
+ncp_repl(0x0213AF14, 13, "LDRB R0, [R5,#0x11E]")
+
+ncp_set_call(0x0213A6F8, 13, BossFixes_setZoomAll)
+ncp_set_call(0x0213A784, 13, BossFixes_setZoomAll)
+ncp_set_call(0x0213A7A4, 13, BossFixes_setZoomAll)
+ncp_set_call(0x0213A914, 13, BossFixes_setZoomAll)
+ncp_set_call(0x0213AA8C, 13, BossFixes_setZoomAll)
+ncp_set_call(0x0213ABC8, 13, BossFixes_setZoomAll)
+
+ncp_repl(0x0213AD10, 13, ".int BossBattleSwitch_linkedPlayerCameraX")
 
 //============================= World 2: Mummy Pokey =============================
 

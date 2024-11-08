@@ -4,6 +4,7 @@
 #include "nsmb/stage/viewshaker.hpp"
 #include "nsmb/system/function.hpp"
 
+#include "ActorFixes.hpp"
 //#include "PlayerSpectate.hpp"
 
 asm(R"(
@@ -40,7 +41,7 @@ static u32 ActorFixes_matchZoneID = -1;
 NTR_USED static Player* ActorFixes_getClosestPlayerFilter(s32 playerID)
 {
 	Player* player = Game::getPlayer(playerID);
-	if (player == nullptr || (ActorFixes_matchZoneID != -1 && !(scast<StageEntity*>(nullptr))->isPlayerInZone(*player, ActorFixes_matchZoneID)))
+	if (player == nullptr || (ActorFixes_matchZoneID != -1 && !ActorFixes_isPlayerInZone(player, ActorFixes_matchZoneID)))
 		return nullptr;
 	return player;
 }
