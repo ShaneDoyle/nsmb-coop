@@ -12,6 +12,7 @@
 
 #include "ActorFixes.hpp"
 #include "PlayerSpectate.hpp"
+#include "Stage.hpp"
 
 
 // VERY IMPORTANT
@@ -411,28 +412,59 @@ struct BossBattleSwitch_PTMF
 asm(R"(
 	Bowser_getBattleState = 0x0213884C
 	BossBattleSwitch_switchState = 0x0213B1DC
+	Liquid_doWaves = 0x021646E0
+	Player_func02113814 = 0x02113814
 )");
 
 extern "C"
 {
 	s32 Bowser_getBattleState();
 	bool BossBattleSwitch_switchState(StageEntity* self, BossBattleSwitch_PTMF ptmf);
+	void Liquid_doWaves(fx32 x, u32 one);
+	void Player_func02113814(Player* self);
 }
 
 Player* BossBattleSwitch_linkedPlayer = nullptr;
 fx32 BossBattleSwitch_linkedPlayerCameraX = 0;
 Vec3 BossBattleSwitch_cutsceneStartPos;
+u8 BossBattleSwitch_fakePlayerDeathTimer[2];
 
 // For the players that didn't hit the switch
 bool Player_bossDefeatNotLinkedTransitState(Player* self, void* arg)
 {
-	s8& step = self->transitionStateStep;
+	const u32 FakeDeathDuration = 120;
+
+	const u32 STEP_WaitVictoryPose = 1;
+	const u32 STEP_WaitWallBreak = 2;
+	const u32 STEP_WaitGroundLand = 3;
+	const u32 STEP_WaitPeachReact = 4;
+	const u32 STEP_MissedCutscene = 5;
 
 	s32 playerID = self->linkedPlayerID;
 
+	s8& step = self->transitionStateStep;
+	u8& deathTimer = BossBattleSwitch_fakePlayerDeathTimer[playerID];
+
 	if (step == Func::Init)
 	{
-		step++;
+		self->velocity.x = 0;
+		self->velocity.y = 0;
+		deathTimer = 0;
+
+		bool grounded = (scast<u32>(self->collisionMgr.bottomResult) & CollisionMgr::Result::GroundAny);
+		if (!grounded)
+		{
+			// Fall and try to join in on the animation later
+			self->setAnimation(6, true, Player::FrameMode::Restart, 1fx);
+			self->subActionFlag.releaseKeys = true;
+
+			step = STEP_WaitGroundLand;
+		}
+		else
+		{
+			step = STEP_WaitVictoryPose;
+		}
+
 		return true;
 	}
 	if (step == Func::Exit)
@@ -440,48 +472,108 @@ bool Player_bossDefeatNotLinkedTransitState(Player* self, void* arg)
 		return true;
 	}
 
-	if (step == 1)
+	auto victoryDancing = [&]{ return BossBattleSwitch_linkedPlayer->transitionStateStep >= 3; };
+	auto wallsBreaking = [&]{ return BossBattleSwitch_linkedPlayer->transitionStateStep >= 6; };
+	auto peachReacting = [&]{ return BossBattleSwitch_linkedPlayer->transitionStateStep >= 10; };
+
+	if (step == STEP_WaitVictoryPose)
 	{
 		// Wait for player that hit the button to start animation
-		if (BossBattleSwitch_linkedPlayer->transitionStateStep == 3 && !self->actionFlag.noGround)
+		if (victoryDancing())
 		{
+			// Begin victory pose
+			self->rotation.y = 0;
 			self->bossBeginVictoryPose();
-			step++;
+
+			step = STEP_WaitWallBreak;
 		}
 	}
-	else if (step == 2)
+	else if (step == STEP_WaitWallBreak)
 	{
 		// Wait for barrier blocks to start breaking
-		if (BossBattleSwitch_linkedPlayer->transitionStateStep == 6)
+		if (wallsBreaking())
 		{
-			if (ActorFixes_isPlayerInZone(self, 66))
+			if (Math::abs(BossBattleSwitch_linkedPlayer->position.x - self->position.x) < (16fx * 4fx))
 			{
 				// Player is with the one that hit the switch
-
 				self->switchTransitionState(&Player::bossVictoryTransitState);
 				step = 5; // Skip some steps in the state we just switched to
 			}
 			else
 			{
-				// Player is not with the one that hit the switch
-
+				// Player is not near the one that hit the switch
 				self->setAnimation(0, true, Player::FrameMode::Restart, 1fx);
 				PlayerSpectate::setLerping(playerID, true);
 				PlayerSpectate::setTarget(playerID, BossBattleSwitch_linkedPlayer->linkedPlayerID);
-				step++;
+
+				step = STEP_WaitPeachReact;
 			}
 		}
 	}
-	else if (step == 3)
+	else if (step == STEP_WaitGroundLand)
+	{
+		self->updateGravityAcceleration();
+		self->updateVerticalVelocityClamped();
+		self->applyVelocity();
+
+		bool grounded = (scast<u32>(self->collisionMgr.updatePlayerGroundCollision()) & CollisionMgr::Result::GroundAny);
+
+		if (grounded)
+		{
+			if (wallsBreaking())
+			{
+				self->setAnimation(0, true, Player::FrameMode::Restart, 1fx);
+				step = STEP_WaitWallBreak;
+			}
+			else
+			{
+				step = STEP_WaitVictoryPose;
+			}
+		}
+		else
+		{
+			// If barrier blocks started breaking and we haven't landed yet
+			if (wallsBreaking())
+			{
+				// Then the player missed the cutscene
+				PlayerSpectate::setLerping(playerID, true);
+				PlayerSpectate::setTarget(playerID, BossBattleSwitch_linkedPlayer->linkedPlayerID);
+
+				step = STEP_MissedCutscene;
+			}
+		}
+	}
+	else if (step == STEP_WaitPeachReact)
 	{
 		// Wait for Peach react animation
-		if (BossBattleSwitch_linkedPlayer->transitionStateStep == 10)
+		if (peachReacting())
 		{
 			self->position = BossBattleSwitch_cutsceneStartPos;
 
 			self->switchTransitionState(&Player::bossVictoryTransitState);
 			step = 10; // Skip some steps in the state we just switched to
 		}
+	}
+
+	// Custom lava death
+	if (deathTimer < FakeDeathDuration)
+	{
+		if (Game::getPlayerDead(playerID))
+		{
+			deathTimer++;
+		}
+		else if (self->position.y < Stage::liquidPosition[Game::localPlayerID])
+		{
+			self->playSFXUnique(338, &self->position);
+			Liquid_doWaves(self->position.x, 1);
+			Game::losePlayerLife(playerID);
+			Game::setPlayerDead(playerID, true);
+		}
+	}
+	else if (deathTimer == FakeDeathDuration)
+	{
+		Stage_isPlayerDead[playerID] = true;
+		deathTimer++;
 	}
 
 	self->updateAnimation();
@@ -501,11 +593,11 @@ Player* BossBattleSwitch_onBowserDead(Player* linkedPlayer)
 		return linkedPlayer;
 
 	BossBattleSwitch_linkedPlayer = linkedPlayer;
-	BossBattleSwitch_cutsceneStartPos = BossBattleSwitch_linkedPlayer->position;
+	BossBattleSwitch_cutsceneStartPos = linkedPlayer->position;
 
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
-		if (playerID == linkedPlayer->linkedPlayerID)
+		if (playerID == linkedPlayer->linkedPlayerID || Game::getPlayerDead(playerID))
 			continue;
 
 		Player* player = Game::getPlayer(playerID);
