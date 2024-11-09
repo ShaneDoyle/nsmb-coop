@@ -28,6 +28,7 @@ namespace Debug
 
 			if (keysPressed & Keys::B)
 			{
+				PlayerSpectate::setLerping(i, true);
 				PlayerSpectate::setTarget(i, !PlayerSpectate::getTarget(i));
 			}
 

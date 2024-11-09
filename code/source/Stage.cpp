@@ -17,6 +17,8 @@
 
 NTR_USED static u32 sTempVar;
 
+static s8 sIsPlayerDead[2];
+
 asm(R"(
 	SpawnGrowingEntranceVine = 0x020D0CEC
 	_ZN5Stage9exitLevelEm = 0x020A189C
@@ -38,9 +40,9 @@ static bool Stage_getMultiplayer() { return Game::getPlayerCount() > 1; }
 
 static s32 Stage_getAlivePlayerID()
 {
-	if (PlayerSpectate::isSpectating(0))
+	if (sIsPlayerDead[0])
 		return 1;
-	if (PlayerSpectate::isSpectating(1))
+	if (sIsPlayerDead[1])
 		return 0;
 	return 2; // both
 }
@@ -107,7 +109,7 @@ ncp_call(0x0211C21C, 10)
 void call_0211C21C_ov10(Player* player)
 {
 	s32 playerID = player->linkedPlayerID;
-	if (playerID == 0 || (playerID == 1 && PlayerSpectate::isSpectating(0)))
+	if (playerID == 0 || (playerID == 1 && sIsPlayerDead[0]))
 	{
 		SpawnGrowingEntranceVine(&player->position);
 	}
@@ -165,6 +167,7 @@ static bool Stage_playerDeadState(Player* player, void* arg)
 
 		player->visible = true;
 		PlayerSpectate::setTarget(playerID, playerID);
+		sIsPlayerDead[playerID] = false;
 		Game::setPlayerDead(playerID, false);
 	}
 
@@ -174,6 +177,7 @@ static bool Stage_playerDeadState(Player* player, void* arg)
 static void Stage_beginPlayerSpectate(u32 playerID)
 {
 	PlayerSpectate::setTarget(playerID, playerID ^ 1);
+	sIsPlayerDead[playerID] = true;
 	Game::setPlayerDead(playerID, true);
 }
 
@@ -186,7 +190,7 @@ static void Stage_switchToPlayerSpectateState(Player* player)
 NTR_USED static bool Stage_customPlayerCreateCase(Player* player)
 {
 	u32 playerID = player->linkedPlayerID;
-	if (Game::getPlayerLives(playerID) == 0 || PlayerSpectate::isSpectating(playerID))
+	if (Game::getPlayerLives(playerID) == 0 || sIsPlayerDead[playerID])
 	{
 		Stage_beginPlayerSpectate(player->linkedPlayerID);
 		Stage_switchToPlayerSpectateState(player);
@@ -323,6 +327,8 @@ void Stage_loadLevelHook(const void* pSrc, u32 offset, u32 szByte)
 {
 	GX_LoadBGPltt(pSrc, offset, szByte); // Keep replaced instruction
 	PlayerSpectate::reset();
+	sIsPlayerDead[0] = false;
+	sIsPlayerDead[1] = false;
 }
 
 ncp_repl(0x020AECA4, 0, "MOV R1, #1") // Disable background HDMA parallax
@@ -344,7 +350,7 @@ ncp_repl(0x020BED88, 0, "NOP") // Do not draw singleplayer player position indic
 ncp_call(0x020BE5C4, 0)
 bool call_020BE5C4_ov0(u32 playerID)
 {
-	return Game::getPlayer(playerID) && !PlayerSpectate::isSpectating(playerID);
+	return Game::getPlayer(playerID) && !sIsPlayerDead[playerID];
 }
 
 asm(R"(
