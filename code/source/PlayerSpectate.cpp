@@ -1,6 +1,7 @@
 #include "PlayerSpectate.hpp"
 
 #include "nsmb/game.hpp"
+#include "nsmb/math.hpp"
 #include "nsmb/stage/player/player.hpp"
 
 // Notes:
@@ -13,11 +14,12 @@ namespace PlayerSpectate {
 
 u32 localTarget;
 u8 playerTarget[2];
+u8 playerLerping[2];
 
 u32 getTarget(u32 playerID)
 {
 	return playerTarget[playerID];
-};
+}
 
 void setTarget(u32 playerID, u32 targetPlayerID)
 {
@@ -25,11 +27,21 @@ void setTarget(u32 playerID, u32 targetPlayerID)
 
 	if (playerID == Game::localPlayerID)
 		localTarget = targetPlayerID;
-};
+}
+
+void setLerping(u32 playerID, bool lerping)
+{
+	playerLerping[playerID] = lerping;
+}
 
 bool isSpectating(u32 playerID)
 {
 	return playerTarget[playerID] != playerID;
+}
+
+Player* getTargetPlayer(u32 playerID)
+{
+	return Game::getPlayer(playerTarget[playerID]);
 }
 
 Player* getLocalTargetPlayer()
@@ -39,82 +51,50 @@ Player* getLocalTargetPlayer()
 
 void reset()
 {
-	for (s32 playerID = 0; playerID < NTR_ARRAY_SIZE(playerTarget); playerID++)
+	for (u32 playerID = 0; playerID < NTR_ARRAY_SIZE(playerTarget); playerID++)
 	{
 		setTarget(playerID, playerID);
+		playerLerping[playerID] = false;
 	}
 }
 
-ncp_repl(0x01FFFD34, ".int _ZN14PlayerSpectate11localTargetE") // (0x01FFFC20) StageActor::doHdma
-ncp_repl(0x01FFFF74, ".int _ZN14PlayerSpectate11localTargetE") // (0x01FFFE10)
-ncp_repl(0x0200D858, ".int _ZN14PlayerSpectate11localTargetE") // (0x0200D578) OAM::drawSprite
-ncp_repl(0x0200DD74, ".int _ZN14PlayerSpectate11localTargetE") // (0x0200DC48) OAM::loadAffineSets
-ncp_repl(0x02012024, ".int _ZN14PlayerSpectate11localTargetE") // (0x02011F5C) SND::updateScreenBoundaries
-ncp_repl(0x020121D4, ".int _ZN14PlayerSpectate11localTargetE") // (0x02012038) SND::playSFX
-ncp_repl(0x0209ADAC, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x0209AD1C) StageEntity::skipRender
-//ncp_repl(0x020A9D34, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020A9D34) CollisionMgr::getTileTypeAbs
-//ncp_repl(0x020ACF38, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020ACE0C) StageLayout::unk_20ACE0C
-ncp_repl(0x020AD26C, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020AD06C) StageLayout::scrollLevelDirect
-ncp_repl(0x020AEA0C, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020AEA0C) StageLayout::updateOnMainLoopEnd
-ncp_repl(0x020AF748, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020AF30C) StageLayout::changeTile
-ncp_repl(0x020BACC0, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020BAA5C) StageLayout::onUpdate
-ncp_repl(0x020BB45C, 0, ".int _ZN14PlayerSpectate11localTargetE") // (0x020BB430) StageLayout::onRender
+//ncp_set_call(0x020201A8, getTargetPlayer)
 
-/*asm(R"(
-// StageLayout::onUpdate does not track background for now
-// let the stage copy the player position for the time being
-ncp_jump(0x020BAC90, 0)
-	LDR     R1, =_ZN4Game13localPlayerIDE
-	LDR     R1, [R1]
-	B       0x020BAC94
-)");*/
+ncp_call(0x020201B0)
+void PlayerBase_spectateFollowCamera(PlayerBase* self, u32 playerID)
+{
+	/*Vec3* cameraPos = rcast<Vec3*>(0x020CAEB8);
 
-// (0x020BBBDC) Player View Setup ----------------
+	for (s32 i = 0; i < 2; i++)
+		Game::getPlayer(i)->followCamera(i);
 
-//ncp_repl(0x020BC61C, 0, ".int _ZN14PlayerSpectate11localTargetE")
-//ncp_repl(0x020BC668, 0, ".int _ZN14PlayerSpectate11localTargetE")
+	cameraPos[playerID] = (cameraPos[0] + cameraPos[1]) / 2.0fx;*/
 
-// StageCamera ----------------
+	auto followCamera = [&](){
+		getTargetPlayer(playerID)->followCamera(playerID);
+	};
 
-ncp_repl(0x020CDF6C, 10, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_set_call(0x020CE024, 10, getLocalTargetPlayer)
-ncp_set_call(0x020CE244, 10, getLocalTargetPlayer)
-ncp_repl(0x020CE2F0, 10, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x020CE654, 10, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x020CE408, 10, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x020CE460, 10, ".int _ZN14PlayerSpectate11localTargetE")
+	if (playerLerping[playerID])
+	{
+		Vec3& cameraPos = rcast<Vec3*>(0x020CAEB8)[playerID];
 
-// Foreground Fog Effect ----------------
+		// cameraPos holds the old position
+		Vec3 resCameraPos = cameraPos;
 
-ncp_repl(0x020D709C, 10, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x020D6FEC, 10, ".int _ZN14PlayerSpectate11localTargetE")
+		followCamera(); // Update cameraPos to hold the new position
 
-// Liquid ----------------
+		fx32 distanceX = Math::lerpFx32(resCameraPos.x, cameraPos.x, 0x200, 0x6000, 0x1000);
+		fx32 distanceY = Math::lerpFx32(resCameraPos.y, cameraPos.y, 0x200, 0x6000, 0x1000);
 
-ncp_repl(0x02164824, 54, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x0216496C, 54, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x02165CA4, 54, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x02165E10, 54, ".int _ZN14PlayerSpectate11localTargetE")
+		cameraPos = resCameraPos;
 
-// StageEntity::skipRender overrides ----------------
-
-ncp_repl(0x020DBF14, 10, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x020DD46C, 10, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x0212FC14, 20, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x02141FE4, 35, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x0214E4D4, 42, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x02146DA8, 46, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x02172C1C, 60, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x02176438, 66, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x02179A50, 79, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x02179B64, 81, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x0217A950, 81, ".int _ZN14PlayerSpectate11localTargetE")
-ncp_repl(0x0218CC6C, 119, ".int _ZN14PlayerSpectate11localTargetE")
-
-// Misc ----------------
-
-ncp_repl(0x020F7E30, 10, ".int _ZN14PlayerSpectate11localTargetE") // (0x020F7D74) PipeBase::onRender
-
-// todo sound
+		if (distanceX == 0 && distanceY == 0)
+			playerLerping[playerID] = false;
+	}
+	else
+	{
+		followCamera();
+	}
+}
 
 }

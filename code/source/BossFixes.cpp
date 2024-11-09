@@ -421,6 +421,7 @@ extern "C"
 
 Player* BossBattleSwitch_linkedPlayer = nullptr;
 fx32 BossBattleSwitch_linkedPlayerCameraX = 0;
+Vec3 BossBattleSwitch_cutsceneStartPos;
 
 // For the players that didn't hit the switch
 bool Player_bossDefeatNotLinkedTransitState(Player* self, void* arg)
@@ -455,15 +456,31 @@ bool Player_bossDefeatNotLinkedTransitState(Player* self, void* arg)
 		{
 			if (ActorFixes_isPlayerInZone(self, 66))
 			{
+				// Player is with the one that hit the switch
+
 				self->switchTransitionState(&Player::bossVictoryTransitState);
 				step = 5; // Skip some steps in the state we just switched to
 			}
 			else
 			{
+				// Player is not with the one that hit the switch
+
 				self->setAnimation(0, true, Player::FrameMode::Restart, 1fx);
+				PlayerSpectate::setLerping(playerID, true);
 				PlayerSpectate::setTarget(playerID, BossBattleSwitch_linkedPlayer->linkedPlayerID);
 				step++;
 			}
+		}
+	}
+	else if (step == 3)
+	{
+		// Wait for Peach react animation
+		if (BossBattleSwitch_linkedPlayer->transitionStateStep == 10)
+		{
+			self->position = BossBattleSwitch_cutsceneStartPos;
+
+			self->switchTransitionState(&Player::bossVictoryTransitState);
+			step = 10; // Skip some steps in the state we just switched to
 		}
 	}
 
@@ -484,6 +501,7 @@ Player* BossBattleSwitch_onBowserDead(Player* linkedPlayer)
 		return linkedPlayer;
 
 	BossBattleSwitch_linkedPlayer = linkedPlayer;
+	BossBattleSwitch_cutsceneStartPos = BossBattleSwitch_linkedPlayer->position;
 
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
