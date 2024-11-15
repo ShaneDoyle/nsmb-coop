@@ -445,7 +445,7 @@ NTR_USED static void Stage_decideForceAreaReload()
 	{
 		StageObject* stageObj = &stageObjs[i];
 		u16 stageObjID = stageObj->id;
-		if (stageObjID == -1) // Array end
+		if (stageObjID == 0xFFFF) // Array end
 			break;
 		if (stageObjID == 231 || stageObjID == 234 || stageObjID == 259) // Liquid
 		{

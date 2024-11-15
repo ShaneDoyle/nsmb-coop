@@ -413,7 +413,6 @@ asm(R"(
 	Bowser_getBattleState = 0x0213884C
 	BossBattleSwitch_switchState = 0x0213B1DC
 	Liquid_doWaves = 0x021646E0
-	Player_func02113814 = 0x02113814
 )");
 
 extern "C"
@@ -421,7 +420,6 @@ extern "C"
 	s32 Bowser_getBattleState();
 	bool BossBattleSwitch_switchState(StageEntity* self, BossBattleSwitch_PTMF ptmf);
 	void Liquid_doWaves(fx32 x, u32 one);
-	void Player_func02113814(Player* self);
 }
 
 Player* BossBattleSwitch_linkedPlayer = nullptr;
