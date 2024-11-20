@@ -1,6 +1,6 @@
 #ifdef NTR_DEBUG
-#include "nsmb/entity/scene.hpp"
-#include "nsmb/system/input.hpp"
+#include <nsmb/core/entity/scene.hpp>
+#include <nsmb/core/system/input.hpp>
 #endif
 
 // Skip MvsL and Minigames buttons

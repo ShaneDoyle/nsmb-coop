@@ -1,4 +1,4 @@
-#include "nnsys.h"
+#include <nnsys.h>
 
 #define NNS_GFD_TEX_SLOT_SIZE          		0x20000
 

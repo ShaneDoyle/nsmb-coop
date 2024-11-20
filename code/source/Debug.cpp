@@ -1,10 +1,10 @@
 #ifdef NTR_DEBUG
 
-#include "nsmb_nitro.hpp"
+#include <nsmb_nitro.hpp>
 
-#include "nsmb/entity/scene.hpp"
-#include "nsmb/system/input.hpp"
-#include "nsmb/system/function.hpp"
+#include <nsmb/core/entity/scene.hpp>
+#include <nsmb/core/system/input.hpp>
+#include <nsmb/core/system/function.hpp>
 #include "util/collisionviewer.hpp"
 #include "util/playerdragger.hpp"
 

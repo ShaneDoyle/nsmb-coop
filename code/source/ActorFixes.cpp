@@ -1,8 +1,10 @@
-#include "nsmb/game.hpp"
-#include "nsmb/sound.hpp"
-#include "nsmb/stage/entity3danm.hpp"
-#include "nsmb/stage/viewshaker.hpp"
-#include "nsmb/system/function.hpp"
+#include <nsmb/nm/game.hpp>
+#include <nsmb/nm/sound.hpp>
+#include <nsmb/nm/stage/player/player.hpp>
+#include <nsmb/nm/stage/entity3danm.hpp>
+#include <nsmb/nm/stage/viewshaker.hpp>
+#include <nsmb/core/system/function.hpp>
+#include <nsmb/core/math/math.hpp>
 
 #include "ActorFixes.hpp"
 //#include "PlayerSpectate.hpp"

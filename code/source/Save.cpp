@@ -1,4 +1,4 @@
-#include "nsmb/player.hpp"
+#include <nsmb/nm/stage/player/common.hpp>
 
 // Allow Luigi's lives to be saved and loaded
 ncp_call(0x02012DB0) u32 call_02012DB0() { return (Game::getPlayerLives(1) << 16) | Game::getPlayerLives(0); }

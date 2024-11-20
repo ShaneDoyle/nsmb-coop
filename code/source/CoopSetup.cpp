@@ -1,7 +1,7 @@
-#include "nsmb/game.hpp"
-#include "nsmb/system/save.hpp"
-#include "nsmb/entity/scene.hpp"
-#include "nsmb/net.hpp"
+#include <nsmb/nm/game.hpp>
+#include <nsmb/core/system/save.hpp>
+#include <nsmb/core/entity/scene.hpp>
+#include <nsmb/core/net.hpp>
 
 ncp_repl(0x021578F0, 52, "MOVEQ R1, #0") // Force Game::vsMode = 0
 

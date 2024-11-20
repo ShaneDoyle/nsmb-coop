@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nsmb_nitro.hpp"
+#include <nsmb_nitro.hpp>
 
 extern u8 Stage_isPlayerDead[2];
 

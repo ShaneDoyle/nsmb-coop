@@ -1,17 +1,18 @@
 #include "Stage.hpp"
 
-#include "nsmb/game.hpp"
-#include "nsmb/sound.hpp"
-#include "nsmb/player.hpp"
-#include "nsmb/stage/entity.hpp"
-#include "nsmb/stage/layout/data/entrance.hpp"
-#include "nsmb/graphics/particle.hpp"
-#include "nsmb/system/input.hpp"
-#include "nsmb/system/function.hpp"
-#include "nsmb/system/misc.hpp"
-#include "nsmb/graphics/fader.hpp"
-#include "nsmb/entity/scene.hpp"
-#include "nsmb/wifi.hpp"
+#include <nsmb/nm/game.hpp>
+#include <nsmb/nm/sound/sound.hpp>
+#include <nsmb/nm/player.hpp>
+#include <nsmb/nm/stage/entity.hpp>
+#include <nsmb/nm/stage/player/player.hpp>
+#include <nsmb/nm/stage/layout/data/entrance.hpp>
+#include <nsmb/core/graphics/particle.hpp>
+#include <nsmb/core/system/input.hpp>
+#include <nsmb/core/system/function.hpp>
+#include <nsmb/core/system/misc.hpp>
+#include <nsmb/core/graphics/fader.hpp>
+#include <nsmb/core/entity/scene.hpp>
+#include <nsmb/core/wifi/wifi.hpp>
 
 #include "PlayerSpectate.hpp"
 
@@ -224,7 +225,7 @@ static void Stage_customPlayerRespawnCreateCase(Player* player)
 	Stage_switchToPlayerSpectateState(player);
 
 	u32 seqID = Entrance::getSpawnMusic(player->linkedPlayerID);
-	Sound::playStageBGM(seqID);
+	SND::playStageBGM(seqID);
 }
 
 asm(R"(
