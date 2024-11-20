@@ -1,6 +1,6 @@
-#include "nsmb/stage/player/player.hpp"
-#include "nsmb/stage/entity.hpp"
-#include "nsmb/sound.hpp"
+#include <nsmb/nm/stage/player/player.hpp>
+#include <nsmb/nm/stage/entity.hpp>
+#include <nsmb/nm/sound.hpp>
 
 #include "Stage.hpp"
 

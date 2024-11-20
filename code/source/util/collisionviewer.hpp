@@ -1,9 +1,9 @@
 #pragma once
 
-#include "nsmb/stage/entity.hpp"
-#include "nsmb/physics.hpp"
-#include "nsmb/game.hpp"
-#include "nsmb/extra/bitmaskenum.hpp"
+#include <nsmb/nm/stage/entity.hpp>
+#include <nsmb/nm/physics.hpp>
+#include <nsmb/nm/game.hpp>
+#include <nsmb/extra/bitmaskenum.hpp>
 
 enum class CollisionViewerFlags : u32 {
 

@@ -1,4 +1,4 @@
-#include "nsmb_nitro.hpp"
+#include <nsmb_nitro.hpp>
 
 #define DEBUG_WHITE 0xD000
 #define DEBUG_YELLOW 0xE000

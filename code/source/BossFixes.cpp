@@ -1,14 +1,14 @@
-#include "nsmb/game.hpp"
-#include "nsmb/player.hpp"
-#include "nsmb/stage/player/player.hpp"
-#include "nsmb/stage/entity.hpp"
-#include "nsmb/stage/entity3danm.hpp"
-#include "nsmb/stage/misc.hpp"
-#include "nsmb/filesystem/cache.hpp"
-#include "nsmb/graphics/fader.hpp"
-#include "nsmb/graphics/3d/modelanm.hpp"
-#include "nsmb/graphics/3d/blendmodelanm.hpp"
-#include "nsmb/system/function.hpp"
+#include <nsmb/nm/game.hpp>
+#include <nsmb/nm/player.hpp>
+#include <nsmb/nm/stage/player/player.hpp>
+#include <nsmb/nm/stage/entity.hpp>
+#include <nsmb/nm/stage/entity3danm.hpp>
+#include <nsmb/nm/stage/misc.hpp>
+#include <nsmb/core/filesystem/cache.hpp>
+#include <nsmb/core/graphics/fader.hpp>
+#include <nsmb/core/graphics/3d/modelanm.hpp>
+#include <nsmb/core/graphics/3d/blendmodelanm.hpp>
+#include <nsmb/core/system/function.hpp>
 
 #include "ActorFixes.hpp"
 #include "PlayerSpectate.hpp"

@@ -1,7 +1,7 @@
-#include "nsmb/entity/scene.hpp"
-#include "nsmb/vsconnect/scene.hpp"
+#include <nsmb/core/entity/scene.hpp>
+#include <nsmb/nm/vsconnect/scene.hpp>
 // The fields of the VSConnectScene class are not yet documented, raw access to fields is required.
-#include "nsmb/sound.hpp"
+#include <nsmb/nm/sound/sound.hpp>
 
 ncp_call(0x021592DC, 52)
 u32 VSConnect_skipFirstSubMenu()
@@ -23,6 +23,6 @@ void VSConnect_modifyReturn(VSConnectScene* self, VSConnectScene::SubMenu* subMe
 	if (rcast<u32*>(self)[0x134 / 4])
 	{
 		Scene::switchScene(SceneID::TitleScreen, 0);
-		Sound::stopBGM(30);
+		SND::stopBGM(30);
 	}
 }

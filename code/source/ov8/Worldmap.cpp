@@ -1,8 +1,9 @@
-#include "nsmb/game.hpp"
-#include "nsmb/player.hpp"
-#include "nsmb/system/save.hpp"
-#include "nsmb/entity/scene.hpp"
-#include "nsmb/net.hpp"
+#include <nsmb/nm/game.hpp>
+#include <nsmb/nm/player.hpp>
+#include <nsmb/nm/stage/player/common.hpp>
+#include <nsmb/core/system/save.hpp>
+#include <nsmb/core/entity/scene.hpp>
+#include <nsmb/core/net.hpp>
 
 asm(R"(
 	Worldmap_onCreate = 0x020CF7C8

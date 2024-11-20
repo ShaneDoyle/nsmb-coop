@@ -1,4 +1,4 @@
-#include "nsmb/stage/player/player.hpp"
+#include <nsmb/nm/stage/player/player.hpp>
 
 static void ToadHouse_freezePlayers()
 {
