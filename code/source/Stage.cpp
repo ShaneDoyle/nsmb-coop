@@ -272,6 +272,16 @@ ncp_set_call(0x02118D0C, 10, Stage_customTransitEntranceSpawn)
 ncp_set_call(0x02118D98, 10, Stage_customTransitEntranceSpawn)
 ncp_set_call(0x02118DFC, 10, Stage_customTransitEntranceSpawn)
 
+asm(R"(
+// Skip view reload on respawn if there is autoscroll
+ncp_jump(0x021189BC, 10)
+	LDR     R0, =0x020CACD4
+	LDRB    R0, [R0]
+	CMP     R0, #0
+	BNE     0x02118AFC
+	B       0x02118A34
+)");
+
 /*
 //Player can't respawn when switching areas
 void hook_0215EB28_ov_36()
@@ -625,3 +635,5 @@ ncp_jump(0x020BA1C4, 0)
 )");
 
 ncp_repl(0x020B8D20, 0, ".int _ZL8sTempVar")
+
+ncp_repl(0x02119CBC, 10, "NOP") // Do not freeze camera on death
