@@ -462,7 +462,7 @@ ncp_jump(0x0201E91C)
 	STR     R0, [R1] // Keep replaced instruction
 	LDR     R0, =_ZL21Stage_forceAreaReload
 	MOV     R1, #1
-	STR     R1, [R0]
+	STRB    R1, [R0]
 	B       0x0201E920
 
 // Force reload if extra checks say so
@@ -474,10 +474,10 @@ ncp_jump(0x0201E928)
 // Custom variable determines if reload happens
 ncp_jump(0x02119638, 10)
 	LDR     R3, =_ZL21Stage_forceAreaReload
-	LDR     R2, [R3]
+	LDRB    R2, [R3]
 	CMP     R2, #0
 	MOV     R2, #0
-	STR     R2, [R3]
+	STRB    R2, [R3]
 	BNE     0x02119664
 	B       0x02119640
 )");
