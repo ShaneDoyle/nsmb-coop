@@ -252,8 +252,8 @@ Vec3 Stage_customRespawnEntrance(u8 playerID)
 	u32 otherID = playerID ^ 1;
 	Player* other = Game::getPlayer(otherID);
 
+	Entrance::transitionFlags[playerID] = Entrance::transitionFlags[otherID] & EntranceTransitionFlags::SubScreen;
 	Entrance::overrideSpawnPosition(playerID, other->position.x, other->position.y);
-	Entrance::subScreenSpawn[playerID] = Entrance::subScreenSpawn[otherID];
 
 	return Entrance::accessSpawnEntrance(playerID);
 }
