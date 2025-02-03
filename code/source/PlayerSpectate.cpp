@@ -2,8 +2,10 @@
 
 #include <nsmb/nm/game.hpp>
 #include <nsmb/nm/sound.hpp>
-#include <nsmb/core/math.hpp>
 #include <nsmb/nm/stage/player/player.hpp>
+#include <nsmb/nm/stage/layout/data/entrance.hpp>
+#include <nsmb/core/math.hpp>
+#include <nsmb/core/graphics/fader.hpp>
 
 // Notes:
 //   - Commenting out the playerID substitution in StageEntity::skipRender
@@ -138,20 +140,20 @@ void PlayerBase_spectateFollowCamera(PlayerBase* self, u32 playerID)
 ncp_repl(0x0200DD78, ".int _ZN14PlayerSpectate10playerZoomE") // (0x0200DC48) OAM::loadAffineSets
 ncp_repl(0x02012028, ".int _ZN14PlayerSpectate10playerZoomE") // (0x02011F5C) SND::updateScreenBoundaries
 ncp_repl(0x0209BA7C, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x0209B7E8) ???::spawnActorsInRange
-ncp_repl(0x020AD530, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020AD270) StageLayoutBase::scrollTheScreen
-ncp_repl(0x020ADA74, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020AD690) StageLayoutBase::thisSetsCameraXandY
-ncp_repl(0x020ADB44, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020ADADC) StageLayoutBase::updateCameraWidthAndHeight
-ncp_repl(0x020ADC60, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020ADB50) StageLayoutBase::???
-ncp_repl(0x020ADFD4, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020ADC74) StageLayoutBase::???
-ncp_repl(0x020AF0B8, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020AEF4C) StageLayoutBase::???
-ncp_repl(0x020B2F8C, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020B2C58) StageLayoutBase::???
-ncp_repl(0x020B6E28, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020B6B5C) StageLayoutIdk::animateVolcanoBG
-ncp_repl(0x020B8BB8, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020B88BC) StageLayoutIdk::doSomeBgCameraThings
-ncp_repl(0x020B8C50, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020B8BDC) StageLayoutIdk::???
-ncp_repl(0x020B8D24, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020B8CA8) StageLayoutIdk::doNotLetZoomedCameraEscapeView
-ncp_repl(0x020B963C, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020B9428) StageLayoutIdk::???
-ncp_repl(0x020B99E0, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020B9900) StageLayoutIdk::???
-ncp_repl(0x020BA32C, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020BA1B4) StageLayoutIdk::???
+ncp_repl(0x020AD530, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020AD270) StageLayout::setBGLayerCoords
+ncp_repl(0x020ADA74, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020AD690) StageLayout::updateCameraCoords
+ncp_repl(0x020ADB44, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020ADADC) StageLayout::setCameraSize
+ncp_repl(0x020ADC60, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020ADB50) StageLayout::setScreenAffine
+ncp_repl(0x020ADFD4, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020ADC74) StageLayout::setScreenCoords
+ncp_repl(0x020AF0B8, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020AEF4C) StageLayout::renderTextures
+ncp_repl(0x020B2F8C, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020B2C58) StageLayout::scrollUpdateGuideTop
+ncp_repl(0x020B6E28, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020B6B5C) StageLayout::animBGVolcanoEruption
+ncp_repl(0x020B8BB8, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020B88BC) StageLayout::cameraUpdateScrolling
+ncp_repl(0x020B8C50, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020B8BDC) StageLayout::getTransitionZoomOffset
+ncp_repl(0x020B8D24, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020B8CA8) StageLayout::getAbsTilesetPosition
+ncp_repl(0x020B963C, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020B9428) StageLayout::updateVScrollFollow
+ncp_repl(0x020B99E0, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020B9900) StageLayout::limitVScroll
+ncp_repl(0x020BA32C, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020BA1B4) StageLayout::limitHScroll
 ncp_repl(0x020BACC8, 0, ".int _ZN14PlayerSpectate10playerZoomE") // (0x020BAA5C) StageLayout::onUpdate
 
 // StageCamera ----------------
@@ -170,6 +172,28 @@ ncp_jump(0x020FD0C4, 10)
 	LDR     R2, [R2]
 	B       0x020FD0C8
 )");
+
+ncp_call(0x0211881C, 10)
+u32 Player_viewTransitState_beginFadeInHook(u8 transitPlayerID)
+{
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		if ((playerID == transitPlayerID) || (playerTarget[playerID] != transitPlayerID))
+			continue;
+
+		// Set the destination entrance
+		Entrance::spawnEntrance[playerID] = Entrance::spawnEntrance[transitPlayerID];
+		Entrance::spawnEntranceID[playerID] = Entrance::spawnEntranceID[transitPlayerID];
+
+		// Use entrance
+		Player* player = Game::getPlayer(playerID);
+		player->switchTransitionState(&Player::viewTransitState);
+	}
+
+	return Entrance::getSpawnMusic(transitPlayerID); // Keep replaced instruction
+}
+
+ncp_repl(0x02118E18, 10, ".int _ZN14PlayerSpectate11localTargetE") // (0x0211870C) Player::viewTransitState
 
 // Misc ----------------
 

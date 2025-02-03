@@ -258,6 +258,20 @@ Vec3 Stage_customRespawnEntrance(u8 playerID)
 	return Entrance::accessSpawnEntrance(playerID);
 }
 
+void Stage_customTransitEntranceSpawn(Player* player, EntranceType entranceType)
+{
+	if (Stage_isPlayerDead[player->linkedPlayerID])
+	{
+		Stage_switchToPlayerSpectateState(player);
+		return;
+	}
+	player->transitEntranceSpawn(entranceType);
+}
+
+ncp_set_call(0x02118D0C, 10, Stage_customTransitEntranceSpawn)
+ncp_set_call(0x02118D98, 10, Stage_customTransitEntranceSpawn)
+ncp_set_call(0x02118DFC, 10, Stage_customTransitEntranceSpawn)
+
 /*
 //Player can't respawn when switching areas
 void hook_0215EB28_ov_36()
