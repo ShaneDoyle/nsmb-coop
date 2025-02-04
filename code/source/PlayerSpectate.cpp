@@ -7,12 +7,6 @@
 #include <nsmb/core/math.hpp>
 #include <nsmb/core/graphics/fader.hpp>
 
-// Notes:
-//   - Commenting out the playerID substitution in StageEntity::skipRender
-//     can be helpful for identifying desync issues.
-//     Specifically, these desyncs may occur when the bone position doesn't
-//     update because the animation isn't playing.
-
 asm(R"(
 	_ZN5Stage4zoomE = 0x020CADB4
 )");
@@ -27,6 +21,7 @@ u8 playerTarget[2];
 u8 playerLerping[2];
 u8 playerLerpingZoom[2];
 fx32 playerZoom[2];
+u8 sharedCamera;
 
 u32 getTarget(u32 playerID)
 {
@@ -45,6 +40,11 @@ void setLerping(u32 playerID, bool lerping)
 {
 	playerLerping[playerID] = lerping;
 	playerLerpingZoom[playerID] = lerping;
+}
+
+void enableSharedCamera()
+{
+	sharedCamera = true;
 }
 
 bool isSpectating(u32 playerID)
@@ -70,6 +70,7 @@ void reset()
 		playerLerping[playerID] = false;
 		playerLerpingZoom[playerID] = false;
 	}
+	sharedCamera = false;
 }
 
 ncp_call(0x020BB7DC, 0)
@@ -81,7 +82,39 @@ void StageLayout_onCreateHook(s32 seqID)
 	{
 		playerZoom[playerID] = 0x1000;
 	}
+
+	// TODO: make this not hardcoded
+	if (Entrance::targetAreaID == 174)
+		enableSharedCamera();
+
+	*rcast<u8*>(0x020CACA8) = 0;
+	*rcast<u8*>(0x020CACD8) = 0;
 }
+
+void StageLayout_onUpdateHook()
+{
+	if (!sharedCamera)
+		return;
+
+	fx32* cameraX = rcast<fx32*>(0x020CAE1C);
+	fx32* cameraWidth = rcast<fx32*>(0x020CADA4);
+
+	for (u32 i = 0; i < Game::getPlayerCount(); i++)
+	{
+		Player* player = Game::getPlayer(i);
+		if (player->position.x < cameraX[i])
+			player->position.x = cameraX[i];
+		else if (player->position.x > cameraX[i] + cameraWidth[i])
+			player->position.x = cameraX[i] + cameraWidth[i];
+	}
+}
+
+asm(R"(
+ncp_jump(0x020BAC24, 0)
+	BL      _ZN14PlayerSpectate24StageLayout_onUpdateHookEv
+	LDR     R0, =0x020CA850
+	B       0x020BAC28
+)");
 
 ncp_call(0x020201B0)
 void PlayerBase_spectateFollowCamera(PlayerBase* self, u32 playerID)
@@ -107,6 +140,23 @@ void PlayerBase_spectateFollowCamera(PlayerBase* self, u32 playerID)
 			playerZoom[playerID] = Stage::zoom[targetPlayerID];
 		}
 	};
+
+	if (sharedCamera)
+	{
+		if (playerID == 0)
+		{
+			for (u32 i = 0; i < Game::getPlayerCount(); i++)
+			{
+				followCamera(i);
+				updateZoom(i);
+			}
+
+			Vec3* cameraPos = rcast<Vec3*>(0x020CAEB8);
+			cameraPos[0] = (cameraPos[0] + cameraPos[1]) / 2.0fx;
+			cameraPos[1] = cameraPos[0];
+		}
+		return;
+	}
 
 	if (playerLerping[playerID])
 	{
