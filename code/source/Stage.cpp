@@ -5,6 +5,7 @@
 #include <nsmb/game/player.hpp>
 #include <nsmb/game/stage/entity.hpp>
 #include <nsmb/game/stage/player/player.hpp>
+#include <nsmb/game/stage/player/door.hpp>
 #include <nsmb/game/stage/layout/data/entrance.hpp>
 #include <nsmb/core/graphics/particle.hpp>
 #include <nsmb/core/system/input.hpp>
@@ -116,6 +117,47 @@ void call_0211C21C_ov10(Player* player)
 	{
 		SpawnGrowingEntranceVine(&player->position);
 	}
+}
+
+// Only show one door when spawning at a door entrance
+
+ncp_repl(0x0211C980, 10, "MOV R0, R4") // Pass 'this' instead of 'this->door'
+
+ncp_call(0x0211C984, 10)
+void call_0211C984_ov10(Player* player)
+{
+	s32 playerID = player->linkedPlayerID;
+	if (playerID == 0 || (playerID == 1 && Stage_isPlayerDead[0]))
+	{
+		Door* door = player->door;
+
+		if (playerID == 0 && !Stage_isPlayerDead[1])
+			door->position.x -= 8 << 12;
+
+		door->open();
+		return;
+	}
+
+	// Do not render door opening
+	player->physicsFlag.standardDoorTransit = false;
+}
+
+// Do not allow entering doors at the same time
+
+ncp_call(0x0211EB24, 10)
+bool call_0211EB24_ov10(Player* player)
+{
+	if (!player->getGroundPoundCancelKeyHeldEx()) // Keep replaced instruction
+		return false;
+
+	if (Game::getPlayerCount() == 1)
+		return true;
+
+	s32 playerID = player->linkedPlayerID;
+	s32 otherID = playerID ^ 1;
+
+	Player* other = Game::getPlayer(otherID);
+	return (!other->physicsFlag.standardDoorTransit && !other->physicsFlag.bossDoorTransit);
 }
 
 // ======================================= RESPAWN =======================================
