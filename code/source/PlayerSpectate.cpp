@@ -1,9 +1,9 @@
 #include "PlayerSpectate.hpp"
 
-#include <nsmb/nm/game.hpp>
-#include <nsmb/nm/sound.hpp>
-#include <nsmb/nm/stage/player/player.hpp>
-#include <nsmb/nm/stage/layout/data/entrance.hpp>
+#include <nsmb/game/game.hpp>
+#include <nsmb/game/sound.hpp>
+#include <nsmb/game/stage/player/player.hpp>
+#include <nsmb/game/stage/layout/data/entrance.hpp>
 #include <nsmb/core/math.hpp>
 #include <nsmb/core/graphics/fader.hpp>
 

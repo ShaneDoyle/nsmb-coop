@@ -1,4 +1,4 @@
-#include <nsmb/nm/game.hpp>
+#include <nsmb/game/game.hpp>
 #include <nsmb/core/system/save.hpp>
 #include <nsmb/core/entity/scene.hpp>
 #include <nsmb/core/net.hpp>

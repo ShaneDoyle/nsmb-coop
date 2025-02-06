@@ -1,8 +1,8 @@
-#include <nsmb/nm/game.hpp>
-#include <nsmb/nm/sound.hpp>
-#include <nsmb/nm/stage/player/player.hpp>
-#include <nsmb/nm/stage/entity3danm.hpp>
-#include <nsmb/nm/stage/viewshaker.hpp>
+#include <nsmb/game/game.hpp>
+#include <nsmb/game/sound.hpp>
+#include <nsmb/game/stage/player/player.hpp>
+#include <nsmb/game/stage/entity3danm.hpp>
+#include <nsmb/game/stage/viewshaker.hpp>
 #include <nsmb/core/system/function.hpp>
 #include <nsmb/core/math/math.hpp>
 

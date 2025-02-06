@@ -1,11 +1,11 @@
 #include "Stage.hpp"
 
-#include <nsmb/nm/game.hpp>
-#include <nsmb/nm/sound/sound.hpp>
-#include <nsmb/nm/player.hpp>
-#include <nsmb/nm/stage/entity.hpp>
-#include <nsmb/nm/stage/player/player.hpp>
-#include <nsmb/nm/stage/layout/data/entrance.hpp>
+#include <nsmb/game/game.hpp>
+#include <nsmb/game/sound/sound.hpp>
+#include <nsmb/game/player.hpp>
+#include <nsmb/game/stage/entity.hpp>
+#include <nsmb/game/stage/player/player.hpp>
+#include <nsmb/game/stage/layout/data/entrance.hpp>
 #include <nsmb/core/graphics/particle.hpp>
 #include <nsmb/core/system/input.hpp>
 #include <nsmb/core/system/function.hpp>

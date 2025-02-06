@@ -1,9 +1,9 @@
-#include <nsmb/nm/game.hpp>
-#include <nsmb/nm/player.hpp>
-#include <nsmb/nm/stage/player/player.hpp>
-#include <nsmb/nm/stage/entity.hpp>
-#include <nsmb/nm/stage/entity3danm.hpp>
-#include <nsmb/nm/stage/misc.hpp>
+#include <nsmb/game/game.hpp>
+#include <nsmb/game/player.hpp>
+#include <nsmb/game/stage/player/player.hpp>
+#include <nsmb/game/stage/entity.hpp>
+#include <nsmb/game/stage/entity3danm.hpp>
+#include <nsmb/game/stage/misc.hpp>
 #include <nsmb/core/filesystem/cache.hpp>
 #include <nsmb/core/graphics/fader.hpp>
 #include <nsmb/core/graphics/3d/modelanm.hpp>

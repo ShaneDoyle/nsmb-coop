@@ -1,7 +1,7 @@
 #include <nsmb/core/entity/scene.hpp>
-#include <nsmb/nm/vsconnect/scene.hpp>
+#include <nsmb/game/vsconnect/scene.hpp>
 // The fields of the VSConnectScene class are not yet documented, raw access to fields is required.
-#include <nsmb/nm/sound/sound.hpp>
+#include <nsmb/game/sound/sound.hpp>
 
 ncp_call(0x021592DC, 52)
 u32 VSConnect_skipFirstSubMenu()
