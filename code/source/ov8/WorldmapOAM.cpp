@@ -1,5 +1,5 @@
-#include <nsmb/nm/player.hpp>
-#include <nsmb/nm/stage/player/common.hpp>
+#include <nsmb/game/player.hpp>
+#include <nsmb/game/stage/player/common.hpp>
 #include <nsmb/core/graphics/2d/oam.hpp>
 
 static GXOamAttr marioHeadList[] = {

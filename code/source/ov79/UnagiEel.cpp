@@ -1,4 +1,4 @@
-#include <nsmb/nm/stage/entity.hpp>
+#include <nsmb/game/stage/entity.hpp>
 
 #include "ActorFixes.hpp"
 

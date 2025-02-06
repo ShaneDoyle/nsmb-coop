@@ -1,6 +1,6 @@
 #include "playerdragger.hpp"
 
-#include <nsmb/nm/stage/player/player.hpp>
+#include <nsmb/game/stage/player/player.hpp>
 #include <nsmb/core/system/input.hpp>
 #include <nsmb/core/system/function.hpp>
 

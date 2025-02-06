@@ -1,6 +1,6 @@
-#include <nsmb/nm/game.hpp>
-#include <nsmb/nm/player.hpp>
-#include <nsmb/nm/stage/player/common.hpp>
+#include <nsmb/game/game.hpp>
+#include <nsmb/game/player.hpp>
+#include <nsmb/game/stage/player/common.hpp>
 #include <nsmb/core/system/save.hpp>
 #include <nsmb/core/entity/scene.hpp>
 #include <nsmb/core/net.hpp>
