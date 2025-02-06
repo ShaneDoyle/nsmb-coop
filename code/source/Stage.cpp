@@ -20,6 +20,7 @@
 NTR_USED static u32 sTempVar;
 
 u8 Stage_isPlayerDead[2];
+u8 Stage_doorFromAreaChange;
 
 asm(R"(
 	SpawnGrowingEntranceVine = 0x020D0CEC
@@ -126,6 +127,13 @@ ncp_repl(0x0211C980, 10, "MOV R0, R4") // Pass 'this' instead of 'this->door'
 ncp_call(0x0211C984, 10)
 void call_0211C984_ov10(Player* player)
 {
+	// Open door normally if we didn't change area or singleplayer
+	if (Game::getPlayerCount() == 1 || !Stage_doorFromAreaChange)
+	{
+		player->door->open();
+		return;
+	}
+
 	s32 playerID = player->linkedPlayerID;
 	if (playerID == 0 || (playerID == 1 && Stage_isPlayerDead[0]))
 	{
@@ -134,12 +142,18 @@ void call_0211C984_ov10(Player* player)
 		if (playerID == 0 && !Stage_isPlayerDead[1])
 			door->position.x -= 8 << 12;
 
+		if (playerID == 1)
+			Stage_doorFromAreaChange = false;
+
 		door->open();
 		return;
 	}
 
+	// Only playerID 1 will ever reach here
+
 	// Do not render door opening
 	player->physicsFlag.standardDoorTransit = false;
+	Stage_doorFromAreaChange = false;
 }
 
 // Do not allow entering doors at the same time
@@ -433,6 +447,12 @@ void StageLayout_onCreateHook(s32 seqID)
 	PlayerSpectate::onStageLayoutCreate();
 
 	rcast<u8*>(0x020CACB4)[Game::localPlayerID] = 0;
+
+	EntranceType entranceType = Entrance::spawnEntrance[0]->type;
+	Stage_doorFromAreaChange =
+		entranceType == EntranceType::Door ||
+		entranceType == EntranceType::Unknown14 ||
+		entranceType == EntranceType::Unknown15;
 }
 
 void StageLayout_onUpdateHook()
