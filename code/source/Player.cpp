@@ -1,12 +1,21 @@
 #include <nsmb/game/stage/player/player.hpp>
 #include <nsmb/game/stage/entity.hpp>
 #include <nsmb/game/sound.hpp>
+#include <nsmb/core/system/function.hpp>
 
 #include "Stage.hpp"
 
 #define PLAYER_JUMPED_ON_ANIM_STATE_WAIT 0xFF
 
 static u8 Player_jumpedOnAnimState[2];
+
+
+bool Player_isOnFlagpole(Player *self) {
+	return (self->actionFlag.flagpoleGrab)  ||
+		   (self->actionFlag.flagpoleSlide) ||
+		   (self->actionFlag.flagpoleEnd)   ||
+		   (ptmf_cast(self->transitionState) == ptmf_cast(&Player::flagpoleTransitState)); // check flagpole action update
+}
 
 static void Player_updateJumpedOnAnimation(Player* self)
 {
@@ -112,7 +121,7 @@ NTR_USED static bool Player_ignoreCollision()
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
 		Player* player = Game::getPlayer(playerID);
-		if (player->currentPowerup == PowerupState::Mega || Stage_hasLevelFinished())
+		if (Player_isOnFlagpole(player) || player->currentPowerup == PowerupState::Mega || Stage_hasLevelFinished())
 			return true;
 	}
 	return false;
