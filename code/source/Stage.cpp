@@ -24,9 +24,11 @@ asm(R"(
 	SpawnGrowingEntranceVine = 0x020D0CEC
 	_ZN5Stage9exitLevelEm = 0x020A189C
 	_ZN5Stage4zoomE = 0x020CADB4
+	StageLayout_looperScrollBack = 0x020B1510
 )");
 extern "C" {
 	void SpawnGrowingEntranceVine(Vec3*);
+	void StageLayout_looperScrollBack(void* stageLayout, s32 playerID);
 }
 namespace Stage {
 	void exitLevel(u32 flag);
@@ -345,16 +347,63 @@ ncp_jump(0x020A2230, 0)
 	B       0x020A24D0
 )");
 
+// ======================================= LOOPER =======================================
+
+ncp_repl(0x020BBD64, 0, "NOP") // Moved to StageLayout_onCreateHook
+
+NTR_USED static void StageLayout_customLooperScrollBack(void* stageLayout)
+{
+	u8* looperApplyLoop = rcast<u8*>(0x020CACDC);
+
+	for (u32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		if (looperApplyLoop[playerID])
+			StageLayout_looperScrollBack(stageLayout, playerID);
+	}
+}
+
+asm(R"(
+ncp_over(0x020AE8F0, 0)
+	MOV     R0, R6
+	BL      _ZL34StageLayout_customLooperScrollBackPv
+	B       0x020AE90C
+ncp_endover()
+)");
+
 // ======================================= MISC =======================================
 
 ncp_call(0x02006B28)
 void Stage_loadLevelHook(const void* pSrc, u32 offset, u32 szByte)
 {
 	GX_LoadBGPltt(pSrc, offset, szByte); // Keep replaced instruction
+
 	PlayerSpectate::reset();
+
 	Stage_isPlayerDead[0] = false;
 	Stage_isPlayerDead[1] = false;
 }
+
+ncp_call(0x020BB7DC, 0)
+void StageLayout_onCreateHook(s32 seqID)
+{
+	SND::stopRequestedBGM(seqID); // Keep replaced instruction
+
+	PlayerSpectate::onStageLayoutCreate();
+
+	rcast<u8*>(0x020CACB4)[Game::localPlayerID] = 0;
+}
+
+void StageLayout_onUpdateHook()
+{
+	PlayerSpectate::onStageLayoutUpdate();
+}
+
+asm(R"(
+ncp_jump(0x020BAC24, 0)
+	BL      _Z24StageLayout_onUpdateHookv
+	LDR     R0, =0x020CA850
+	B       0x020BAC28
+)");
 
 ncp_repl(0x020AECA4, 0, "MOV R1, #1") // Disable background HDMA parallax
 
