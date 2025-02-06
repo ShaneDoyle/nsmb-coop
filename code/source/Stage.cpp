@@ -419,7 +419,7 @@ void Stage_loadLevelHook(const void* pSrc, u32 offset, u32 szByte)
 {
 	GX_LoadBGPltt(pSrc, offset, szByte); // Keep replaced instruction
 
-	PlayerSpectate::reset();
+	PlayerSpectate::onLoadLevel();
 
 	Stage_isPlayerDead[0] = false;
 	Stage_isPlayerDead[1] = false;

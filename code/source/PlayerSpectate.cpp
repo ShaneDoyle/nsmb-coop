@@ -63,7 +63,7 @@ Player* getLocalTargetPlayer()
 	return Game::getPlayer(localTarget);
 }
 
-void reset()
+void onLoadLevel()
 {
 	for (u32 playerID = 0; playerID < NTR_ARRAY_SIZE(playerTarget); playerID++)
 	{
@@ -71,7 +71,6 @@ void reset()
 		playerLerping[playerID] = false;
 		playerLerpingZoom[playerID] = false;
 	}
-	sharedCamera = false;
 }
 
 void onStageLayoutCreate()
@@ -81,8 +80,11 @@ void onStageLayoutCreate()
 		playerZoom[playerID] = 0x1000;
 	}
 
+	sharedCamera = false;
+
 	// TODO: make this not hardcoded
-	if (Entrance::targetAreaID == 174)
+	u32& areaNum = *rcast<u32*>(0x02085A94);
+	if (areaNum == 174)
 		enableSharedCamera();
 }
 
