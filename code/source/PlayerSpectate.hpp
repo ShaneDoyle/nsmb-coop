@@ -14,5 +14,7 @@ bool isSpectating(u32 playerID);
 Player* getTargetPlayer(u32 playerID);
 Player* getLocalTargetPlayer();
 void reset();
+void onStageLayoutCreate();
+void onStageLayoutUpdate();
 
 }

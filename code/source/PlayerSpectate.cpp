@@ -44,7 +44,8 @@ void setLerping(u32 playerID, bool lerping)
 
 void enableSharedCamera()
 {
-	sharedCamera = true;
+	if (Game::getPlayerCount() > 1)
+		sharedCamera = true;
 }
 
 bool isSpectating(u32 playerID)
@@ -73,11 +74,8 @@ void reset()
 	sharedCamera = false;
 }
 
-ncp_call(0x020BB7DC, 0)
-void StageLayout_onCreateHook(s32 seqID)
+void onStageLayoutCreate()
 {
-	SND::stopRequestedBGM(seqID); // Keep replaced instruction
-
 	for (u32 playerID = 0; playerID < NTR_ARRAY_SIZE(playerTarget); playerID++)
 	{
 		playerZoom[playerID] = 0x1000;
@@ -86,12 +84,9 @@ void StageLayout_onCreateHook(s32 seqID)
 	// TODO: make this not hardcoded
 	if (Entrance::targetAreaID == 174)
 		enableSharedCamera();
-
-	*rcast<u8*>(0x020CACA8) = 0;
-	*rcast<u8*>(0x020CACD8) = 0;
 }
 
-void StageLayout_onUpdateHook()
+void onStageLayoutUpdate()
 {
 	if (!sharedCamera)
 		return;
@@ -108,13 +103,6 @@ void StageLayout_onUpdateHook()
 			player->position.x = cameraX[i] + cameraWidth[i];
 	}
 }
-
-asm(R"(
-ncp_jump(0x020BAC24, 0)
-	BL      _ZN14PlayerSpectate24StageLayout_onUpdateHookEv
-	LDR     R0, =0x020CA850
-	B       0x020BAC28
-)");
 
 ncp_call(0x020201B0)
 void PlayerBase_spectateFollowCamera(PlayerBase* self, u32 playerID)
