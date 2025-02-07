@@ -49,8 +49,8 @@ const static TextEntry textEntries[] = {
 	TextEntry(COLOR_WHITE, 0, 2, 6, "Please contact the dev team"),
 	TextEntry(COLOR_WHITE, 0, 4, 7, "Send them the crash dump"),
 	TextEntry(COLOR_WHITE, 0, 7, 10, "Discord contacts:"),
-	TextEntry(COLOR_WHITE, 0, 10, 12, "Shane#3754"),
-	TextEntry(COLOR_WHITE, 0, 6, 14, "TheGameratorT#1850"),
+	TextEntry(COLOR_WHITE, 0, 11, 12, "@shadey21"),
+	TextEntry(COLOR_WHITE, 0, 8, 14, "@thegameratort"),
 	TextEntry(COLOR_YELLOW, 0, 4, 19, "(`-`) kinda lonely here"),
 
 	TextEntry(COLOR_AQUA, 1, 2, 4, "Possible actions:"),
