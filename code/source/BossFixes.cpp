@@ -1,6 +1,7 @@
 #include <nsmb/game/game.hpp>
 #include <nsmb/game/player.hpp>
 #include <nsmb/game/stage/player/player.hpp>
+#include <nsmb/game/stage/player/door.hpp>
 #include <nsmb/game/stage/entity.hpp>
 #include <nsmb/game/stage/entity3danm.hpp>
 #include <nsmb/game/stage/misc.hpp>
@@ -245,8 +246,6 @@ void BossController_customBindCameraToZone(StageEntity3DAnm* self)
 asm("SetupFSCacheToUseOverlay55 = 0x021726C0");
 extern "C" void SetupFSCacheToUseOverlay55();
 
-int NNS_EXTRA_G3dTexUnload(NNSG3dResTex* pTex);
-
 void BossFixes_beginCutsceneAllPlayers()
 {
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
@@ -338,6 +337,15 @@ ncp_jump(0x0213BFA8, 28)
 
 //============================= World 1: Bowser =============================
 
+ncp_call(0x0215E850, 54)
+void BossFixes_doNotLoadDoorModels()
+{
+	u32& areaNum = *rcast<u32*>(0x02085A94);
+	if (areaNum == 19 || areaNum == 175)
+		return;
+	Door::loadModels();
+}
+
 //ncp_set_call(0x02138808, 13, FS::Cache::loadFileToOverlay) // Bowser's Model
 ncp_set_call(0x02138814, 13, FS::Cache::loadFileToOverlay) // Bowser's Animations
 ncp_repl(0x02138820, 13, "NOP") // Dry Bones Bowser Model
@@ -353,13 +361,6 @@ ncp_repl(0x021385BC, 13, R"(
 ncp_call(0x02133064, 13)
 void BossFixes_bowserW1_loadFix(ModelAnm* self, u32 animID, FrameCtrl::Type type, fx32 speed, u16 startFrame)
 {
-	u8* bowser = rcast<u8*>(self) - 0x4B8;
-	BlendModelAnm* bowserMdl = rcast<BlendModelAnm*>(bowser + 0x3F4);
-
-	// -- Unload the model's textures from VRAM
-
-	NNS_EXTRA_G3dTexUnload(bowserMdl->texture);
-
 	// -- Unload the model from RAM
 
 	FS::Cache::unloadFile(0x576);
@@ -674,6 +675,61 @@ ncp_set_call(0x02131748, 18, BossFixes_endCutsceneAllPlayers)
 
 // Unfreeze both players
 ncp_set_call(0x0213137C, 14, BossFixes_endCutsceneAllPlayers)
+
+//============================= World 8: Final Bowser =============================
+
+asm(R"(
+	func20F4660 = 0x020F4660
+	FinalBowser_loadResources = 0x02138724
+)");
+extern "C" {
+	void func20F4660();
+	void FinalBowser_loadResources();
+}
+
+ncp_call(0x020AF2E4, 0)
+void BossFixes_doNotLoadCastleModel()
+{
+	u32& areaNum = *rcast<u32*>(0x02085A94);
+	if (areaNum == 19 || areaNum == 175)
+		return;
+	func20F4660();
+}
+
+ncp_set_call(0x021487E0, 43, FS::Cache::loadFile) // Load pot.nsbmd to memory instead of overlay
+ncp_set_call(0x021487EC, 43, FS::Cache::loadFile) // Load pot.nsbca to memory instead of overlay
+
+ncp_repl(0x02148814, 43, "NOP") // Do not load Final Bowser resources yet
+
+ncp_call(0x0214793C, 43)
+void BossFixes_bowserFinal_loadFix(ModelAnm* self, u32 animID, FrameCtrl::Type type, fx32 speed, u16 startFrame)
+{
+	// -- Unload the model from RAM
+
+	FS::Cache::unloadFile(1235);
+	FS::Cache::unloadFile(1236);
+	FS::Cache::unloadFile(1237);
+	FS::Cache::unloadFile(1238);
+	FS::Cache::unloadFile(1239);
+
+	// -- Free all files in overlay 55
+
+	SetupFSCacheToUseOverlay55();
+
+	// -- Load the Final Bowser model
+
+	FinalBowser_loadResources();
+
+	self->init(animID, type, speed, startFrame); // Keep replaced instruction
+}
+
+ncp_set_call(0x02138738, 13, FS::Cache::loadFile) // koopa new nsbmd
+ncp_set_call(0x02138744, 13, FS::Cache::loadFileToOverlay) // koopa new nsbca
+
+ncp_set_call(0x0213A018, 13, FS::Cache::loadFileToOverlay) // koopa fire 1 nsbmd
+ncp_set_call(0x0213A024, 13, FS::Cache::loadFileToOverlay) // koopa fire 1 nsbta
+ncp_set_call(0x0213A030, 13, FS::Cache::loadFileToOverlay) // koopa fire 2 nsbmd
+ncp_set_call(0x0213A03C, 13, FS::Cache::loadFileToOverlay) // koopa fire 2 nsbta
 
 //============================= Boss Key =============================
 
