@@ -593,18 +593,24 @@ NTR_USED static void Stage_decideForceAreaReload()
 
 asm(R"(
 // Force reload if destination area number is not 0
-ncp_jump(0x0201E91C)
+ncp_call(0x0201E91C)
+ncp_call(0x0201E8A0)
 	STR     R0, [R1] // Keep replaced instruction
 	LDR     R0, =_ZL21Stage_forceAreaReload
 	MOV     R1, #1
 	STRB    R1, [R0]
-	B       0x0201E920
+	BX      LR
 
 // Force reload if extra checks say so
 ncp_jump(0x0201E928)
 	STRB    R1, [R0] // Keep replaced instruction
 	BL      _ZL27Stage_decideForceAreaReloadv
 	B       0x0201E92C
+
+ncp_jump(0x0201E8A8)
+	STRB    R4, [R0] // Keep replaced instruction
+	BL      _ZL27Stage_decideForceAreaReloadv
+	B       0x0201E8AC
 
 // Custom variable determines if reload happens
 ncp_jump(0x02119638, 10)
