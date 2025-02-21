@@ -453,6 +453,15 @@ void StageLayout_onCreateHook(s32 seqID)
 		entranceType == EntranceType::Door ||
 		entranceType == EntranceType::Unknown14 ||
 		entranceType == EntranceType::Unknown15;
+
+	// Mini-mushroom cutscene
+	u32& areaNum = *rcast<u32*>(0x02085A94);
+	if (areaNum == 180 || areaNum == 181)
+	{
+		*rcast<u32*>(0x02085ACC) |= 0x20; // toadHouseFlag
+		*rcast<u32*>(0x020CA8B4) = 0x1000; // timeLeft
+		*rcast<u8*>(0x020CA898) = 0x21; // timeStopped
+	}
 }
 
 void StageLayout_onUpdateHook()
