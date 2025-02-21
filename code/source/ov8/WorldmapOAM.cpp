@@ -1,6 +1,7 @@
 #include <nsmb/game/player.hpp>
 #include <nsmb/game/stage/player/common.hpp>
 #include <nsmb/core/graphics/2d/oam.hpp>
+#include <nsmb/core/wifi.hpp>
 
 static GXOamAttr marioHeadList[] = {
 	// Mario Head
@@ -76,3 +77,29 @@ ncp_jump(0x020D0B58, 8)
 	MOV     R0, R7
 	B       0x020D0B5C
 )");
+
+struct UI_DrawInfo {
+	s16 x;
+	s16 y;
+	u32 objectID;
+};
+
+asm(R"(
+	UI_draw = 0x020042D8
+)");
+extern "C" {
+	void UI_draw(const UI_DrawInfo* drawInfo, const UI_DrawInfo* idkDrawInfo, bool subScreen, const Vec2* scale, s16 rot, int a6, int a7, u8 palette, u8 flags);
+}
+
+ncp_call(0x020D0AB8, 8)
+void Worldmap_drawCustomCompletedIcon(const UI_DrawInfo* drawInfo, const UI_DrawInfo* idkDrawInfo, bool subScreen, const Vec2* scale, s16 rot, int a6, int a7, u8 palette, u8 flags)
+{
+	if (Wifi::getCommunicatingConsoleCount() == 1)
+	{
+		UI_draw(drawInfo, idkDrawInfo, subScreen, scale, rot, a6, a7, palette, flags);
+		return;
+	}
+
+	UI_DrawInfo customDrawInfo = { 10, 97, drawInfo->objectID };
+	UI_draw(&customDrawInfo, idkDrawInfo, subScreen, scale, rot, a6, a7, palette, flags);
+}

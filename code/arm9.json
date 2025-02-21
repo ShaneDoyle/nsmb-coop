@@ -20,7 +20,10 @@
 		"compress": false,
 		"sources": [
 			["source", false],
-			["source/util", false]
+			["source/actor", false],
+			["source/util", false],
+			["source/debug", false],
+			["build/gen", false]
 		]
 	}, {
 		"dest": "ov8",

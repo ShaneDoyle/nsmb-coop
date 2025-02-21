@@ -17,12 +17,22 @@ extern "C"
 NTR_USED static u8 WorldmapInputOwner = 0; // The ID of the console controlling the worldmap input (MUST BE 0)
 static u8 WorldmapSyncWaiting = 0;
 
+static void Worldmap_afterOnCreate(Scene* self)
+{
+	for (u32 playerID = 0; playerID < Wifi::getCommunicatingConsoleCount(); playerID++)
+	{
+		if (Game::getPlayerLives(playerID) <= 0)
+			Game::setPlayerLives(playerID, 5);
+	}
+}
+
 // Sync the worldmap load
 static s32 Worldmap_onCreate_ext(Scene* self)
 {
 	if (!WorldmapSyncWaiting)
 	{
 		Worldmap_onCreate(self);
+		Worldmap_afterOnCreate(self);
 
 		if (Net::isConnected())
 			Net::setMarker(0);

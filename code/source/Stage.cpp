@@ -29,11 +29,13 @@ asm(R"(
 	_ZN5Stage4zoomE = 0x020CADB4
 	StageLayout_looperScrollBack = 0x020B1510
 	Flagpole_switchState = 0x02130734
+	UI_drawDirect = 0x0200421C
 )");
 extern "C" {
 	void SpawnGrowingEntranceVine(Vec3*);
 	void StageLayout_looperScrollBack(void* stageLayout, s32 playerID);
 	bool Flagpole_switchState(StageEntity* self, int ptmfPtr);
+	void UI_drawDirect(u8 objectID, GXOamAttr* attrs, OAM::Flags flags, u8 palette, u8 affineSet, const Vec2 *scale, s16 rot, const s16 rotCenter[2], OAM::Settings settings, s32 xOffset, s32 yOffset);
 }
 namespace Stage {
 	void exitLevel(u32 flag);
@@ -263,6 +265,10 @@ NTR_USED static bool Stage_customPlayerCreateCase(Player* player)
 
 NTR_USED static bool Stage_customRespawnCondition(u32 playerID, s32 lives)
 {
+	// Prevent lives going negative
+	if (lives < 0)
+		Game::setPlayerLives(playerID, 0);
+
 	u32 otherID = playerID ^ 1;
 	if (Game::getPlayerDead(otherID))
 	{
@@ -620,6 +626,15 @@ void StageLayout_onCreateHook(s32 seqID)
 		entranceType == EntranceType::Door ||
 		entranceType == EntranceType::Unknown14 ||
 		entranceType == EntranceType::Unknown15;
+
+	// Mini-mushroom cutscene
+	u32& areaNum = *rcast<u32*>(0x02085A94);
+	if (areaNum == 180 || areaNum == 181)
+	{
+		*rcast<u32*>(0x02085ACC) |= 0x20; // toadHouseFlag
+		*rcast<u32*>(0x020CA8B4) = 0x1000; // timeLeft
+		*rcast<u8*>(0x020CA898) = 0x21; // timeStopped
+	}
 }
 
 void StageLayout_onUpdateHook()
@@ -760,18 +775,24 @@ NTR_USED static void Stage_decideForceAreaReload()
 
 asm(R"(
 // Force reload if destination area number is not 0
-ncp_jump(0x0201E91C)
+ncp_call(0x0201E91C)
+ncp_call(0x0201E8A0)
 	STR     R0, [R1] // Keep replaced instruction
 	LDR     R0, =_ZL21Stage_forceAreaReload
 	MOV     R1, #1
 	STRB    R1, [R0]
-	B       0x0201E920
+	BX      LR
 
 // Force reload if extra checks say so
 ncp_jump(0x0201E928)
 	STRB    R1, [R0] // Keep replaced instruction
 	BL      _ZL27Stage_decideForceAreaReloadv
 	B       0x0201E92C
+
+ncp_jump(0x0201E8A8)
+	STRB    R4, [R0] // Keep replaced instruction
+	BL      _ZL27Stage_decideForceAreaReloadv
+	B       0x0201E8AC
 
 // Custom variable determines if reload happens
 ncp_jump(0x02119638, 10)
@@ -824,8 +845,33 @@ ncp_set_call(0x02162110, 54, Stage_getLocalPlayerID) // Midway point plays sound
 
 ncp_repl(0x0215ED54, 54, "NOP") // Disable mega mushroom destruction counter
 
-ncp_set_call(0x02152944, 54, Stage_getLuigiMode) // Allow Luigi lives on stage intro scene
-ncp_set_call(0x0215293C, 54, Stage_getLuigiMode) // Allow Luigi head on stage intro scene
+//ncp_set_call(0x02152944, 54, Stage_getLuigiMode) // Allow Luigi lives on stage intro scene
+//ncp_set_call(0x0215293C, 54, Stage_getLuigiMode) // Allow Luigi head on stage intro scene
+
+ncp_call(0x02152A4C, 54)
+s32 StageIntroScene_onRender_hook()
+{
+	if (Game::getPlayerCount() == 1)
+		return 1;
+
+	u32 lives = Game::getPlayerLives(1);
+
+	GXOamAttr* luigiHeadIcon = rcast<GXOamAttr*>(0x0216F01C);
+	GXOamAttr** digits = rcast<GXOamAttr**>(0x0216CCA8);
+
+	GXOamAttr attrs[7];
+	MI_CpuCopy8(luigiHeadIcon, &attrs, 0x38u);
+
+	attrs[0].attr2 = attrs[0].attr2 & 0xFC00 | digits[lives % 10]->attr2 & 0x3FF;
+	if ( lives / 10 <= 0 )
+		attrs[1].attr1 = attrs[1].attr1 & 0xFE00 | 0x100;
+	else
+		attrs[1].attr2 = attrs[1].attr2 & 0xFC00 | digits[lives / 10]->attr2 & 0x3FF;
+
+	UI_drawDirect(34, attrs, OAM::Flags::None, 0, 0, nullptr, 0, nullptr, OAM::Settings::None, 0, 0);
+
+	return 1;
+}
 
 ncp_repl(0x020FBD70, 10, "NOP") // Disables "Lose" music. (End Flag & Boss)
 

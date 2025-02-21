@@ -15,7 +15,9 @@
 		"build": "code/build"
 	},
 	
-	"pre-build": [],
+	"pre-build": [
+		"py -3 scripts/gen_obj_table.py"
+	],
 	"post-build": [],
 	
 	"thread-count": 0
