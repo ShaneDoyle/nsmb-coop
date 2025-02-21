@@ -64,15 +64,6 @@ ncp_jump(0x020CEF84, 8)
 	B       0x020CEF88
 )");
 
-// Life continues
-ncp_hook(0x20CF7C8, 8) void WorldmapSetupCoop() {
-	if (Wifi::getCommunicatingConsoleCount() > 1) {
-		for (int i = 0; i < Wifi::getCommunicatingConsoleCount(); i++) {
-			if (Game::getPlayerLives(i) <= 0) { Game::setPlayerLives(i, 5); }
-		}
-	}
-}
-
 ncp_repl(0x02006A04, "B 0x02006A1C") // Do not change powerup when loading level
 
 // Disable pause menu on worldmap
