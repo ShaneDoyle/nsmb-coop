@@ -244,6 +244,9 @@ void BossController_customBindCameraToZone(StageEntity3DAnm* self)
 	// For coop it gets handled by the unfreezing of each actor
 }
 
+ncp_repl(0x0214310C, 40, "MOV R0, R4")
+ncp_set_call(0x02143120, 40, ActorFixes_isOutsideCamera)
+
 // ============================= Misc =============================
 
 asm("SetupFSCacheToUseOverlay55 = 0x021726C0");
