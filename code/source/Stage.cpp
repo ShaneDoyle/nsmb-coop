@@ -262,6 +262,10 @@ NTR_USED static bool Stage_customPlayerCreateCase(Player* player)
 
 NTR_USED static bool Stage_customRespawnCondition(u32 playerID, s32 lives)
 {
+	// Prevent lives going negative
+	if (lives < 0)
+		Game::setPlayerLives(playerID, 0);
+
 	u32 otherID = playerID ^ 1;
 	if (Game::getPlayerDead(otherID))
 	{
