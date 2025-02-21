@@ -338,6 +338,9 @@ ncp_jump(0x0213BFA8, 28)
 	B       0x0213BFAC
 )");
 
+// Stage clearer is always player 0
+ncp_repl(0x0213D1AC, 28, "MOV R2, #0")
+
 //============================= World 1: Bowser =============================
 
 ncp_call(0x0215E850, 54)
