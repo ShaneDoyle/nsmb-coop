@@ -5,11 +5,13 @@
 #include <nsmb/game/stage/entity.hpp>
 #include <nsmb/game/stage/entity3danm.hpp>
 #include <nsmb/game/stage/misc.hpp>
+#include <nsmb/core/entity/scene.hpp>
 #include <nsmb/core/filesystem/cache.hpp>
 #include <nsmb/core/graphics/fader.hpp>
 #include <nsmb/core/graphics/3d/modelanm.hpp>
 #include <nsmb/core/graphics/3d/blendmodelanm.hpp>
 #include <nsmb/core/system/function.hpp>
+#include <nsmb/core/net.hpp>
 
 #include "ActorFixes.hpp"
 #include "PlayerSpectate.hpp"
@@ -20,6 +22,12 @@
 // CURRENTLY THE BOWSER FRAME HEAP ALLOCATION IS DEALLOCATED UNSAFELY
 // IT IS ALMOST PURE LUCK THAT IT WORKS, SO PLEASE LOOK AT IT AFTER THIS RELEASE!
 
+asm(R"(
+	_ZN5Stage9exitLevelEm = 0x020A189C
+)");
+namespace Stage {
+	void exitLevel(u32 flag);
+}
 
 //============================= Main Camera Push =============================
 
@@ -742,4 +750,50 @@ void call_0214619C_ov40()
 	{
 		Game::getPlayer(playerID)->physicsFlag.bossDefeated = true;
 	}
+}
+
+//============================= Mini-mushroom Cutscene =============================
+
+ncp_call(0x020A1D00, 0)
+void BossFixes_levelEnd_hook(u32 flag)
+{
+	auto switchToCutsceneArea = [](u8 stage){
+		Entrance::targetAreaID = Stage::getAreaID(9, stage, 0);
+		Entrance::targetEntranceID = 0;
+		Entrance::switchArea();
+	};
+
+	u32& areaNum = *rcast<u32*>(0x02085A94);
+	if (areaNum == 42) // World 2
+	{
+		switchToCutsceneArea(0);
+	}
+	else if (areaNum == 105) // World 5
+	{
+		switchToCutsceneArea(1);
+	}
+	else
+	{
+		Stage::exitLevel(flag);
+	}
+}
+
+static u8 s_goToMiniWorld = false;
+static u32 getGoToMiniWorld() { return s_goToMiniWorld; }
+
+ncp_repl(0x020CE2E0, 8, "CMP R0, #1")
+ncp_repl(0x020CE300, 8, "CMP R0, #1")
+ncp_set_call(0x020CE2A8, 8, getGoToMiniWorld)
+
+ncp_call(0x02119684, 10)
+void BossFixes_finishLevelOnTransit_hook()
+{
+	u32& areaNum = *rcast<u32*>(0x02085A94);
+	if (areaNum == 180 || areaNum == 181)
+	{
+		s_goToMiniWorld = Entrance::targetEntranceID == 2;
+		Stage::exitLevel(1);
+		return;
+	}
+	Entrance::switchArea();
 }
