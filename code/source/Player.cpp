@@ -160,3 +160,26 @@ ncp_jump(0x0210024C, 10)
 	ADD     SP, SP, #8
 	POP     {R4-R6,PC}
 )");
+
+static u8 sIsPlayerLookingAtTarget[2];
+
+ncp_call(0x020FD6C4, 10)
+bool Player_updateLookAtHeadRotation_AT_020FD6C4_CALL(Player* player)
+{
+	return sIsPlayerLookingAtTarget[player->linkedPlayerID];
+}
+
+ncp_repl(0x020FD828, 10, "MOV R0, R4")
+
+ncp_call(0x020FD82C, 10)
+void Player_updateLookAtHeadRotation_AT_020FD82C_CALL(Player* player)
+{
+	sIsPlayerLookingAtTarget[player->linkedPlayerID] = false;
+}
+
+ncp_jump(0x0202002C)
+void Game_setPlayerLookingAtTarget_OVERRIDE(bool enable)
+{
+	sIsPlayerLookingAtTarget[0] = enable;
+	sIsPlayerLookingAtTarget[1] = enable;
+}
