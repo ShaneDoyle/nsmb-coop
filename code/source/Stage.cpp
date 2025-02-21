@@ -16,6 +16,7 @@
 #include <nsmb/core/wifi/wifi.hpp>
 
 #include "PlayerSpectate.hpp"
+#include "Player.hpp"
 
 NTR_USED static u32 sTempVar;
 
@@ -27,11 +28,13 @@ asm(R"(
 	_ZN5Stage9exitLevelEm = 0x020A189C
 	_ZN5Stage4zoomE = 0x020CADB4
 	StageLayout_looperScrollBack = 0x020B1510
+	Flagpole_switchState = 0x02130734
 	UI_drawDirect = 0x0200421C
 )");
 extern "C" {
 	void SpawnGrowingEntranceVine(Vec3*);
 	void StageLayout_looperScrollBack(void* stageLayout, s32 playerID);
+	bool Flagpole_switchState(StageEntity* self, int ptmfPtr);
 	void UI_drawDirect(u8 objectID, GXOamAttr* attrs, OAM::Flags flags, u8 palette, u8 affineSet, const Vec2 *scale, s16 rot, const s16 rotCenter[2], OAM::Settings settings, s32 xOffset, s32 yOffset);
 }
 namespace Stage {
@@ -432,6 +435,170 @@ ncp_over(0x020AE8F0, 0)
 ncp_endover()
 )");
 
+// ======================================= FLAGPOLE =======================================
+
+static bool sStallPoleAnim = false;
+static StageEntity* sFlagpole = nullptr;
+
+asm(R"(
+.type Player_flagpoleTransitState_SUPER, %function
+Player_flagpoleTransitState_SUPER:
+	PUSH    {R4,LR}
+	B       0x0211B5CC
+)");
+extern "C" {
+	bool Player_flagpoleTransitState_SUPER(Player* self, void* arg);
+}
+
+static inline void FlagpoleLowerFlag(StageEntity* flagpole)
+{
+	Flagpole_switchState(flagpole, 0x02132500);
+}
+
+static void FlagpoleUnconditionalSetup(Player* player)
+{
+	if (player->currentPowerup == PowerupState::Mega)
+	{
+		player->transitionStateStep = 1;
+
+		if (!(player->collisionFlag & 1) && player->animID != 0x65)
+			player->setAnimation(0x65, true, Player::FrameMode::Restart, 0x1000, 0);
+	}
+	else
+	{
+		player->transitionStateStep = 3;
+		player->goalBeginPoleGrab();
+	}
+}
+
+static void FlagpoleSetup(Player* player)
+{
+	player->beginTransition();
+	// FUN_020fabb0(player->linkedPlayerID);
+	player->direction = 0;
+	player->signalFlagpoleWait();
+	player->stopBGM(0x20);
+
+	player->disableStarmanState();
+	player->updateJumpFallGravity();
+	player->targetVelV = 0xFFFFC000;
+	if (player->velH < 0)
+	{
+		player->velH = 0;
+		player->targetVelH = 0;
+	}
+	// FUN_02131dc4();
+}
+
+// stops everything to do with the flag pole animation
+void FlagpoleUpdate(Player* player)
+{
+	sStallPoleAnim = false;
+
+	if (Game::getPlayerCount() < 2)
+		return;
+
+	if (player->transitionStateStep == -1)
+	{
+		player->powerupScaleOffset = 0;
+		return;
+	}
+
+	bool isGrabAnimDone = player->animID == 0x2A || (player->animID == 0x29 && player->isBodyAnimationCompleted());
+
+	if (player->transitionStateStep == 0 || (player->transitionStateStep == 3 && isGrabAnimDone) || player->transitionStateStep == 5)
+	{
+		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+		{
+			Player* p = Game::getPlayer(playerID);
+			if (!Player_isOnFlagpole(p))
+				sStallPoleAnim = true;
+		}
+
+		static u16 countDown = 0;
+
+		if (!sStallPoleAnim)
+		{
+			if (player->transitionStateStep == 3)
+			{
+				player->transitionStateStep++;
+				player->actionFlag.flagpoleSlide = true;
+				player->goalBeginPoleSlide();
+			}
+
+			// the flagpole only sets the action flag for one player, so set it for all players
+			if (player->transitionStateStep == 5 && player->actionFlag.flagpoleEnd)
+			{
+				for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+				{
+					Player* p = Game::getPlayer(playerID);
+					if (Player_isOnFlagpole(p))
+						p->actionFlag.flagpoleEnd = true;
+				}
+			}
+			countDown = 0;
+			return;
+		}
+
+		if (player->transitionStateStep == 0)
+		{
+			FlagpoleUnconditionalSetup(player);
+		}
+		else
+		{
+			if (player->animID == 0x29)
+				player->setAnimation(0x2A, 0, Player::FrameMode::Restart, 0x800, 0); // set idle pole animation
+
+			if (countDown == 0)
+				countDown = 180; // 3 seconds
+
+			countDown--;
+
+			if (countDown == 0)
+			{
+				if (sFlagpole)
+					FlagpoleLowerFlag(sFlagpole);
+
+				FlagpoleSetup(player);
+
+				player->transitionStateStep++;
+				player->actionFlag.flagpoleSlide = true;
+				player->goalBeginPoleSlide();
+			}
+		}
+		player->updateAnimation();
+	}
+}
+
+ncp_jump(0x0211B5C8, 10)
+bool Player_flagpoleTransitState_OVERRIDE(Player* self, void* arg)
+{
+	FlagpoleUpdate(self);
+
+	if (sStallPoleAnim)
+		return true; // cancel flagpole update
+
+	return Player_flagpoleTransitState_SUPER(self, arg); // continue flagpole update
+}
+
+// stops the flagpole from becoming intangible
+ncp_call(0x0213056C, 12)
+void FlagpoleSetTangible(StageEntity* flagpole)
+{
+	// called before flagpole update
+	if (Game::getPlayerCount() > 1)
+	{
+		sFlagpole = flagpole;
+		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+		{
+			Player* p = Game::getPlayer(playerID);
+			if (!Player_isOnFlagpole(p))
+				return;
+		}
+	}
+	FlagpoleLowerFlag(sFlagpole);
+}
+
 // ======================================= MISC =======================================
 
 ncp_call(0x02006B28)
@@ -765,9 +932,6 @@ void Stage_fixTransitParticles()
 	if (Game::getPlayerCount() == 1)
 		Particle::Handler::disable();
 }
-
-ncp_repl(0x0212B92C, 11, "NOP") // Do not freeze on transitions
-ncp_repl(0x0212B930, 11, "NOP") // Do not freeze on transitions
 
 // Do not know what this does yet
 /*asm(R"(
