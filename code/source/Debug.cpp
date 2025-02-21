@@ -26,7 +26,7 @@ namespace Debug
 				collisionViewerEnabled = !collisionViewerEnabled;
 			}
 
-			if (keysPressed & Keys::B && Game::getPlayerCount() > 1)
+			if (keysPressed & Keys::B)
 			{
 				PlayerSpectate::setLerping(i, true);
 				PlayerSpectate::setTarget(i, !PlayerSpectate::getTarget(i));
