@@ -958,3 +958,18 @@ ncp_jump(0x020BA1C4, 0)
 ncp_repl(0x020B8D20, 0, ".int _ZL8sTempVar")
 
 ncp_repl(0x02119CBC, 10, "NOP") // Do not freeze camera on death
+
+// Spawn actors for both players on setup
+
+asm(R"(
+ncp_over(0x0209C4A4, 0)
+	CMP     R0, #1
+	BEQ     0x0209C50C
+	NOP
+	NOP
+ncp_endover()
+)");
+
+ncp_repl(0x0209C4E0, 0, "NOP") // Do not spawn some MvsL actor
+
+ncp_repl(0x0209C584, 0, ".int _ZN4Game11playerCountE")
