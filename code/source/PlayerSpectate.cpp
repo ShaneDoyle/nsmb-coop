@@ -63,7 +63,7 @@ Player* getLocalTargetPlayer()
 	return Game::getPlayer(localTarget);
 }
 
-void onLoadLevel()
+void clearSpectators()
 {
 	for (u32 playerID = 0; playerID < NTR_ARRAY_SIZE(playerTarget); playerID++)
 	{

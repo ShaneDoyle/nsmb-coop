@@ -606,7 +606,7 @@ void Stage_loadLevelHook(const void* pSrc, u32 offset, u32 szByte)
 {
 	GX_LoadBGPltt(pSrc, offset, szByte); // Keep replaced instruction
 
-	PlayerSpectate::onLoadLevel();
+	PlayerSpectate::clearSpectators();
 
 	Stage_isPlayerDead[0] = false;
 	Stage_isPlayerDead[1] = false;
@@ -631,6 +631,8 @@ void StageLayout_onCreateHook(s32 seqID)
 	u32& areaNum = *rcast<u32*>(0x02085A94);
 	if (areaNum == 180 || areaNum == 181)
 	{
+		PlayerSpectate::clearSpectators();
+
 		*rcast<u32*>(0x02085ACC) |= 0x20; // toadHouseFlag
 		*rcast<u32*>(0x020CA8B4) = 0x1000; // timeLeft
 		*rcast<u8*>(0x020CA898) = 0x21; // timeStopped

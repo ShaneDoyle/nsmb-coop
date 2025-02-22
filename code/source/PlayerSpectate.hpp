@@ -13,7 +13,7 @@ void enableSharedCamera();
 bool isSpectating(u32 playerID);
 Player* getTargetPlayer(u32 playerID);
 Player* getLocalTargetPlayer();
-void onLoadLevel();
+void clearSpectators();
 void onStageLayoutCreate();
 void onStageLayoutUpdate();
 
