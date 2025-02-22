@@ -973,3 +973,17 @@ ncp_endover()
 ncp_repl(0x0209C4E0, 0, "NOP") // Do not spawn some MvsL actor
 
 ncp_repl(0x0209C584, 0, ".int _ZN4Game11playerCountE")
+
+// Disable entrance camera X and Y
+// TODO: Find a fix for this that doesn't involve disabling it
+
+asm(R"(
+ncp_over(0x020BC67C, 0)
+	LDR     R0, .over_0x020BC67C_0_vars
+	MOV     R2, #0
+	STRB    R2, [R0,R1]
+	BX      LR
+.over_0x020BC67C_0_vars:
+	.word	0x020CACC0
+ncp_endover()
+)");
