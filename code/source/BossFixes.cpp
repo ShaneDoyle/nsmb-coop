@@ -755,6 +755,12 @@ void call_0214619C_ov40()
 
 //============================= Mini-mushroom Cutscene =============================
 
+ncp_repl(0x02144DCC, 40, "B 0x02144E00") // Do not load world signs
+ncp_repl(0x02144D0C, 40, "B 0x02144D88") // Do not setup world signs
+ncp_repl(0x02143D8C, 40, "B 0x02143E0C") // Do not render world signs
+
+ncp_repl(0x02144AF8, 40, "B 0x02144B84") // Skip world sign effects
+
 ncp_call(0x020A1D00, 0)
 void BossFixes_levelEnd_hook(u32 flag)
 {
