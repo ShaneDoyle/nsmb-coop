@@ -517,6 +517,61 @@ ncp_set_call(0x02131748, 18, BossFixes_endCutsceneAllPlayers)
 // Unfreeze both players
 ncp_set_call(0x0213137C, 14, BossFixes_endCutsceneAllPlayers)
 
+//============================= World 5: Petey Piranha =============================
+
+// Make better use of overlay memory by putting the animations in the overlay instead of the model
+
+ncp_set_call(0x02134390, 15, FS::Cache::loadFile) // boss_packun.nsbmd
+ncp_set_call(0x0213439C, 15, FS::Cache::loadFileToOverlay) // boss_packun.nsbca
+
+// Must be saved because the actor delays the hit
+static u8 PeteyPiranha_sLinkedPlayerID = 0;
+
+Player* PeteyPiranha_getPlayerOnSpecialHit(s32 linkedPlayerID)
+{
+	PeteyPiranha_sLinkedPlayerID = linkedPlayerID;
+	return Game::getPlayer(linkedPlayerID); // Keep replaced instruction
+}
+
+ncp_set_call(0x021335BC, 15, PeteyPiranha_getPlayerOnSpecialHit) // Save player ID on ground pound
+ncp_set_call(0x021338CC, 15, PeteyPiranha_getPlayerOnSpecialHit) // Save player ID on blue shell
+
+Player* PeteyPiranha_getLinkedPlayer()
+{
+	return Game::getPlayer(PeteyPiranha_sLinkedPlayerID);
+}
+
+ncp_set_call(0x021307DC, 15, PeteyPiranha_getLinkedPlayer)
+ncp_set_call(0x02130CB0, 15, PeteyPiranha_getLinkedPlayer)
+ncp_set_call(0x02130E10, 15, PeteyPiranha_getLinkedPlayer)
+ncp_set_call(0x02133098, 15, PeteyPiranha_getLinkedPlayer)
+ncp_set_call(0x021330A4, 15, PeteyPiranha_getLinkedPlayer)
+ncp_set_call(0x02133120, 15, PeteyPiranha_getLinkedPlayer)
+
+// Save player ID on head hit
+
+asm(R"(
+.type PeteyPiranha_getPlayerOnPlatform, %function
+PeteyPiranha_getPlayerOnPlatform:
+	MOV     R5, R1
+	PUSH    {R0-R1}
+	LDR     R0, [R3,#4]
+	LDRB    R0, [R0,#0x11E]
+	LDR     R1, =_ZL28PeteyPiranha_sLinkedPlayerID
+	STRB    R0, [R1]
+	POP     {R0-R1}
+	BX      LR
+)");
+
+ncp_repl(0x02132FD8, 15, "BLEQ PeteyPiranha_getPlayerOnPlatform")
+ncp_repl(0x0213301C, 15, "BLEQ PeteyPiranha_getPlayerOnPlatform")
+ncp_repl(0x02133060, 15, "BLEQ PeteyPiranha_getPlayerOnPlatform")
+
+ncp_set_call(0x02132A58, 15, BossFixes_endCutsceneAllPlayers)
+ncp_set_call(0x02132BE8, 15, BossFixes_endCutsceneAllPlayers)
+
+// TODO: look into ov15 0x02132990
+
 //============================= World 8: Final Bowser =============================
 
 asm(R"(
