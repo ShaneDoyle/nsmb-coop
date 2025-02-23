@@ -574,6 +574,23 @@ ncp_set_call(0x02132BE8, 15, BossFixes_endCutsceneAllPlayers)
 
 // TODO: look into ov15 0x02132990
 
+//============================= World 6: Monty Tank =============================
+
+ncp_set_call(0x021361E4, 19, BossFixes_endCutsceneAllPlayers)
+
+ncp_call(0x0213624C, 19)
+void MontyTank_doPlayerBossBump(Player* r0, const Vec2& velocity)
+{
+	for (u32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		if (Game::getPlayerDead(playerID))
+			continue;
+
+		Player* player = Game::getPlayer(playerID);
+		player->doBossBump(velocity);
+	}
+}
+
 //============================= World 8: Final Bowser =============================
 
 asm(R"(
