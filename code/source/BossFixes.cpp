@@ -514,6 +514,8 @@ ncp_set_call(0x02131748, 18, BossFixes_endCutsceneAllPlayers)
 
 //============================= World 4: Mega Goomba =============================
 
+ncp_over(0x02133150, 14) const auto MegaGoomba_skipRender = ActorFixes_safeSkipRender;
+
 // Unfreeze both players
 ncp_set_call(0x0213137C, 14, BossFixes_endCutsceneAllPlayers)
 
