@@ -26,13 +26,13 @@ bool ActorFixes_safeSkipRender(StageEntity3DAnm* self)
 }
 
 // Replacement for Game::getLocalPlayer in some cases
-Player* ActorFixes_getClosestPlayer(StageEntity* self)
+Player* ActorFixes_getClosestPlayer(StageActor* self)
 {
 	return self->getClosestPlayer(nullptr, nullptr);
 }
 
 // Replacement for Game::isOutsideCamera(..., Game::localPlayerID)
-bool ActorFixes_isOutsideCamera(StageEntity* self, const FxRect& boundingBox, u8 playerID)
+bool ActorFixes_isOutsideCamera(StageActor* self, const FxRect& boundingBox, u8 playerID)
 {
 	Player* player = ActorFixes_getClosestPlayer(self);
 	return Stage::isOutsideCamera(self->position, boundingBox, player->linkedPlayerID);
@@ -42,6 +42,8 @@ static u32 ActorFixes_matchZoneID = -1;
 
 NTR_USED static Player* ActorFixes_getClosestPlayerFilter(s32 playerID)
 {
+	if (Game::getPlayerDead(playerID))
+		return nullptr;
 	Player* player = Game::getPlayer(playerID);
 	if (player == nullptr || (ActorFixes_matchZoneID != -1 && !ActorFixes_isPlayerInZone(player, ActorFixes_matchZoneID)))
 		return nullptr;
@@ -51,11 +53,30 @@ NTR_USED static Player* ActorFixes_getClosestPlayerFilter(s32 playerID)
 ncp_set_call(0x020A0544, 0, ActorFixes_getClosestPlayerFilter)
 ncp_set_call(0x020A0628, 0, ActorFixes_getClosestPlayerFilter)
 
-Player* ActorFixes_getClosestPlayerInZone(StageEntity* self, u32 zoneID)
+Player* ActorFixes_getClosestPlayerInZone(StageActor* self, u32 zoneID)
 {
 	ActorFixes_matchZoneID = zoneID;
 	Player* player = ActorFixes_getClosestPlayer(self);
 	ActorFixes_matchZoneID = -1;
+	return player;
+}
+
+asm(R"(
+.type StageActor_getClosestPlayer_SUPER, %function
+StageActor_getClosestPlayer_SUPER:
+	PUSH    {R4,LR}
+	B       0x020A06A0
+)");
+extern "C" {
+	Player* StageActor_getClosestPlayer_SUPER(StageActor* self, s32* distanceX, s32* distanceY);
+}
+
+ncp_jump(0x020A069C, 0)
+Player* StageActor_getClosestPlayer_OVERRIDE(StageActor* self, s32* distanceX, s32* distanceY)
+{
+	Player* player = StageActor_getClosestPlayer_SUPER(self, distanceX, distanceY);
+	if (player == nullptr && ActorFixes_matchZoneID == -1)
+		return Game::getPlayer(0);
 	return player;
 }
 
@@ -270,13 +291,13 @@ ncp_over(0x021784B8, 69) const auto Blockhopper_skipRender = ActorFixes_safeSkip
 asm(R"(
 ncp_jump(0x02177260, 69)
 	MOV     R0, R4
-	BL      _Z27ActorFixes_getClosestPlayerP11StageEntity
+	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 	B       0x02177264
 
 ncp_over(0x021778A4, 69)
 	NOP
 	MOV     R0, R4
-	BL      _Z27ActorFixes_getClosestPlayerP11StageEntity
+	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 ncp_endover()
 )");
 
@@ -287,21 +308,21 @@ ncp_set_call(0x02177450, 69, ActorFixes_getClosestPlayer)
 asm(R"(
 ncp_over(0x0215BBE4, 54)
 	MOV     R4, R0
-	BL      _Z27ActorFixes_getClosestPlayerP11StageEntity
+	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 	NOP
 	NOP
 ncp_endover()
 
 ncp_over(0x0215BC48, 54)
 	MOV     R4, R0
-	BL      _Z27ActorFixes_getClosestPlayerP11StageEntity
+	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 	NOP
 	NOP
 ncp_endover()
 
 ncp_over(0x0215BCCC, 54)
 	MOV     R0, R4
-	BL      _Z27ActorFixes_getClosestPlayerP11StageEntity
+	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 	NOP
 ncp_endover()
 )");

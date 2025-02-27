@@ -402,7 +402,7 @@ ncp_set_call(0x0213695C, 13, BossFixes_endCutsceneAllPlayers)
 asm(R"(
 ncp_jump(0x02138D7C, 13)
 	PUSH    {R0,R2,LR}
-	BL      _Z27ActorFixes_getClosestPlayerP11StageEntity
+	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 	ADD     R3, R0, #0x100
 	LDRSB   R3, [R3,#0x1E] // linkedPlayerID
 	POP     {R0,R2,LR}

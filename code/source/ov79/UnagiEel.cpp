@@ -12,7 +12,7 @@ asm(R"(
 ncp_call(0x0217ABA4, 79)
 ncp_call(0x0217AEC4, 79)
 	MOV     R0, R4
-	B       _Z27ActorFixes_getClosestPlayerP11StageEntity
+	B       _Z27ActorFixes_getClosestPlayerP10StageActor
 
 ncp_jump(0x0217B8AC, 79) // Mega bump fix
 	PUSH    {R4,LR}
