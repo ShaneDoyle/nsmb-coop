@@ -183,8 +183,22 @@ bool call_0211EB24_ov10(Player* player)
 
 ncp_set_call(0x021041F4, 10, Stage_getMultiplayer)
 ncp_set_call(0x0212B318, 11, Stage_getMultiplayer)
-ncp_repl(0x02119CB8, 10, "NOP") // Do not freeze timer on player death
 
+ncp_repl(0x02119CB8, 10, "NOP") // Do not freeze timer on player death (so we can control ourselves)
+
+ncp_call(0x02119CC0, 10)
+void Player_freezeTimerOnDeathHook(s32 playerID, bool dead)
+{
+	Game::setPlayerDead(playerID, dead); // Keep replaced instruction
+
+	for (u32 iPlayerID = 0; iPlayerID < Game::getPlayerCount(); iPlayerID++)
+	{
+		if (!Game::getPlayerDead(iPlayerID))
+			return;
+	}
+	u8& isTimeStopped = *rcast<u8*>(0x020CA898);
+	isTimeStopped |= 0x48;
+}
 
 static bool Stage_playerDeadState(Player* player, void* arg)
 {
@@ -960,6 +974,8 @@ ncp_jump(0x020BA1C4, 0)
 ncp_repl(0x020B8D20, 0, ".int _ZL8sTempVar")
 
 ncp_repl(0x02119CBC, 10, "NOP") // Do not freeze camera on death
+
+ncp_repl(0x0212B930, 11, "NOP") // Do not freeze time on transitions
 
 // Spawn actors for both players on setup
 
