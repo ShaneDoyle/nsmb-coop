@@ -363,6 +363,36 @@ ncp_jump(0x021189BC, 10)
 	B       0x02118A34
 )");
 
+asm(R"(
+.type Player_beginCutscene_SUPER, %function
+Player_beginCutscene_SUPER:
+	PUSH    {R4,R5,LR}
+	B       0x0211F350
+
+.type Player_endCutscene_SUPER, %function
+Player_endCutscene_SUPER:
+	PUSH    {R4,LR}
+	B       0x0211F2F0
+)");
+extern "C" {
+	void Player_beginCutscene_SUPER(Player* self, bool lookAtBoss);
+	void Player_endCutscene_SUPER(Player* self);
+}
+
+ncp_jump(0x0211F34C, 10)
+void Player_beginCutscene_OVERRIDE(Player* self, bool lookAtBoss)
+{
+	if (!Game::getPlayerDead(self->linkedPlayerID))
+		Player_beginCutscene_SUPER(self, lookAtBoss);
+}
+
+ncp_jump(0x0211F2EC, 10)
+void Player_endCutscene_OVERRIDE(Player* self)
+{
+	if (!Game::getPlayerDead(self->linkedPlayerID))
+		Player_endCutscene_SUPER(self);
+}
+
 /*
 //Player can't respawn when switching areas
 void hook_0215EB28_ov_36()

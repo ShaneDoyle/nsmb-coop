@@ -142,7 +142,7 @@ bool BossController_coopTransitionState(StageEntity3DAnm* self)
 		s32 order = 1;
 		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 		{
-			if (closestPlayer->linkedPlayerID == playerID)
+			if (closestPlayer->linkedPlayerID == playerID || Game::getPlayerDead(playerID))
 				continue;
 
 			Player* player = Game::getPlayer(playerID);
@@ -171,7 +171,7 @@ bool BossController_coopTransitionState(StageEntity3DAnm* self)
 		{
 			for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 			{
-				if (closestPlayer->linkedPlayerID == playerID)
+				if (closestPlayer->linkedPlayerID == playerID || Game::getPlayerDead(playerID))
 					continue;
 
 				BossFixes_matchPlayerCameraBounds(playerID, closestPlayer->linkedPlayerID);
@@ -673,8 +673,6 @@ Player* BossKey_getPlayerWhoWon(s32 winnerPlayerID)
 	Player_beginBossDefeatCutsceneCoop(winnerPlayer, false);
 
 	Stage::events |= 1; // Trigger event 1 for World 7 boss
-
-	// TODO: Doesn't trigger if one player is dead. Why??
 
 	return winnerPlayer;
 }
