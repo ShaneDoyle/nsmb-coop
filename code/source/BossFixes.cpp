@@ -591,6 +591,23 @@ void MontyTank_doPlayerBossBump(Player* r0, const Vec2& velocity)
 	}
 }
 
+//============================= World 7: Lakithunder =============================
+
+ncp_over(0x02133C38, 17) const auto Lakithunder_skipRender = ActorFixes_safeSkipRender;
+
+ncp_repl(0x0213215C, 17, "NOP")
+ncp_set_call(0x02132168, 17, ActorFixes_isOutsideCamera)
+
+ncp_repl(0x02132420, 17, "ADD R0, R5, #0x100")
+ncp_repl(0x0213242C, 17, "LDRSB R0, [R0,#0x1E]") // Blue shell hit
+
+ncp_repl(0x021325EC, 17, "ADD R0, R4, #0x100; LDRSB R0, [R0,#0x1E]") // Ground pound hit
+
+ncp_repl(0x021329C4, 17, "ADD R0, R5, #0x100")
+ncp_repl(0x021329D8, 17, "LDRSB R0, [R0,#0x1E]") // Stomp hit
+
+ncp_set_call(0x02131554, 17, BossFixes_endCutsceneAllPlayers)
+
 //============================= World 8: Final Bowser =============================
 
 asm(R"(
@@ -654,6 +671,10 @@ Player* BossKey_getPlayerWhoWon(s32 winnerPlayerID)
 	Player* winnerPlayer = Game::getPlayer(winnerPlayerID);
 
 	Player_beginBossDefeatCutsceneCoop(winnerPlayer, false);
+
+	Stage::events |= 1; // Trigger event 1 for World 7 boss
+
+	// TODO: Doesn't trigger if one player is dead. Why??
 
 	return winnerPlayer;
 }

@@ -434,7 +434,8 @@ ncp_repl(0x02186F58, 96, "MOV LR, #0")
 // Fix pipe cannon desync.
 ncp_repl(0x020F8230, 10, "B 0x020F823C")
 
-
+// Tile God updates during stage freeze
+ncp_repl(0x0216D3E4, 54, ".int _ZN10StageActor9preUpdateEv");
 
 
 
