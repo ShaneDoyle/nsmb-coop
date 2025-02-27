@@ -672,7 +672,7 @@ Player* BossKey_getPlayerWhoWon(s32 winnerPlayerID)
 
 	Player_beginBossDefeatCutsceneCoop(winnerPlayer, false);
 
-	Stage::events |= 1; // Trigger event 1 for World 7 boss
+	Stage::setEvent(50); // Trigger event 50 for World 7 boss
 
 	return winnerPlayer;
 }
