@@ -63,7 +63,139 @@ void BossFixes_setZoomAll(fx32 zoom, u32 delay, u8 zero, u8 unk)
 		Stage::setZoom(zoom, delay, playerID, unk);
 }
 
-//============================= Main Boss Controller =============================
+//============================= Boss Controller Common =============================
+
+struct BossControllerCommon_CoopTransitionStateInfo
+{
+	fx32(*getZoneX)(StageEntity*);
+	void(*exitState)(StageEntity*);
+	void(*commonEnd)(StageEntity*);
+};
+
+bool BossControllerCommon_coopTransitionState(
+	StageEntity* self,
+	s32& step,
+	BossControllerCommon_CoopTransitionStateInfo* info
+)
+{
+	const u32 FadeWaitDurationFrames = 30;
+
+	if (step == Func::Init)
+	{
+		step++;
+
+		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+		{
+			// Begin fade out
+			Game::fader.fadeMaskShape[playerID] = FadeMask::getCharacterFadeMaskID(Game::getPlayerCharacter(playerID));
+			Game::fader.fadingState[playerID] |= 0x28;
+		}
+
+		return true;
+	}
+
+	if (step == Func::Exit)
+	{
+		return true;
+	}
+
+	if (step == 1)
+	{
+		// Wait for fade out
+		if ((Game::fader.fadingState[0] & 8) == 0)
+			step++;
+
+		goto commonEnd;
+	}
+
+	if (step == 2)
+	{
+		step++;
+
+		Player* closestPlayer = ActorFixes_getClosestPlayer(self);
+		closestPlayer->beginCutscene(true);
+
+		// Other players
+		s32 order = 1;
+		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+		{
+			if (closestPlayer->linkedPlayerID == playerID || Game::getPlayerDead(playerID))
+				continue;
+
+			Player* player = Game::getPlayer(playerID);
+			player->position.x = closestPlayer->position.x - 16fx * order;
+			player->position.y = closestPlayer->position.y;
+			player->updateCollision(false); // Prevent falling through semi-solid
+			player->beginCutscene(true);
+
+			order++;
+		}
+
+		goto commonEnd;
+	}
+
+	if (step == 3)
+	{
+		step++;
+
+		Player* closestPlayer = ActorFixes_getClosestPlayer(self);
+
+		fx32 zoneX = info->getZoneX(self);
+
+		BossFixes_setCameraBoundAll(Stage::stageLayout, zoneX >> FX32_SHIFT, 1);
+
+		// Match the camera of the player in front
+
+		if (Stage::cameraX[closestPlayer->linkedPlayerID] > zoneX)
+		{
+			for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+			{
+				if (closestPlayer->linkedPlayerID == playerID || Game::getPlayerDead(playerID))
+					continue;
+
+				BossFixes_matchPlayerCameraBounds(playerID, closestPlayer->linkedPlayerID);
+			}
+		}
+
+		goto commonEnd;
+	}
+
+	if (step < 3 + FadeWaitDurationFrames)
+	{
+		step++;
+		// Make up time for the background to catch up with the camera
+		goto commonEnd;
+	}
+
+	if (step == 3 + FadeWaitDurationFrames)
+	{
+		step++;
+
+		// Begin fade in
+		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+			Game::fader.fadingState[playerID] |= 0x5;
+
+		goto commonEnd;
+	}
+
+	if (step == 4 + FadeWaitDurationFrames)
+	{
+		// Wait for fade in
+		if ((Game::fader.fadingState[0] & 1) != 0)
+			goto commonEnd;
+
+		info->exitState(self);
+		goto commonEnd;
+	}
+
+commonEnd:
+	info->commonEnd(self);
+	return true;
+}
+
+void BossControllerCommon_setupCoopTransitionState(Player* closestPlayer);
+
+//============================= Boss Controller =============================
 
 struct BossController_PTMF
 {
@@ -91,146 +223,35 @@ extern "C"
 	BossController_PTMF BossController_sTransition;
 }
 
+BossControllerCommon_CoopTransitionStateInfo BossController_coopTransitionStateInfo =
+{
+	.getZoneX = [](StageEntity* self)
+	{
+		return rcast<fx32*>(self)[0x514/4];
+	},
+
+	.exitState = [](StageEntity* self)
+	{
+		BossController_switchState(scast<StageEntity3DAnm*>(self), &BossController_sTransition);
+	},
+
+	.commonEnd = [](StageEntity* self)
+	{
+		scast<StageEntity3DAnm*>(self)->model.frameController.update();
+	}
+};
+
 bool BossController_coopTransitionState(StageEntity3DAnm* self)
 {
-	const u32 FadeWaitDurationFrames = 30;
-
 	s8& step = rcast<s8*>(self)[0x53A];
-	fx32& zoneX = rcast<fx32*>(self)[0x514/4];
-
-	if (step == Func::Init)
-	{
-		step++;
-
-		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-		{
-			// Begin fade out
-			Game::fader.fadeMaskShape[playerID] = FadeMask::getCharacterFadeMaskID(Game::getPlayerCharacter(playerID));
-			Game::fader.fadingState[playerID] |= 0x28;
-		}
-
-		return true;
-	}
-
-	if (step == Func::Exit)
-	{
-		return true;
-	}
-
-	auto commonEnd = [self]() -> bool {
-		self->model.frameController.update();
-		return true;
-	};
-
-	if (step == 1)
-	{
-		// Wait for fade out
-		if ((Game::fader.fadingState[0] & 8) == 0)
-			step++;
-
-		return commonEnd();
-	}
-
-	if (step == 2)
-	{
-		step++;
-
-		Player* closestPlayer = ActorFixes_getClosestPlayer(self);
-		closestPlayer->beginCutscene(true);
-
-		// Other players
-		s32 order = 1;
-		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-		{
-			if (closestPlayer->linkedPlayerID == playerID || Game::getPlayerDead(playerID))
-				continue;
-
-			Player* player = Game::getPlayer(playerID);
-			player->position.x = closestPlayer->position.x - 16fx * order;
-			player->position.y = closestPlayer->position.y;
-			player->updateCollision(false); // Prevent falling through semi-solid
-			player->beginCutscene(true);
-
-			order++;
-		}
-
-		return commonEnd();
-	}
-
-	if (step == 3)
-	{
-		step++;
-
-		Player* closestPlayer = ActorFixes_getClosestPlayer(self);
-
-		BossFixes_setCameraBoundAll(Stage::stageLayout, zoneX >> FX32_SHIFT, 1);
-
-		// Match the camera of the player in front
-
-		if (Stage::cameraX[closestPlayer->linkedPlayerID] > zoneX)
-		{
-			for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-			{
-				if (closestPlayer->linkedPlayerID == playerID || Game::getPlayerDead(playerID))
-					continue;
-
-				BossFixes_matchPlayerCameraBounds(playerID, closestPlayer->linkedPlayerID);
-			}
-		}
-
-		return commonEnd();
-	}
-
-	if (step < 3 + FadeWaitDurationFrames)
-	{
-		step++;
-		// Make up time for the background to catch up with the camera
-		return commonEnd();
-	}
-
-	if (step == 3 + FadeWaitDurationFrames)
-	{
-		step++;
-
-		// Begin fade in
-		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-			Game::fader.fadingState[playerID] |= 0x5;
-
-		return commonEnd();
-	}
-
-	if (step == 4 + FadeWaitDurationFrames)
-	{
-		// Wait for fade in
-		if ((Game::fader.fadingState[0] & 1) != 0)
-			return commonEnd();
-
-		BossController_switchState(self, &BossController_sTransition);
-		return commonEnd();
-	}
-
-	return commonEnd();
+	s32 stepArg = step;
+	bool result = BossControllerCommon_coopTransitionState(self, stepArg, &BossController_coopTransitionStateInfo);
+	step = stepArg;
+	return result;
 }
 
 // Setup the cutscene transition
-ncp_call(0x021438AC, 40)
-void call_021438AC_ov40(Player* closestPlayer)
-{
-	s32 playerCount = Game::getPlayerCount();
-
-	if (playerCount == 1)
-	{
-		Game::getPlayer(Game::localPlayerID)->beginCutscene(true);
-		BossController_sCustomTransition.func = BossController_transitionState;
-	}
-	else
-	{
-		for (s32 playerID = 0; playerID < playerCount; playerID++)
-			Game::getPlayer(playerID)->beginCutscene(false); // Gets set to true later in BossController_coopTransitionState
-
-		BossController_sCustomTransition.func = BossController_coopTransitionState;
-	}
-}
+ncp_set_call(0x021438AC, 40, BossControllerCommon_setupCoopTransitionState)
 
 ncp_call(0x0214393C, 40)
 void BossController_customSetCameraBoundAll(StageLayout* self, fx32 bound, u32 side)
@@ -252,6 +273,98 @@ void BossController_customBindCameraToZone(StageEntity3DAnm* self)
 
 ncp_repl(0x0214310C, 40, "MOV R0, R4")
 ncp_set_call(0x02143120, 40, ActorFixes_isOutsideCamera)
+
+//============================= Final Boss Controller =============================
+
+struct FinalBossController_PTMF
+{
+	bool (*func)(StageEntity*);
+	u32 adj;
+};
+
+static FinalBossController_PTMF FinalBossController_sCustomTransition = { nullptr, 0 };
+
+ncp_over(0x02148574, 43)
+const static FinalBossController_PTMF* FinalBossController_sCustomTransition_ptr = &FinalBossController_sCustomTransition;
+
+asm(R"(
+	FinalBossController_transitionState = 0x021480A0
+	FinalBossController_switchState = 0x02148580
+	FinalBossController_sTransition = 0x02148AF0
+)");
+
+extern "C"
+{
+	void FinalBossController_switchState(StageEntity* self, FinalBossController_PTMF ptmf);
+	bool FinalBossController_transitionState(StageEntity* self);
+	FinalBossController_PTMF FinalBossController_sTransition;
+}
+
+BossControllerCommon_CoopTransitionStateInfo FinalBossController_coopTransitionStateInfo =
+{
+	.getZoneX = [](StageEntity* self)
+	{
+		Rectangle<fx32> zoneBox;
+		StageZone::get(0, &zoneBox);
+		return zoneBox.x;
+	},
+
+	.exitState = [](StageEntity* self)
+	{
+		FinalBossController_switchState(self, FinalBossController_sTransition);
+	},
+
+	.commonEnd = [](StageEntity* self)
+	{
+
+	},
+};
+
+bool FinalBossController_coopTransitionState(StageEntity* self)
+{
+	s16& step = rcast<s16*>(self)[0xAC0/2];
+	s32 stepArg = step;
+	bool result = BossControllerCommon_coopTransitionState(self, stepArg, &FinalBossController_coopTransitionStateInfo);
+	step = stepArg;
+	return result;
+}
+
+// Setup the cutscene transition
+ncp_set_call(0x021482AC, 43, BossControllerCommon_setupCoopTransitionState)
+
+// For coop binding the camera bounds gets handled by FinalBossController_coopTransitionState
+asm(R"(
+ncp_jump(0x021482F0, 43)
+	BL      _ZN9StageZone3getEhP9RectangleIlE // Keep replaced instruction
+	LDR     R0, =_ZN4Game11playerCountE
+	LDR     R0, [R0]
+	CMP     R0, #1
+	BNE     0x02148330
+	B       0x021482F4
+)");
+
+//============================= Boss Controller Common =============================
+
+void BossControllerCommon_setupCoopTransitionState(Player* closestPlayer)
+{
+	s32 playerCount = Game::getPlayerCount();
+
+	if (playerCount == 1)
+	{
+		Game::getPlayer(Game::localPlayerID)->beginCutscene(true);
+
+		BossController_sCustomTransition.func = BossController_transitionState;
+		FinalBossController_sCustomTransition.func = FinalBossController_transitionState;
+	}
+	else
+	{
+		for (s32 playerID = 0; playerID < playerCount; playerID++)
+			Game::getPlayer(playerID)->beginCutscene(false); // Gets set to true later in BossControllerCommon_coopTransitionState
+
+		BossController_sCustomTransition.func = BossController_coopTransitionState;
+		FinalBossController_sCustomTransition.func = FinalBossController_coopTransitionState;
+	}
+}
 
 // ============================= Misc =============================
 
