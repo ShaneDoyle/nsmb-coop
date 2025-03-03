@@ -364,6 +364,8 @@ ncp_jump(0x021189BC, 10)
 )");
 
 asm(R"(
+StageLayout_setupView = 0x020BBBDC
+
 .type Player_beginCutscene_SUPER, %function
 Player_beginCutscene_SUPER:
 	PUSH    {R4,R5,LR}
@@ -377,6 +379,7 @@ Player_endCutscene_SUPER:
 extern "C" {
 	void Player_beginCutscene_SUPER(Player* self, bool lookAtBoss);
 	void Player_endCutscene_SUPER(Player* self);
+	void StageLayout_setupView(StageLayout* self, Vec3* focusPos, s32 playerID, u32 isFromStageOnCreate);
 }
 
 ncp_jump(0x0211F34C, 10)
@@ -391,6 +394,32 @@ void Player_endCutscene_OVERRIDE(Player* self)
 {
 	if (!Game::getPlayerDead(self->linkedPlayerID))
 		Player_endCutscene_SUPER(self);
+}
+
+ncp_call(0x02118AF8, 10)
+static void Player_viewTransitState_respawnViewSetup(StageLayout* self, Vec3* focusPos, s32 playerID, u32 isFromStageOnCreate)
+{
+	StageLayout_setupView(self, focusPos, playerID, isFromStageOnCreate);
+
+	if (Game::getPlayerCount() == 1)
+		return;
+
+	// Restore the camera bound limits on respawn
+
+	u32 otherID = playerID ^ 1;
+
+	Player* player = Game::getPlayer(playerID);
+	Player* other = Game::getPlayer(otherID);
+
+	if (Stage_isPlayerDead[playerID] && player->viewID == other->viewID)
+	{
+		u8* rawStageLayout = rcast<u8*>(Stage::stageLayout);
+
+		*rcast<fx32*>(&rawStageLayout[20 * playerID + 0xA900]) = *rcast<fx32*>(&rawStageLayout[20 * otherID + 0xA900]);
+		*rcast<fx32*>(&rawStageLayout[20 * playerID + 0xA8FC]) = *rcast<fx32*>(&rawStageLayout[20 * otherID + 0xA8FC]);
+		*rcast<fx32*>(&rawStageLayout[20 * playerID + 0xA8F8]) = *rcast<fx32*>(&rawStageLayout[20 * otherID + 0xA8F8]);
+		*rcast<fx32*>(&rawStageLayout[20 * playerID + 0xA8F4]) = *rcast<fx32*>(&rawStageLayout[20 * otherID + 0xA8F4]);
+	}
 }
 
 /*
