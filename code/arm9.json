@@ -1,6 +1,6 @@
 {
 	"$arm_flags": "-march=armv5te -mtune=arm946e-s $${arm_flags}",
-	"$c_flags": "${arm_flags} $${c_flags} -DSDK_ARM9 -Darm9_start=0x021901E0 -DNTR_DEBUG",
+	"$c_flags": "${arm_flags} $${c_flags} -DSDK_ARM9 -Darm9_start=0x021901E0",
 	"$cpp_flags": "${c_flags} $${cpp_flags}",
 	"$asm_flags": "${arm_flags} $${asm_flags}",
 	"$ld_flags": "$${ld_flags}",
