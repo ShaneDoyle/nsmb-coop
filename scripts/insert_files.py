@@ -16,10 +16,11 @@ newfs_dir = 'nitrofs'
 def insert_nitrofs():
     #Generate dictionary from filename overrides file
     path_overrides = {}
-    with open(path_overrides_filename, 'r') as path_overrides_file:
-        for line in path_overrides_file:
-            line_interpreted = line.split('\n')[0].split(sep=',')
-            path_overrides[line_interpreted[0]] = int(line_interpreted[1])
+    if Path(path_overrides_filename).exists():
+        with open(path_overrides_filename, 'r') as path_overrides_file:
+            for line in path_overrides_file:
+                line_interpreted = line.split('\n')[0].split(sep=',')
+                path_overrides[line_interpreted[0]] = int(line_interpreted[1])
 
     #Insert files into ROM
     for path in Path(newfs_dir).rglob('*.*'):
