@@ -3,6 +3,7 @@
 #include <nsmb/game/stage/entity.hpp>
 #include <nsmb/game/sound.hpp>
 #include <nsmb/core/system/function.hpp>
+#include <nsmb/core/net.hpp>
 
 #include "Stage.hpp"
 #include "PlayerSpectate.hpp"
@@ -10,6 +11,7 @@
 #define PLAYER_JUMPED_ON_ANIM_STATE_WAIT 0xFF
 
 static u8 Player_jumpedOnAnimState[2];
+static u8 Player_seqArcIDs[] = { 4, 30 };
 
 
 bool Player_isOnFlagpole(Player *self) {
@@ -99,6 +101,19 @@ static bool Player_customJumpOnPlayer(Player* self, fx32 force, u16 duration, bo
 
 ncp_set_call(0x02109AB8, 10, Player_customJumpOnPlayer)
 ncp_set_call(0x02109BD4, 10, Player_customJumpOnPlayer)
+
+static void Player_customJumpOnPlayerSound(Player* self, s32 sfxID, const Vec3* pos)
+{
+	u8 entryID = 7 + (Net::getRandom() & 1);
+	s32 otherID = self->linkedPlayerID ^ 1;
+	SND::playSFX(Player_seqArcIDs[otherID], entryID, pos, 127, SND::Internal::SFXMode::Unique);
+}
+
+ncp_set_call(0x02109AD0, 10, Player_customJumpOnPlayerSound)
+ncp_set_call(0x02109BEC, 10, Player_customJumpOnPlayerSound)
+
+ncp_repl(0x0204ED14, "NOP") // Always load both players' sounds
+ncp_repl(0x0204ED50, "NOP") // Always load both players' sounds
 
 ncp_call(0x021098C8, 10)
 static bool Player_customSpecialPlayerBump(Player* self, Player* other, fx32& selfCollisionPointX)
