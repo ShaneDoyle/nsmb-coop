@@ -46,5 +46,5 @@ bool BossMiniMushroomDemo::loadResources()
 
 u32 BossMiniMushroomDemo::getModelFileID()
 {
-	return (Game::stageGroup == 1 ? 2089 : 2090) - 131;
+	return (Game::stageGroup == 1 ? 1653 : 1654) - 131;
 }
