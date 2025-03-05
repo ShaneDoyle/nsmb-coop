@@ -634,6 +634,8 @@ ncp_set_call(0x0213137C, 14, BossFixes_endCutsceneAllPlayers)
 
 //============================= World 5: Petey Piranha =============================
 
+ncp_over(0x02134790, 15) const auto PeteyPiranha_skipRender = ActorFixes_safeSkipRender;
+
 // Make better use of overlay memory by putting the animations in the overlay instead of the model
 
 ncp_set_call(0x02134390, 15, FS::Cache::loadFile) // boss_packun.nsbmd
