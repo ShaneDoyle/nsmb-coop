@@ -17,6 +17,7 @@
 
 #include "PlayerSpectate.hpp"
 #include "Player.hpp"
+#include "nwav/nwav.hpp"
 
 NTR_USED static u32 sTempVar;
 
@@ -1064,3 +1065,28 @@ ncp_over(0x020BC67C, 0)
 	.word	0x020CACC0
 ncp_endover()
 )");
+
+// Use NWAV for the cannon sounds to save memory
+
+ncp_call(0x020F871C, 10)
+void PipeCannon_customPlayShootSound(s32 sfxID, const Vec3* pos)
+{
+	SND::playSFXUnique(sfxID, pos); // Keep replaced instruction
+	NWAV::play(sfxID == 69 ? 2089 : 2090);
+}
+
+void WarpCannon_customPlayShootSound(s32 sfxID, const Vec3* pos)
+{
+	SND::playSFX(sfxID, pos); // Keep replaced instruction
+	NWAV::play(sfxID == 68 ? 2089 : 2090);
+}
+
+ncp_set_call(0x0217F23C, 89, WarpCannon_customPlayShootSound)
+ncp_set_call(0x0217F24C, 89, WarpCannon_customPlayShootSound)
+
+ncp_call(0x0204F2F0)
+void call_0204F2F0()
+{
+	NNS_SndInit(); // Keep replaced instruction
+	NWAV::init();
+}
