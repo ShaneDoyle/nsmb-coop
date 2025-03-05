@@ -9,6 +9,12 @@
 #include "ActorFixes.hpp"
 //#include "PlayerSpectate.hpp"
 
+// Notes:
+//  - Any actor using `Model::getNodePosition` (0x020196DC) or `Model::getNodeMatrix` (0x0201972C) that does
+//    not override `skipRender` to always render but become invisible must use `ActorFixes_safeSkipRender`.
+//  - Any actor using `Game::isOutsideCamera(..., Game::localPlayerID)` (0x0200AE9C)
+//    to make decisions beyond just rendering must use `ActorFixes_isOutsideCamera`.
+
 asm(R"(
 	SledgeBro_tryShakePlayer = 0x02174DE4
 )");
@@ -81,6 +87,8 @@ Player* StageActor_getClosestPlayer_OVERRIDE(StageActor* self, s32* distanceX, s
 }
 
 // Hammer/Fire/Boomerang Bros -----------------------------------------------------------
+
+ncp_over(0x0216E1D4, 54) const auto HammerBroSpawnPoint_skipRender = ActorFixes_safeSkipRender;
 
 ncp_over(0x021754F8, 56) const auto HammerBro_skipRender = ActorFixes_safeSkipRender;
 ncp_over(0x02175730, 56) const auto FireBro_skipRender = ActorFixes_safeSkipRender;
@@ -275,7 +283,13 @@ ncp_endover()
 
 // TODO: LIQUID POSITION AND LAST LIQUID POSITION
 
+// Boo ----------------------------------------------------------------------------------
+
+ncp_over(0x021793EC, 71) const auto Boo_skipRender = ActorFixes_safeSkipRender;
+
 // Balloon Boo --------------------------------------------------------------------------
+
+ncp_over(0x02179508, 71) const auto BalloonBoo_skipRender = ActorFixes_safeSkipRender;
 
 ncp_repl(0x0217716C, 71, "NOP") // Pass Boo* instead of &Boo*->position
 ncp_set_call(0x02177178, 71, ActorFixes_isOutsideCamera)
@@ -328,6 +342,8 @@ ncp_endover()
 )");
 
 // Warp Cannon ---------------------------------------------------------------------
+
+ncp_over(0x0217FD74, 89) const auto WarpCannon_skipRender = ActorFixes_safeSkipRender;
 
 struct WarpCannon_PTMF
 {
@@ -439,6 +455,15 @@ ncp_jump(0x0217F5E0, 89)
 )");
 
 // Misc ---------------------------------------------------------------------------------
+
+ncp_over(0x02132560, 18) const auto CheepSkipper_skipRender = ActorFixes_safeSkipRender;
+
+ncp_over(0x0216D1BC, 54) const auto Trampoline_skipRender = ActorFixes_safeSkipRender;
+
+ncp_over(0x0213F470, 24) const auto DryBones_skipRender = ActorFixes_safeSkipRender;
+
+ncp_over(0x0218F450, 123) const auto Toadsworth_skipRender = ActorFixes_safeSkipRender;
+
 
 //Fix Volcano BG                                    MUST BE CHECKED LATER
 // void repl_020B6B6C() { asm("MOV R1, #2"); }

@@ -276,6 +276,8 @@ ncp_set_call(0x02143120, 40, ActorFixes_isOutsideCamera)
 
 //============================= Final Boss Controller =============================
 
+ncp_over(0x02148B70, 43) const auto FinalBossController_skipRender = ActorFixes_safeSkipRender;
+
 struct FinalBossController_PTMF
 {
 	bool (*func)(StageEntity*);
@@ -401,6 +403,8 @@ void BossFixes_endCutsceneAllPlayers()
 
 //============================= Bowser Jr. =============================
 
+ncp_over(0x02141438, 28) const auto BowserJr_skipRender = ActorFixes_safeSkipRender;
+
 ncp_repl(0x0213CA5C, 28, "MOV R0, R4")
 ncp_set_call(0x0213CA70, 28, ActorFixes_isOutsideCamera)
 
@@ -464,6 +468,8 @@ ncp_jump(0x0213BFA8, 28)
 ncp_repl(0x0213D1AC, 28, "MOV R2, #0")
 
 //============================= World 1: Bowser =============================
+
+ncp_over(0x0213BB10, 13) const auto Bowser_skipRender = ActorFixes_safeSkipRender;
 
 ncp_call(0x0215E850, 54)
 void BossFixes_doNotLoadDoorModels()
@@ -690,6 +696,8 @@ ncp_set_call(0x02132BE8, 15, BossFixes_endCutsceneAllPlayers)
 // TODO: look into ov15 0x02132990
 
 //============================= World 6: Monty Tank =============================
+
+ncp_over(0x021374C0, 19) const auto MontyTankBoss_skipRender = ActorFixes_safeSkipRender;
 
 ncp_set_call(0x021361E4, 19, BossFixes_endCutsceneAllPlayers)
 
