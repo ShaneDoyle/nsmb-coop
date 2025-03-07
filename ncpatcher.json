@@ -9,7 +9,10 @@
 	"filesystem": "__tmp",
 	"toolchain": "arm-none-eabi-",
 	
-	"arm7": {},
+	"arm7": {
+		"target": "code/arm7.json",
+		"build": "code/build7"
+	},
 	"arm9": {
 		"target": "code/arm9.json",
 		"build": "code/build"

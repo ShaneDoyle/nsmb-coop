@@ -21,6 +21,7 @@
 		"sources": [
 			["source", false],
 			["source/actor", false],
+			["source/scene", false],
 			["source/util", false],
 			["source/nwav", false],
 			["source/debug", false],

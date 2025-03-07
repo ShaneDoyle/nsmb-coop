@@ -10,6 +10,7 @@
 
 # Built code
 /code/build/
+/code/build7/
 
 # Exclude Nitro SDK headers
 /code/include/nitro/

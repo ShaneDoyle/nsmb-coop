@@ -1,0 +1,24 @@
+{
+	"$arm_flags": "-march=armv4t -mtune=arm7tdmi $${arm_flags}",
+	"$c_flags": "${arm_flags} $${c_flags} -DSDK_ARM7",
+	"$cpp_flags": "${c_flags} $${cpp_flags}",
+	"$asm_flags": "${arm_flags} $${asm_flags}",
+	"$ld_flags": "$${ld_flags}",
+
+	"c_flags": "${c_flags}",
+	"cpp_flags": "${cpp_flags}",
+	"asm_flags": "${asm_flags}",
+	"ld_flags": "${ld_flags}",
+
+	"includes": [],
+	"regions": [{
+		"dest": "main",
+		"compress": false,
+		"sources": [
+			["source7", false]
+		]
+	}],
+
+	"arenaLo": "0x037FCF78",
+	"symbols": "${env:NSMBREF_ROOT}/symbols7.x"
+}
