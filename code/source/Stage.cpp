@@ -271,6 +271,7 @@ NTR_USED static bool Stage_customPlayerCreateCase(Player* player)
 	u32 playerID = player->linkedPlayerID;
 	if (Game::getPlayerLives(playerID) == 0 || Stage_isPlayerDead[playerID])
 	{
+		player->damageCooldown = 35; // Do not die when spawning (eg.: to Pipe Piranhas)
 		Stage_beginPlayerSpectate(player->linkedPlayerID);
 		Stage_switchToPlayerSpectateState(player);
 		return true;
