@@ -1090,3 +1090,13 @@ void call_0204F2F0()
 	NNS_SndInit(); // Keep replaced instruction
 	NWAV::init();
 }
+
+// Do not clear event timers on view change, only area reload
+
+asm(R"(
+ncp_jump(0x02118860, 10)
+	BL      _ZN4Game14getPlayerCountEv
+	CMP     R0, #1
+	BLEQ    0x0201DD5C // clearEventTimers
+	B       0x02118E00
+)");
