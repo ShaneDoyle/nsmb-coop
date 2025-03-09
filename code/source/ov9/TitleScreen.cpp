@@ -3,6 +3,8 @@
 #include <nsmb/core/system/input.hpp>
 #endif
 
+#include "Widescreen.hpp"
+
 // Skip MvsL and Minigames buttons
 ncp_repl(0x020D317C, 9, "ADDNE R1, R1, #3")
 ncp_repl(0x020D319C, 9, "SUBNE R1, R1, #3")
@@ -19,3 +21,26 @@ u32 TitleScreen_getSceneIDAfterFileSelect()
 
 ncp_repl(0x020CD700, 9, "MOV R0, #6") // Bowser Jr. Intro to MvsL Menu
 ncp_repl(0x020D3708, 9, "MOV R1, #0") // MvsL returns to Main Menu button 0
+
+// Widescreen toggle
+
+asm(R"(
+	fun020CD884 = 0x020CD884
+)");
+extern "C" void fun020CD884(void*);
+
+ncp_call(0x020D3474, 9)
+void TitleScreen_updateHook(void* r0)
+{
+	fun020CD884(r0); // Keep replaced instruction
+
+	u16 held = Input::consoleKeys[0].held;
+
+	if ((held & Keys::L) && (held & Keys::R))
+	{
+		if (Input::consoleKeys[0].pressed & Keys::X)
+		{
+			Widescreen::enabled[0] = !Widescreen::enabled[0];
+		}
+	}
+}

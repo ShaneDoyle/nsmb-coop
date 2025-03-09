@@ -2,6 +2,9 @@
 #include <nsmb/game/vsconnect/scene.hpp>
 // The fields of the VSConnectScene class are not yet documented, raw access to fields is required.
 #include <nsmb/game/sound/sound.hpp>
+#include <nsmb/core/net.hpp>
+
+#include "Widescreen.hpp"
 
 ncp_call(0x021592DC, 52)
 u32 VSConnect_skipFirstSubMenu()
@@ -26,3 +29,31 @@ void VSConnect_modifyReturn(VSConnectScene* self, VSConnectScene::SubMenu* subMe
 		SND::stopBGM(30);
 	}
 }
+
+void VSConnect_onPacketBufferReceived(u16 aid, void* arg)
+{
+	u32 wifiMode = rcast<u32*>(arg)[0x168/4];
+	Net::PacketBuffer* pktBuf = rcast<Net::PacketBuffer*>(rcast<u8*>(arg) + 0x204);
+
+	if (wifiMode || !aid)
+		Widescreen::enabled[aid] = pktBuf->buffers[aid][2];
+	else
+		Widescreen::enabled[aid] = Widescreen::enabled[0];
+
+	VSConnectScene::syncInputSchemeWrapper(aid, scast<VSConnectScene*>(arg));
+}
+
+ncp_call(0x0215923C, 52)
+void VSConnect_modifyCreatePacketBuffer(Net::PacketBuffer* pktBuf, u8 size, Net::OnPacketTransferComplete completeFunc, void* completeArg)
+{
+	pktBuf->create(size, completeFunc, completeArg); // Keep replaced instruction
+
+	u8* dataToSend = rcast<u8*>(completeArg) + 0x21C;
+
+	// Because of alignment, "dataToSend" still has 2 bytes free we
+	// can use. For sending more we'd need to copy the data somewhere else
+	dataToSend[2] = Widescreen::enabled[0];
+}
+
+ncp_repl(0x02159234, 52, "MOV R1, #3") // Bytes to send
+ncp_over(0x0215933C, 52) const auto over_0215933C_52 = VSConnect_onPacketBufferReceived;
