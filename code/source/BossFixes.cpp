@@ -627,6 +627,9 @@ ncp_repl(0x0213298C, 16, "ADD R0, R4, #0x100; LDRSB R0, [R0,#0x1E]") // Fix grou
 ncp_repl(0x021327EC, 16, "ADD R0, R5, #0x100") // Fix shell hit
 ncp_repl(0x021327FC, 16, "LDRSB R0, [R0,#0x1E]") // Fix shell hit
 
+ncp_repl(0x02132E88, 16, "ADD R0, R5, #0x100") // Fix stomp hit
+ncp_repl(0x02132E9C, 16, "LDRSB R0, [R0,#0x1E]") // Fix stomp hit
+
 //============================= World 3: Cheepskipper =============================
 
 ncp_set_call(0x02131748, 18, BossFixes_endCutsceneAllPlayers)
