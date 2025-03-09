@@ -14,6 +14,7 @@
 #include <nsmb/core/graphics/fader.hpp>
 #include <nsmb/core/entity/scene.hpp>
 #include <nsmb/core/wifi/wifi.hpp>
+#include <nsmb/core/filesystem.hpp>
 
 #include "PlayerSpectate.hpp"
 #include "Player.hpp"
@@ -31,12 +32,14 @@ asm(R"(
 	StageLayout_looperScrollBack = 0x020B1510
 	Flagpole_switchState = 0x02130734
 	UI_drawDirect = 0x0200421C
+	DrawBottomScreenLives = 0x020BEC60
 )");
 extern "C" {
 	void SpawnGrowingEntranceVine(Vec3*);
 	void StageLayout_looperScrollBack(void* stageLayout, s32 playerID);
 	bool Flagpole_switchState(StageEntity* self, int ptmfPtr);
 	void UI_drawDirect(u8 objectID, GXOamAttr* attrs, OAM::Flags flags, u8 palette, u8 affineSet, const Vec2 *scale, s16 rot, const s16 rotCenter[2], OAM::Settings settings, s32 xOffset, s32 yOffset);
+	void DrawBottomScreenLives();
 }
 namespace Stage {
 	void exitLevel(u32 flag);
@@ -763,6 +766,12 @@ ncp_jump(0x020BF124, 0)
 ncp_call(0x020BF12C, 0)
 void call_020BF12C_ov0()
 {
+	if (Game::getPlayerCount() == 1)
+	{
+		DrawBottomScreenLives();
+		return;
+	}
+
 	GXOamAttr** liveCounterForPlayer_1P = rcast<GXOamAttr**>(0x020CA00C);
 	s32 xShift = *rcast<s32*>(0x020CC2C4);
 
@@ -771,16 +780,17 @@ void call_020BF12C_ov0()
 }
 
 // Update lives for both players
-ncp_call(0x020C0444, 0)
-void call_020C0444_ov0()
-{
-	GXOamAttr** entryTable_1P = rcast<GXOamAttr**>(0x0216F554);
-	GXOamAttr** liveCounterForPlayer_1P = rcast<GXOamAttr**>(0x020CA00C);
+ncp_repl(0x020C0434, 0, "LDRB R0, [R0,R6]")
+ncp_repl(0x020C0790, 0, ".int _ZN4Game15playerCharacterE")
 
-	OAM::updateCounter(liveCounterForPlayer_1P[0], entryTable_1P, Game::getPlayerLives(0), 2, OAM::CounterFlags::UpdateShadow | OAM::CounterFlags::NoLeadingZeroes);
-	OAM::updateCounter(liveCounterForPlayer_1P[1], entryTable_1P, Game::getPlayerLives(1), 2, OAM::CounterFlags::UpdateShadow | OAM::CounterFlags::NoLeadingZeroes);
+// Load tilemap with background for 2 life counters
+ncp_call(0x020C0A34, 0)
+void call_020C0A34_ov0(u32 extFileID, void* dest)
+{
+	if (Game::getPlayerCount() != 1)
+		extFileID = 2092 - 131;
+	FS::loadFileLZ77(extFileID, dest);
 }
-ncp_repl(0x020C041C, 0, "B 0x020C0444")
 
 ncp_repl(0x0209AAD0, 0, "BX LR") // Disable MvsL coin score
 ncp_repl(0x020D3350, 10, "NOP") // Disable MvsL coin score for coin actor
