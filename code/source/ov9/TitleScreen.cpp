@@ -1,10 +1,10 @@
 #ifdef NTR_DEBUG
 #include <nsmb/core/entity/scene.hpp>
-#include <nsmb/core/system/input.hpp>
 #endif
 
 #include <nsmb/game/sound.hpp>
 #include <nsmb/core/system/save.hpp>
+#include <nsmb/core/system/input.hpp>
 
 #include "Widescreen.hpp"
 
