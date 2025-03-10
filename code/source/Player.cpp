@@ -30,7 +30,7 @@ static void Player_updateJumpedOnAnimation(Player* self)
 	if (animState == PLAYER_JUMPED_ON_ANIM_STATE_WAIT)
 		return;
 
-	// Cancel the animation if player has is switching powerup
+	// Cancel the animation if player is switching powerup
 	if (self->powerupSwitchTimer != 0)
 	{
 		animState = PLAYER_JUMPED_ON_ANIM_STATE_WAIT;
