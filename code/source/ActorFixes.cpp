@@ -3,6 +3,7 @@
 #include <nsmb/game/stage/player/player.hpp>
 #include <nsmb/game/stage/entity3danm.hpp>
 #include <nsmb/game/stage/viewshaker.hpp>
+#include <nsmb/game/stage/actors/ov54/warpentrance.hpp>
 #include <nsmb/game/stage/actors/ov66/lakituspawner.hpp>
 #include <nsmb/core/system/function.hpp>
 #include <nsmb/core/math/math.hpp>
@@ -467,6 +468,22 @@ ncp_set_call(0x02175C4C, 66, LakituSpawner_customTargetAvailable)
 ncp_set_call(0x02175C6C, 66, LakituSpawner_customTargetAvailable)
 ncp_set_call(0x02175D0C, 66, LakituSpawner_customTargetAvailable)
 ncp_set_call(0x02175D40, 66, LakituSpawner_customTargetAvailable)
+
+// Warp Entrance ------------------------------------------------------------------------
+
+// Fix the warp entrance not working after one usage
+
+void WarpEntrance_customWarpPlayer(WarpEntrance* self, Player* player)
+{
+	self->warpPlayer(player);
+
+	self->warpCountdown = 0;
+	self->warpState = WarpEntrance::WarpState::None;
+	self->warpTriggered = 0;
+}
+
+ncp_set_call(0x02156258, 54, WarpEntrance_customWarpPlayer)
+ncp_set_call(0x02156350, 54, WarpEntrance_customWarpPlayer)
 
 // Misc ---------------------------------------------------------------------------------
 
