@@ -238,6 +238,7 @@ static bool Stage_playerDeadState(Player* player, void* arg)
 	if (player->getJumpKeyPressed() &&
 		Game::getPlayerLives(playerID) != 0 &&
 		!Game::getPlayerDead(otherID) &&
+		!other->transitioningFlag &&
 		!Stage_isBossFight() &&
 		!Stage_hasLevelFinished())
 	{
