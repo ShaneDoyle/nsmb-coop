@@ -3,6 +3,7 @@
 #include <nsmb/game/game.hpp>
 #include <nsmb/game/sound/sound.hpp>
 #include <nsmb/game/player.hpp>
+#include <nsmb/game/ui.hpp>
 #include <nsmb/game/stage/entity.hpp>
 #include <nsmb/game/stage/player/player.hpp>
 #include <nsmb/game/stage/player/door.hpp>
@@ -775,8 +776,8 @@ void call_020BF12C_ov0()
 	GXOamAttr** liveCounterForPlayer_1P = rcast<GXOamAttr**>(0x020CA00C);
 	s32 xShift = *rcast<s32*>(0x020CC2C4);
 
-	Game::drawBNCLSpriteSub(6, liveCounterForPlayer_1P[0], OAM::Flags::None, 0, 0, 0, 0, 0, OAM::Settings::None, -xShift - 64 - 4, 0);
-	Game::drawBNCLSpriteSub(6, liveCounterForPlayer_1P[1], OAM::Flags::None, 0, 0, 0, 0, 0, OAM::Settings::None, -xShift + 4, 0);
+	UI::drawSub(6, liveCounterForPlayer_1P[0], OAM::Flags::None, 0, 0, 0, 0, 0, OAM::Settings::None, -xShift - 64 - 4, 0);
+	UI::drawSub(6, liveCounterForPlayer_1P[1], OAM::Flags::None, 0, 0, 0, 0, 0, OAM::Settings::None, -xShift + 4, 0);
 }
 
 // Update lives for both players
