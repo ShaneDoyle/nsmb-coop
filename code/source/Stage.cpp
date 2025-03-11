@@ -215,6 +215,7 @@ static bool Stage_playerDeadState(Player* player, void* arg)
 		step = 1;
 
 		player->visible = false;
+		*rcast<u8*>(0x020CA880) &= ~0x10; // Restore pausing
 
 		return true;
 	}
