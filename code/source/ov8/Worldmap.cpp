@@ -55,11 +55,11 @@ ncp_repl(0x020CF880, 8, "NOP") // Prevent the worldmap from disconnecting multip
 // Replace world load level system
 asm(R"(
 ncp_jump(0x020CEF84, 8)
-	LDR     R0, =_ZN4Wifi12consoleCountE
+	LDR     R0, =_ZN4Wifi25communicatingConsoleCountE
 	LDR     R0, [R0]
 	CMP     R0, #1
 	BEQ     .return
-	LDR     R0, =_ZN4Wifi10currentAidE
+	LDR     R0, =_ZN3Net8localAidE
 	LDR     R0, [R0]
 	STR     R0, [SP,#4] // playerID
 	MOV     R0, #3

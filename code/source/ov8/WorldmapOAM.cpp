@@ -69,7 +69,7 @@ NTR_USED static void Worldmap_drawCustomLivesCounter()
 
 asm(R"(
 ncp_jump(0x020D0B58, 8)
-	LDR     R0, =_ZN4Wifi12consoleCountE
+	LDR     R0, =_ZN4Wifi25communicatingConsoleCountE
 	LDR     R0, [R0]
 	CMP     R0, #1
 	BLNE    _ZL31Worldmap_drawCustomLivesCounterv
