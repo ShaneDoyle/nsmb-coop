@@ -138,7 +138,7 @@ s32 DesyncScene::onCreate()
 
 	u32& areaNum = *rcast<u32*>(0x02085A94);
 
-	OS_SPrintf(textBuffer, "Level: %d-%s (%d)", Game::stageGroup, levelNames[Game::currentWorldNode], areaNum);
+	OS_SPrintf(textBuffer, "Level: %d-%s (%d)", Game::stageGroup + 1, levelNames[Game::currentWorldNode], areaNum);
 	writeString(16, 128 - 8, 7, textBuffer);
 
 	OS_SPrintf(textBuffer, "RNG: 0x%08X Tick: 0x%04X", Net::random.value, scast<u32>(Net::packetTick));
