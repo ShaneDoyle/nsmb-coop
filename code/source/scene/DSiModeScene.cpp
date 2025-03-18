@@ -7,6 +7,8 @@
 #include <nsmb/core/system/input.hpp>
 #include <nsmb/core/system/misc.hpp>
 
+#include "Widescreen.hpp"
+
 #define BASE_SHARED			0x027FF000
 #define SRAMCHECKER7		BASE_SHARED + 0xA7E
 
@@ -69,11 +71,13 @@ s32 DSiModeScene::onCreate()
 	MI_DmaCopy32(3, scast<u8*>(bgData) + 0x10000, rcast<void*>(HW_BG_PLTT), 0x200);
 	FS::unloadFile(bgData);
 
-    G2_SetBG3Priority(0);
-    G2_BG3Mosaic(false);
+	bool wide = Widescreen::enabled[Net::localAid];
+	G2_SetBG3Affine(&Widescreen::affineBgMtx[wide], 0, 0, Widescreen::affineBgOffX[wide], 0);
+
+	G2_SetBG3Priority(0);
+	G2_BG3Mosaic(false);
 
 	Game::setVisiblePlane(GX_PLANEMASK_BG3);
-	Game::fader.setAlphaBlending(0, 0, 0, 0);
 
 	SND::playSFX(238);
 

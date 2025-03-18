@@ -34,17 +34,6 @@ u32 TitleScreen_getSceneIDAfterFileSelect()
 ncp_repl(0x020CD700, 9, "MOV R0, #6") // Bowser Jr. Intro to MvsL Menu
 ncp_repl(0x020D3708, 9, "MOV R1, #0") // MvsL returns to Main Menu button 0
 
-s32 TitleScreen_onCreate_ext(void* self)
-{
-	s32 result = TitleScreen_onCreate(self);
-
-	Widescreen::enabled[0] = Save::optionSave.flags & (1 << 1);
-
-	return result;
-}
-
-ncp_repl(0x020DAA94, 9, ".int _Z24TitleScreen_onCreate_extPv")
-
 // Widescreen toggle
 
 ncp_call(0x020D3474, 9)

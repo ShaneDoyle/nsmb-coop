@@ -13,6 +13,16 @@ namespace Widescreen
 	u8 enabled[2];
 	u8 shouldApply[2];
 
+	MtxFx22 affineBgMtx[2] = {
+		{ 0x1000, 0, 0, 0x1000 },
+		{ 0x1300, 0, 0, 0x1000 } // x_scale = ((0x1000 * 3ds_scr_size) / ds_scr_size)
+	};
+
+	s8 affineBgOffX[2] = {
+		0,
+		-20 // x_offset = ((3ds_scr_size - ds_scr_size) / 2) * (3ds_scr_size / ds_scr_size)
+	};
+
 	bool canApply(u32 playerID)
 	{
 		if (!enabled[playerID])
