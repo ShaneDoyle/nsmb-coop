@@ -6,6 +6,8 @@
 #include <nsmb/core/net.hpp>
 #include <nsmb/core/wifi.hpp>
 
+#include "DesyncGuard.hpp"
+
 asm(R"(
 	Worldmap_onCreate = 0x020CF7C8
 )");
@@ -51,6 +53,13 @@ static s32 Worldmap_onCreate_ext(Scene* self)
 ncp_over(0x020E67EC, 8) const auto WorldmapScene_onCreate_vtbl = Worldmap_onCreate_ext;
 
 ncp_repl(0x020CF880, 8, "NOP") // Prevent the worldmap from disconnecting multiplayer
+
+// Replace get player powerup (now unused) with pre-load code
+ncp_call(0x020CEF1C, 8)
+static void Worldmap_beforeLevelLoad()
+{
+	DesyncGuard::storeState();
+}
 
 // Replace world load level system
 asm(R"(

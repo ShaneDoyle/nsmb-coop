@@ -19,6 +19,7 @@
 
 #include "PlayerSpectate.hpp"
 #include "Player.hpp"
+#include "DesyncGuard.hpp"
 #include "nwav/nwav.hpp"
 
 NTR_USED static u32 sTempVar;
@@ -195,6 +196,8 @@ ncp_call(0x02119CC0, 10)
 void Player_freezeTimerOnDeathHook(s32 playerID, bool dead)
 {
 	Game::setPlayerDead(playerID, dead); // Keep replaced instruction
+
+	DesyncGuard::markDesyncCheck();
 
 	for (u32 iPlayerID = 0; iPlayerID < Game::getPlayerCount(); iPlayerID++)
 	{
