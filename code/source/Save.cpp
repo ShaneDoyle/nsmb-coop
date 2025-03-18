@@ -1,4 +1,33 @@
+#include "Save.hpp"
+
 #include <nsmb/game/stage/player/common.hpp>
+
+namespace SaveExt
+{
+	bool reloadingSave = false;
+
+	void transferMainSave(Packet& packet, u8 senderAid, Net::OnPacketTransferComplete completeFunc, void* completeArg)
+	{
+		packet.transfer(senderAid, &Save::mainSave, &Save::mainSave, sizeof(MainSave), completeFunc, completeArg);
+	}
+
+	void reloadMainSave()
+	{
+		reloadingSave = true;
+		Save::loadMainSave(Save::optionSave.activeSlot, 0, &Save::mainSave);
+		reloadingSave = false;
+	}
+
+	Save::ReturnCode readMainSavePatch(u32 slot, MainSave* save)
+	{
+		if (reloadingSave)
+			return Save::ReturnCode::Success;
+
+		return Save::readMainSave(slot, save);
+	}
+}
+
+ncp_set_call(0x02012E1C, SaveExt::readMainSavePatch)
 
 // Allow Luigi's lives to be saved and loaded
 ncp_call(0x02012DB0) u32 call_02012DB0() { return (Game::getPlayerLives(1) << 16) | Game::getPlayerLives(0); }
