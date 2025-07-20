@@ -135,8 +135,8 @@ namespace DesyncGuard
 		}
 
 		// Marker should only ever live for 1 update
-		Net::clearMarker(markerIndex);
-		Net::clearMarker(rngMarkerIndex);
+		Net::Core::clearMarker(markerIndex);
+		Net::Core::clearMarker(rngMarkerIndex);
 	}
 
 	void MainGame_loop_CALL()

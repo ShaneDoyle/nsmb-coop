@@ -37,15 +37,15 @@ static s32 Worldmap_onCreate_ext(Scene* self)
 		Worldmap_afterOnCreate(self);
 
 		if (Net::isConnected())
-			Net::setMarker(0);
+			Net::Core::setMarker(0);
 
 		WorldmapSyncWaiting = 1;
 	}
 
-	if (Net::isConnected() && !Net::checkMarker(0))
+	if (Net::isConnected() && !Net::Core::checkMarker(0))
 		return -1;
 
-	Net::clearMarker(0);
+	Net::Core::clearMarker(0);
 	WorldmapSyncWaiting = 0;
 	return 1;
 }
