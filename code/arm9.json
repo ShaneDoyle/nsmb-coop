@@ -44,6 +44,22 @@
 			["source/ov9", false]
 		]
 	}, {
+		"dest": "ov24",
+		"mode": "append",
+		"length": "0x5F80",
+		"compress": false,
+		"sources": [
+			["source/ov24", false]
+		]
+	}, {
+		"dest": "ov34",
+		"mode": "append",
+		"length": "0x4DE0",
+		"compress": false,
+		"sources": [
+			["source/ov34", false]
+		]
+	}, {
 		"dest": "ov50",
 		"mode": "append",
 		"length": "0xBBE0",

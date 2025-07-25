@@ -88,6 +88,16 @@ Player* StageActor_getClosestPlayer_OVERRIDE(StageActor* self, s32* distanceX, s
 	return player;
 }
 
+bool ActorFixes_isPlayerInShakeRange(StageActor* self, Player* player)
+{
+	const fx32 range = 0x100000; // 16 tiles
+
+	bool inRange = Math::abs(self->position.x - player->position.x) < range &&
+	               Math::abs(self->position.y - player->position.y) < range;
+
+	return inRange;
+}
+
 // Hammer/Fire/Boomerang Bros -----------------------------------------------------------
 
 ncp_over(0x0216E1D4, 54) const auto HammerBroSpawnPoint_skipRender = ActorFixes_safeSkipRender;
@@ -100,23 +110,13 @@ ncp_over(0x02175614, 56) const auto BoomerangBro_skipRender = ActorFixes_safeSki
 
 ncp_over(0x02175880, 56) const auto SledgeBro_skipRender = ActorFixes_safeSkipRender;
 
-static bool SledgeBro_isPlayerInShakeRange(StageEntity* self, Player* player)
-{
-	const fx32 range = 0x100000; // 16 tiles
-
-	bool inRange = Math::abs(self->position.x - player->position.x) < range &&
-	               Math::abs(self->position.y - player->position.y) < range;
-
-	return inRange;
-}
-
 NTR_USED static void SledgeBro_fixShakePlayer(StageEntity* self)
 {
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
 		Player* player = Game::getPlayer(playerID);
 
-		if (SledgeBro_isPlayerInShakeRange(self, player))
+		if (ActorFixes_isPlayerInShakeRange(self, player))
 		{
 			ViewShaker::start(3, self->viewID, playerID, false);
 			if (playerID == Game::localPlayerID)

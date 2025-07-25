@@ -15,3 +15,5 @@ NTR_INLINE bool ActorFixes_isPlayerInZone(Player* player, u32 zoneID)
 {
 	return rcast<StageEntity*>(0)->isPlayerInZone(*player, zoneID);
 }
+
+bool ActorFixes_isPlayerInShakeRange(StageActor* self, Player* player);
