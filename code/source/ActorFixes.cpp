@@ -283,6 +283,18 @@ ncp_over(0x020A6E9C, 0)
 ncp_endover()
 )");
 
+// Restore multiplayer lava rising logic
+ncp_repl(0x02165170, 54, "CMP R2, #1")
+ncp_repl(0x02165274, 54, ".int _ZN4Game11playerCountE")
+
+// Do not use Game::localPlayerID for lava rising
+asm(R"(
+ncp_over(0x021651B4, 54)
+	LDRB    R2, [R2]
+	LDR     R3, [R3]
+ncp_endover()
+)");
+
 // TODO: LIQUID POSITION AND LAST LIQUID POSITION
 
 // Boo ----------------------------------------------------------------------------------
