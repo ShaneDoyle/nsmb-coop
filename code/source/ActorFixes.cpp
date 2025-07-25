@@ -100,14 +100,14 @@ ncp_over(0x02175614, 56) const auto BoomerangBro_skipRender = ActorFixes_safeSki
 
 ncp_over(0x02175880, 56) const auto SledgeBro_skipRender = ActorFixes_safeSkipRender;
 
-static bool SledgeBro_canTryShakePlayer(StageEntity* self, Player* player)
+static bool SledgeBro_isPlayerInShakeRange(StageEntity* self, Player* player)
 {
 	const fx32 range = 0x100000; // 16 tiles
 
 	bool inRange = Math::abs(self->position.x - player->position.x) < range &&
 	               Math::abs(self->position.y - player->position.y) < range;
 
-	return inRange && !Game::getPlayerDead(player->linkedPlayerID);
+	return inRange;
 }
 
 NTR_USED static void SledgeBro_fixShakePlayer(StageEntity* self)
@@ -116,12 +116,13 @@ NTR_USED static void SledgeBro_fixShakePlayer(StageEntity* self)
 	{
 		Player* player = Game::getPlayer(playerID);
 
-		if (SledgeBro_canTryShakePlayer(self, player))
+		if (SledgeBro_isPlayerInShakeRange(self, player))
 		{
 			ViewShaker::start(3, self->viewID, playerID, false);
 			if (playerID == Game::localPlayerID)
 				SND::playSFX(138, &self->position);
-			SledgeBro_tryShakePlayer(self, playerID);
+			if (!Game::getPlayerDead(player->linkedPlayerID))
+				SledgeBro_tryShakePlayer(self, playerID);
 		}
 	}
 }
