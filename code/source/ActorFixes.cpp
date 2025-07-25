@@ -511,6 +511,15 @@ ncp_jump(0x021470E8, 42)
 
 ncp_set_call(0x02179E40, 78, ActorFixes_getClosestPlayer)
 
+// Random Cheep Cheep Generator ------------------------------------------------------------------------
+
+asm(R"(
+ncp_jump(0x0213CBC8, 25)
+	MOV     R0, R5
+	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
+	B       0x0213CBCC
+)");
+
 // Misc ---------------------------------------------------------------------------------
 
 ncp_over(0x02132560, 18) const auto CheepSkipper_skipRender = ActorFixes_safeSkipRender;
