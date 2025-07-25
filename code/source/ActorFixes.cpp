@@ -507,6 +507,10 @@ ncp_jump(0x021470E8, 42)
 	B       0x021470EC
 )");
 
+// Sushi (Shark) ------------------------------------------------------------------------
+
+ncp_set_call(0x02179E40, 78, ActorFixes_getClosestPlayer)
+
 // Misc ---------------------------------------------------------------------------------
 
 ncp_over(0x02132560, 18) const auto CheepSkipper_skipRender = ActorFixes_safeSkipRender;
