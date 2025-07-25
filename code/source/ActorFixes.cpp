@@ -498,6 +498,15 @@ void WarpEntrance_customWarpPlayer(WarpEntrance* self, Player* player)
 ncp_set_call(0x02156258, 54, WarpEntrance_customWarpPlayer)
 ncp_set_call(0x02156350, 54, WarpEntrance_customWarpPlayer)
 
+// Bullet Bill ------------------------------------------------------------------------
+
+asm(R"(
+ncp_jump(0x021470E8, 42)
+	MOV     R0, R5
+	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
+	B       0x021470EC
+)");
+
 // Misc ---------------------------------------------------------------------------------
 
 ncp_over(0x02132560, 18) const auto CheepSkipper_skipRender = ActorFixes_safeSkipRender;
