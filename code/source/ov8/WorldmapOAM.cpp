@@ -72,10 +72,10 @@ ncp_jump(0x020D0B58, 8)
 	LDR     R0, =_ZN4Wifi25communicatingConsoleCountE
 	LDR     R0, [R0]
 	CMP     R0, #1
-	BLNE    _ZL31Worldmap_drawCustomLivesCounterv
-	BNE     0x020D0C38
-	MOV     R0, R7
-	B       0x020D0B5C
+	MOVEQ   R0, R7
+	BEQ     0x020D0B5C
+	BL      _ZL31Worldmap_drawCustomLivesCounterv
+	B       0x020D0C38
 )");
 
 struct UI_DrawInfo {
