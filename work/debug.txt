@@ -1,0 +1,50 @@
+
+extern "C"
+void printalivetable()
+{
+	u8* spawnedTable = rcast<u8*>(0x020CA3CC);
+	for (u32 i = 0; i < 256; i++) {
+		Log::print("%02X ", spawnedTable[i]);
+	}
+	Log::print("\n");
+}
+
+asm(R"(
+// ncp_jump(0x020A0B64, 0)
+// 	print "%lr% Actor_spawnActor %r0%\n"
+// 	PUSH    {R4,R5,LR}
+// 	B       0x020A0B68
+
+ncp_jump(0x0209BF10, 0)
+	PUSH    {R0,R1,R2,R3,LR}
+	BL      printalivetable
+	POP     {R0,R1,R2,R3,LR}
+	PUSH    {R0}
+	LDRH    R0, [R0]
+	print "%lr% StageEntity__spawnEntity_2 %r0%\n"
+	POP     {R0}
+	PUSH    {R4-R7,LR}
+	B       0x0209BF14
+
+ncp_jump(0x020AF844, 0)
+	print "%lr% StageLayout__setSpriteNotToSpawn2 %r0%\n"
+	PUSH    {LR}
+	B       0x020AF848
+
+ncp_jump(0x020D8604, 10)
+	print "%lr% Coin__onDestroy %r0%\n"
+	PUSH    {LR}
+	B       0x020D8608
+
+// ncp_jump(0x0209BD44, 0)
+// 	BL      0x0209BDDC // StageEntity__isSpawnInCamera
+// 	print "XXXXXXXX StageEntity__isSpawnInCamera %r0%\n"
+// 	B       0x0209BD48
+)");
+
+ncp_call(0x020D854C, 10)
+void replaaa(StageEntity *actor, u32 flags)
+{
+	bool a = actor->destroyInactive(flags);
+	Log::print("%d %d\n", (int)a, (int)actor->permanentDelete);
+}

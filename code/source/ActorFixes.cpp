@@ -40,7 +40,7 @@ Player* ActorFixes_getClosestPlayer(StageActor* self)
 }
 
 // Replacement for Game::isOutsideCamera(..., Game::localPlayerID)
-bool ActorFixes_isOutsideCamera(StageActor* self, const FxRect& boundingBox, u8 playerID)
+bool ActorFixes_isOutsideCamera(StageActor* self, const FxRect& boundingBox/*, u8 playerID*/)
 {
 	Player* player = ActorFixes_getClosestPlayer(self);
 	return Stage::isOutsideCamera(self->position, boundingBox, player->linkedPlayerID);
@@ -96,6 +96,29 @@ bool ActorFixes_isPlayerInShakeRange(StageActor* self, Player* player)
 	               Math::abs(self->position.y - player->position.y) < range;
 
 	return inRange;
+}
+
+// Replacement for StageEntity::skipRender when update logic depends on skipRender,
+// but rendering should remain local.
+// Use this function in update logic; keep the skipRender vtable entry unchanged
+// so the entity only renders locally.
+// References to skipRender in update should use this function instead.
+bool ActorFixes_isInRangeOfAllPlayers(StageEntity* self)
+{
+	FxRect boundingBox;
+
+	if (self->invisible)
+		return 0;
+
+	if (self->updateStateID == StageEntity::UpdateStateID::Carried)
+		return 0;
+
+	boundingBox.x = self->viewOffset.x << 12;
+	boundingBox.y = self->viewOffset.y << 12;
+	boundingBox.halfWidth = self->renderSize.x << 11;
+	boundingBox.halfHeight = self->renderSize.y << 11;
+
+	return ActorFixes_isOutsideCamera(self, boundingBox);
 }
 
 // Hammer/Fire/Boomerang Bros -----------------------------------------------------------
@@ -498,7 +521,7 @@ void WarpEntrance_customWarpPlayer(WarpEntrance* self, Player* player)
 ncp_set_call(0x02156258, 54, WarpEntrance_customWarpPlayer)
 ncp_set_call(0x02156350, 54, WarpEntrance_customWarpPlayer)
 
-// Bullet Bill ------------------------------------------------------------------------
+// Bullet Bill --------------------------------------------------------------------------
 
 asm(R"(
 ncp_jump(0x021470E8, 42)
@@ -511,7 +534,7 @@ ncp_jump(0x021470E8, 42)
 
 ncp_set_call(0x02179E40, 78, ActorFixes_getClosestPlayer)
 
-// Random Cheep Cheep Generator ------------------------------------------------------------------------
+// Random Cheep Cheep Generator ---------------------------------------------------------
 
 asm(R"(
 ncp_jump(0x0213CBC8, 25)
@@ -519,6 +542,24 @@ ncp_jump(0x0213CBC8, 25)
 	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 	B       0x0213CBCC
 )");
+
+// Coin ---------------------------------------------------------------------------------
+
+asm(R"(
+ncp_jump(0x020D89A8, 10)
+	MOV     R0, R5
+	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
+	B       0x020D89AC
+
+ncp_jump(0x020D9D48, 10)
+	MOV     R0, R4
+	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
+	B       0x020D9D4C
+)");
+
+ncp_repl(0x020D98DC, 10, "MOV R0, #1") // Allow coins to get killed by lava
+
+ncp_set_call(0x020D8524, 10, ActorFixes_isInRangeOfAllPlayers) // Fix coin permanent deletion
 
 // Misc ---------------------------------------------------------------------------------
 
@@ -550,7 +591,6 @@ ncp_repl(0x020F8230, 10, "B 0x020F823C")
 ncp_repl(0x0216D3E4, 54, ".int _ZN10StageActor9preUpdateEv");
 
 
-
-
+// TODO: check ov54:0215DEEC
 
 // TODO: CHECK WHAT 020D98DC IS
