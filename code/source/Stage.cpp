@@ -32,14 +32,12 @@ asm(R"(
 	_ZN5Stage9exitLevelEm = 0x020A189C
 	_ZN5Stage4zoomE = 0x020CADB4
 	StageLayout_looperScrollBack = 0x020B1510
-	Flagpole_switchState = 0x02130734
 	UI_drawDirect = 0x0200421C
 	DrawBottomScreenLives = 0x020BEC60
 )");
 extern "C" {
 	void SpawnGrowingEntranceVine(Vec3*);
 	void StageLayout_looperScrollBack(void* stageLayout, s32 playerID);
-	bool Flagpole_switchState(StageEntity* self, int ptmfPtr);
 	void UI_drawDirect(u8 objectID, GXOamAttr* attrs, OAM::Flags flags, u8 palette, u8 affineSet, const Vec2 *scale, s16 rot, const s16 rotCenter[2], OAM::Settings settings, s32 xOffset, s32 yOffset);
 	void DrawBottomScreenLives();
 }
@@ -521,6 +519,221 @@ ncp_endover()
 
 // ======================================= FLAGPOLE =======================================
 
+// TODO: if mega breaks flagpole while players are holding it, cancel pole grab for other players
+
+struct Flagpole_PTMF
+{
+	bool (*func)(StageEntity*);
+	u32 adj;
+};
+
+// Lowest player has value 0, second has 1, third has 2
+u8 Flagpole_playerOrdinal[2];
+u8 Flagpole_waitPlayerCountdown;
+Player* Flagpole_linkedPlayer;
+StageEntity* Flagpole_instance;
+
+asm(R"(
+Flagpole_switchState = 0x02130734
+Flagpole_updateGoalGrab = 0x0213042C
+Flagpole_sPlayerSlide = 0x02132500
+
+.type Player_flagpoleTransitState_SUPER, %function
+Player_flagpoleTransitState_SUPER:
+	PUSH    {R4,LR}
+	B       0x0211B5CC
+)");
+extern "C" {
+	bool Flagpole_switchState(StageEntity* self, Flagpole_PTMF* function);
+	bool Flagpole_updateGoalGrab(StageEntity* self);
+	bool Player_flagpoleTransitState_SUPER(Player* self, void* arg);
+	Flagpole_PTMF Flagpole_sPlayerSlide;
+}
+
+void Flagpole_getPlayersGrabbing(u32* polePlayerCount, Player** polePlayers, bool* allGrabbing)
+{
+	if (allGrabbing)
+		*allGrabbing = true;
+
+	u32 _polePlayerCount = 0;
+
+	for (u32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		if (Game::getPlayerDead(playerID))
+			continue;
+
+		Player* player = Game::getPlayer(playerID);
+		if (!player->actionFlag.flagpoleGrab)
+		{
+			if (allGrabbing)
+				*allGrabbing = false;
+			continue;
+		}
+
+		if (polePlayers)
+			polePlayers[_polePlayerCount] = player;
+		_polePlayerCount++;
+	}
+
+	if (polePlayerCount)
+		*polePlayerCount = _polePlayerCount;
+}
+
+void Flagpole_calculatePlayerOrdinals(u32 playerCount, Player** players)
+{
+	for (u32 i = 0; i < playerCount; i++)
+	{
+		u32 ordinal = 0;
+
+		for (u32 j = 0; j < playerCount; j++)
+		{
+			if (i != j && players[j]->position.y < players[i]->position.y)
+				ordinal++;
+		}
+
+		Flagpole_playerOrdinal[players[i]->linkedPlayerID] = ordinal;
+	}
+}
+
+void Flagpole_switchToPlayerSlideState(StageEntity* self)
+{
+	u32 polePlayerCount;
+	Player* polePlayers[2];
+	Flagpole_getPlayersGrabbing(&polePlayerCount, polePlayers, nullptr);
+
+	Flagpole_calculatePlayerOrdinals(polePlayerCount, polePlayers);
+
+	Flagpole_switchState(self, &Flagpole_sPlayerSlide);
+
+	*rcast<u32*>(0x020CA8C0) |= 3; // levelEndBitmask
+
+	// TODO: lock player input
+}
+
+ncp_call(0x021301B8, 12)
+void Flagpole_fixFinishSlide()
+{
+	u32 polePlayerCount;
+	Player* polePlayers[2];
+	Flagpole_getPlayersGrabbing(&polePlayerCount, polePlayers, nullptr);
+
+	for (u32 i = 0; i < polePlayerCount; i++)
+		polePlayers[i]->actionFlag.flagpoleEnd = true;
+}
+
+ncp_repl(0x0213056C, 12, "NOP")
+
+void Flagpole_afterTouched(StageEntity* self)
+{
+	u16& grabberID = rcast<u16*>(self)[0x756 / 2];
+
+	if (Flagpole_linkedPlayer == nullptr)
+	{
+		Flagpole_waitPlayerCountdown = 180;
+		Flagpole_linkedPlayer = Game::getPlayer(grabberID);
+		Flagpole_instance = self;
+	}
+
+	// Check if everyone is grabbing the pole
+
+	bool allGrabbing;
+	Flagpole_getPlayersGrabbing(nullptr, nullptr, &allGrabbing);
+
+	if (!allGrabbing)
+		return;
+
+	// Everyone is grabbing the pole, proceed with the pole slide
+
+	Flagpole_waitPlayerCountdown = 0;
+	Flagpole_switchToPlayerSlideState(self);
+}
+
+asm(R"(
+ncp_over(0x02130570, 12)
+	MOV     R0, R6
+	BL      _Z21Flagpole_afterTouchedP11StageEntity
+	B       0x021305B8
+ncp_endover()
+)");
+
+ncp_repl(0x02130588, 12, "NOP") // Do it in Flagpole_afterTouched
+
+
+
+
+
+
+ncp_jump(0x0211B5C8, 10)
+bool Player_flagpoleTransitState_OVERRIDE(Player* self, void* arg)
+{
+	Log::print("%d %d\n", self->linkedPlayerID, self->transitionStateStep);
+
+	if (self->transitionStateStep == 3 && Flagpole_waitPlayerCountdown != 0)
+	{
+		if (self == Flagpole_linkedPlayer)
+		{
+			Flagpole_waitPlayerCountdown--;
+
+			if (Flagpole_waitPlayerCountdown == 0)
+				Flagpole_switchToPlayerSlideState(Flagpole_instance);
+		}
+
+		self->updateAnimation();
+		return true;
+	}
+
+	return Player_flagpoleTransitState_SUPER(self, arg);
+}
+
+ncp_repl(0x0211B67C, 10, "NOP") // Do not freeze other players on goal
+
+ncp_call(0x0211B688, 10)
+void Player_fixFlagpoleStopBGM(PlayerBase* self, s32 frames)
+{
+	if (Game::playerCount == 1)
+		return self->stopBGM(frames);
+}
+
+ncp_repl(0x02117FAC, 10, "MOV R0, R4")
+
+ncp_call(0x02117FB8, 10)
+u32 Player_customGoalSlideCollisionCheck(Player* self)
+{
+	fx32 targetY = Flagpole_instance->position.y + 0x10000 * Flagpole_playerOrdinal[self->linkedPlayerID];
+
+	if (self->position.y > targetY)
+		return 0;
+
+	self->position.y = targetY;
+	return 0x1000;
+}
+
+void Player_customBeginPoleJump(Player* self)
+{
+	if (self == Flagpole_linkedPlayer)
+	{
+		self->fireworksToSpawn = self->playGoalFanfare();
+        self->transitionTimer = 360;
+		*rcast<u32*>(0x020CA8C0) |= 12; // levelEndBitmask
+	}
+
+	fx32 targetH = 0x1800 + 0x400 * Flagpole_playerOrdinal[self->linkedPlayerID];
+
+	self->velH = targetH;
+    self->targetVelH = targetH;
+}
+
+asm(R"(
+ncp_over(0x0211B9B8, 10)
+	MOV     R0, R4
+	BL      _Z26Player_customBeginPoleJumpP6Player
+	B       0x0211BDD8
+ncp_endover()
+)");
+
+
+#ifdef COMMENTEDOUT
+
 static bool sStallPoleAnim = false;
 static StageEntity* sFlagpole = nullptr;
 
@@ -683,6 +896,8 @@ void FlagpoleSetTangible(StageEntity* flagpole)
 	FlagpoleLowerFlag(sFlagpole);
 }
 
+#endif
+
 // ======================================= MISC =======================================
 
 ncp_call(0x02006B28)
@@ -694,6 +909,8 @@ void Stage_loadLevelHook(const void* pSrc, u32 offset, u32 szByte)
 
 	Stage_isPlayerDead[0] = false;
 	Stage_isPlayerDead[1] = false;
+
+	Flagpole_linkedPlayer = nullptr;
 }
 
 ncp_call(0x020BB7DC, 0)
@@ -908,9 +1125,6 @@ bool Player_updateTimesUpTransitionsHook(Player* self)
 		return false;
 	return self->updateTimesUpTransitions();
 }
-
-ncp_repl(0x0211B67C, 10, "NOP") // Do not freeze other players on goal
-ncp_repl(0x021305B4, 12, "NOP") // Do not freeze other players on goal
 
 // No idea what these do
 // ncp_repl(0x0209B254, 0, "MOV R0, #1")
