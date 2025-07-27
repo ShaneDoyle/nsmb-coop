@@ -530,7 +530,7 @@ struct Flagpole_PTMF
 // Lowest player has value 0, second has 1, third has 2
 u8 Flagpole_playerOrdinal[2];
 u8 Flagpole_waitPlayerCountdown;
-Player* Flagpole_linkedPlayer;
+Player* Flagpole_linkedPlayer; // Player in the pole responsible for triggering events
 StageEntity* Flagpole_instance;
 
 asm(R"(
@@ -610,7 +610,21 @@ void Flagpole_switchToPlayerSlideState(StageEntity* self)
 	// TODO: lock player input
 }
 
-ncp_call(0x021301B8, 12)
+bool Flagpole_allPlayersSlidingPole()
+{
+	u32 polePlayerCount;
+	Player* polePlayers[2];
+	Flagpole_getPlayersGrabbing(&polePlayerCount, polePlayers, nullptr);
+
+	for (u32 i = 0; i < polePlayerCount; i++)
+	{
+		if (!polePlayers[i]->actionFlag.flagpoleSlide)
+			return false;
+	}
+
+	return true;
+}
+
 void Flagpole_fixFinishSlide()
 {
 	u32 polePlayerCount;
@@ -621,15 +635,32 @@ void Flagpole_fixFinishSlide()
 		polePlayers[i]->actionFlag.flagpoleEnd = true;
 }
 
-ncp_repl(0x0213056C, 12, "NOP")
+asm(R"(
+ncp_over(0x02130154, 12)
+	BL      _Z30Flagpole_allPlayersSlidingPolev
+	CMP     R0, #0
+	BEQ     0x021301BC
+	NOP
+	NOP
+	NOP
+ncp_endover()
+
+ncp_over(0x021301B0, 12)
+	BL      _Z23Flagpole_fixFinishSlidev
+	NOP
+	NOP
+ncp_endover()
+)");
+
+ncp_repl(0x0213056C, 12, "NOP") // Only switch the state when everyone grabbed to keep the pole tangible
 
 void Flagpole_afterTouched(StageEntity* self)
 {
 	u16& grabberID = rcast<u16*>(self)[0x756 / 2];
 
-	if (Flagpole_linkedPlayer == nullptr)
+	if (Flagpole_linkedPlayer == nullptr) // Pole grabbed for the first time
 	{
-		Flagpole_waitPlayerCountdown = 180;
+		Flagpole_waitPlayerCountdown = 180; // 3 seconds (same as NSMB Wii)
 		Flagpole_linkedPlayer = Game::getPlayer(grabberID);
 		Flagpole_instance = self;
 	}
@@ -662,12 +693,11 @@ ncp_repl(0x02130588, 12, "NOP") // Do it in Flagpole_afterTouched
 
 
 
+// Give some time for other players to reach the goal
 
 ncp_jump(0x0211B5C8, 10)
 bool Player_flagpoleTransitState_OVERRIDE(Player* self, void* arg)
 {
-	Log::print("%d %d\n", self->linkedPlayerID, self->transitionStateStep);
-
 	if (self->transitionStateStep == 3 && Flagpole_waitPlayerCountdown != 0)
 	{
 		if (self == Flagpole_linkedPlayer)
@@ -694,6 +724,8 @@ void Player_fixFlagpoleStopBGM(PlayerBase* self, s32 frames)
 		return self->stopBGM(frames);
 }
 
+// Use stack-like positioning for the players on the pole
+
 ncp_repl(0x02117FAC, 10, "MOV R0, R4")
 
 ncp_call(0x02117FB8, 10)
@@ -708,6 +740,20 @@ u32 Player_customGoalSlideCollisionCheck(Player* self)
 	return 0x1000;
 }
 
+// Wait for all players to grab the pole
+
+ncp_repl(0x0211B90C, 10, "NOP") // Set in Player_customBeginPoleSlide instead
+
+ncp_call(0x0211B91C, 10)
+void Player_customBeginPoleSlide(Player* self)
+{
+	if (Flagpole_allPlayersSlidingPole())
+	{
+		self->transitionStateStep = 4;
+		self->goalBeginPoleSlide();
+	}
+}
+
 void Player_customBeginPoleJump(Player* self)
 {
 	if (self == Flagpole_linkedPlayer)
@@ -717,6 +763,7 @@ void Player_customBeginPoleJump(Player* self)
 		*rcast<u32*>(0x020CA8C0) |= 12; // levelEndBitmask
 	}
 
+	// Higher players jump further
 	fx32 targetH = 0x1800 + 0x400 * Flagpole_playerOrdinal[self->linkedPlayerID];
 
 	self->velH = targetH;
