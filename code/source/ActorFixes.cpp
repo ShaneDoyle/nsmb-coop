@@ -355,6 +355,27 @@ ncp_endover()
 
 ncp_set_call(0x02177450, 69, ActorFixes_getClosestPlayer)
 
+// Since there is no "bahp" event in coop, use random jump intervals.
+// Return value lower or equal to 0 means "do not jump".
+NTR_USED static u32 Blockhoppper_isTimeToJump(StageEntity* self)
+{
+	if (Game::getPlayerCount() == 1)
+	{
+		return *rcast<u32*>(0x02088B9C); // bahp
+	}
+	return (Net::getRandom() & 0xFF) == 0;
+}
+
+ncp_repl(0x02177384, 69, "MOV R0, R4")
+
+asm(R"(
+ncp_jump(0x02177388, 69)
+	PUSH    {R1}
+	BL      _ZL25Blockhoppper_isTimeToJumpP11StageEntity
+	POP     {R1}
+	B       0x0217738C
+)");
+
 // Flying Red Block ---------------------------------------------------------------------
 
 asm(R"(
