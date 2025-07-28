@@ -1,8 +1,10 @@
 #include <nsmb/game/stage/entity.hpp>
 #include <nsmb/game/stage/player.hpp>
 #include <nsmb/core/system/function.hpp>
+#include <nsmb/core/graphics/fader.hpp>
 
 #include "Stage.hpp"
+#include "PlayerSpectate.hpp"
 
 void Player_beginMissedPoleState(Player* self);
 void Player_beginSentFlyingAwayWithPoleState(Player* self);
@@ -290,8 +292,10 @@ bool Player_sentFlyingWithPoleState(Player* self, void* arg)
 	{
 		step = 1;
 
+		PlayerSpectate::setTarget(self->linkedPlayerID, Stage_flagpoleLinkedPlayer->linkedPlayerID);
+
 		self->velocity.x = Player_sendFlyingVelocities[Flagpole_instance->direction];
-		self->velocity.y = -0x2000u;
+		self->velocity.y = -0x2000;
 
 		return true;
 	}
