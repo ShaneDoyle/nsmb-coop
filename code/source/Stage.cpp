@@ -623,6 +623,55 @@ void Flagpole_switchToPlayerSlideState(StageEntity* self)
 	rcast<Player*>(0)->stopBGM(32);
 }
 
+bool Player_sentFlyingWithPoleState(Player* self, void* arg)
+{
+	s8& step = self->transitionStateStep;
+
+	if (step == Func::Init)
+	{
+		step = 1;
+
+		self->velocity.x = rcast<fx32*>(0x02131EA0)[Flagpole_instance->direction];
+		self->velocity.y = -0x2000u;
+
+		return true;
+	}
+	if (step == Func::Exit)
+	{
+		return true;
+	}
+
+	self->applyVelocity();
+
+	self->rotation.z =
+		Flagpole_instance->direction ?
+			(self->rotation.z - 0x800) :
+			(self->rotation.z + 0x800);
+
+	self->updateAnimation();
+	return true;
+}
+
+void Player_beginSentFlyingAwayWithPoleState(Player* self)
+{
+	self->switchMainState(&Player::idleState);
+	self->switchTransitionState(ptmf_cast(Player_sentFlyingWithPoleState));
+}
+
+void Flagpole_sendPlayersFlyingAway()
+{
+	u32 polePlayerCount;
+	Player* polePlayers[2];
+	Flagpole_getPlayersGrabbing(&polePlayerCount, polePlayers, nullptr, nullptr, nullptr);
+
+	for (u32 i = 0; i < polePlayerCount; i++)
+	{
+		Player* player = polePlayers[i];
+		if (player != Flagpole_linkedPlayer) // Because Mega breaking the pole counts as grabbing
+			Player_beginSentFlyingAwayWithPoleState(player);
+	}
+}
+
 bool Flagpole_allPlayersSlidingPole()
 {
 	u32 polePlayerCount;
@@ -675,14 +724,14 @@ void Flagpole_afterTouched(StageEntity* self)
 
 	if (grabber->currentPowerup == PowerupState::Mega)
 	{
-		// TODO: players grabbing are sent flying away
-
 		Flagpole_linkedPlayer = grabber; // Mega player now owns the flagpole
 		Flagpole_instance = self;
 
 		*rcast<u8*>(0x020CA898) |= 0x40; // Stop time counter
 		*rcast<u32*>(0x020CA8C0) |= 3; // levelEndBitmask
 		rcast<Player*>(0)->stopBGM(32);
+
+		Flagpole_sendPlayersFlyingAway();
 		return;
 	}
 
