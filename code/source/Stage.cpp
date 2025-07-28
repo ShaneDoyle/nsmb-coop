@@ -519,8 +519,6 @@ ncp_endover()
 
 // ======================================= FLAGPOLE =======================================
 
-// TODO: if mega breaks flagpole while players are holding it, cancel pole grab for other players
-
 struct Flagpole_PTMF
 {
 	bool (*func)(StageEntity*);
@@ -673,10 +671,25 @@ void Flagpole_afterTouched(StageEntity* self)
 {
 	u16& grabberID = rcast<u16*>(self)[0x756 / 2];
 
+	Player* grabber = Game::getPlayer(grabberID);
+
+	if (grabber->currentPowerup == PowerupState::Mega)
+	{
+		// TODO: players grabbing are sent flying away
+
+		Flagpole_linkedPlayer = grabber; // Mega player now owns the flagpole
+		Flagpole_instance = self;
+
+		*rcast<u8*>(0x020CA898) |= 0x40; // Stop time counter
+		*rcast<u32*>(0x020CA8C0) |= 3; // levelEndBitmask
+		rcast<Player*>(0)->stopBGM(32);
+		return;
+	}
+
 	if (Flagpole_linkedPlayer == nullptr) // Pole grabbed for the first time
 	{
 		Flagpole_waitPlayerCountdown = 180; // 3 seconds (same as NSMB Wii)
-		Flagpole_linkedPlayer = Game::getPlayer(grabberID);
+		Flagpole_linkedPlayer = grabber;
 		Flagpole_instance = self;
 
 		*rcast<u8*>(0x020CA898) |= 0x40; // Stop time counter
@@ -704,8 +717,14 @@ ncp_over(0x02130570, 12)
 ncp_endover()
 )");
 
-ncp_repl(0x02130588, 12, "NOP") // Do it in Flagpole_afterTouched
+ncp_repl(0x02130588, 12, "NOP") // Do it in Flagpole_afterTouched and Flagpole_switchToPlayerSlideState
 
+asm(R"(
+ncp_over(0x0212FCBC, 12)
+	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
+	NOP
+ncp_endover()
+)");
 
 
 
@@ -794,6 +813,13 @@ ncp_over(0x0211B9B8, 10)
 	B       0x0211BDD8
 ncp_endover()
 )");
+
+ncp_call(0x0211BB84, 10)
+bool Player_customGoalUpdatePowerupState(Player* self)
+{
+	self->updatePowerupState();
+	return self->transitionFlag.megaShrink;
+}
 
 
 
