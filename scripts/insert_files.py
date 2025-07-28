@@ -3,7 +3,8 @@ from sys import argv
 from pathlib import Path
 import ndspy.rom
 import ndspy.fnt
-from subprocess import check_output
+import subprocess
+from datetime import datetime
 
 if len(argv) < 2:
     print("Missing first argument: target rom path")
@@ -74,17 +75,27 @@ def insert_banner():
     print('Replaced banner')
 
 def get_git_revision_short_hash():
-    return check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode('utf-8')
+    try:
+        return subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode('utf-8')
+    except subprocess.CalledProcessError:
+        return 'unknown'
 
 def get_git_commit_date():
-    return check_output(['git', 'log', '-1', '--format=%cI']).strip().decode('utf-8')
+    try:
+        # Get commit date in UTC (Z timezone)
+        iso_date = subprocess.check_output(['git', 'log', '-1', '--format=%cI']).strip().decode('utf-8')
+        # Parse and format to ensure Z timezone
+        dt = datetime.fromisoformat(iso_date.replace('Z', '+00:00'))
+        return dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+    except subprocess.CalledProcessError:
+        return datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 
 def insert_buildtime():
     short_hash = get_git_revision_short_hash()
     commit_date = get_git_commit_date()
     buildtime = f'{short_hash} {commit_date}'
     rom.setFileByName('BUILDTIME', bytearray(buildtime, 'utf-8'))
-    print(f'Written build time {buildtime}')
+    print(f'Written build time: {buildtime}')
 
 def main():
     insert_nitrofs()
