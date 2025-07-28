@@ -595,6 +595,11 @@ ncp_repl(0x020D98DC, 10, "MOV R0, #1") // Allow coins to get killed by lava
 
 ncp_set_call(0x020D8524, 10, ActorFixes_isInRangeOfAllPlayers) // Fix coin permanent deletion
 
+// Broozer ------------------------------------------------------------------------------
+
+ncp_repl(0x0218A898, 108, "NOP") // Pass Broozer* instead of &Broozer*->position
+ncp_set_call(0x0218A8A4, 108, ActorFixes_isOutsideCamera)
+
 // Misc ---------------------------------------------------------------------------------
 
 ncp_over(0x02132560, 18) const auto CheepSkipper_skipRender = ActorFixes_safeSkipRender;
