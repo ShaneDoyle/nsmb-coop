@@ -4,8 +4,8 @@
 
 #include "Stage.hpp"
 
-bool Player_missedPoleState(Player* self, void* arg);
 void Player_beginMissedPoleState(Player* self);
+void Player_beginSentFlyingAwayWithPoleState(Player* self);
 
 // Flagpole -----------------------------------------------------------------------------
 
@@ -114,41 +114,6 @@ void Flagpole_switchToPlayerSlideState(StageEntity* self)
 	}
 
 	Flagpole_beginLevelEnd();
-}
-
-bool Player_sentFlyingWithPoleState(Player* self, void* arg)
-{
-	s8& step = self->transitionStateStep;
-
-	if (step == Func::Init)
-	{
-		step = 1;
-
-		self->velocity.x = rcast<fx32*>(0x02131EA0)[Flagpole_instance->direction];
-		self->velocity.y = -0x2000u;
-
-		return true;
-	}
-	if (step == Func::Exit)
-	{
-		return true;
-	}
-
-	self->applyVelocity();
-
-	self->rotation.z =
-		Flagpole_instance->direction ?
-			(self->rotation.z - 0x800) :
-			(self->rotation.z + 0x800);
-
-	self->updateAnimation();
-	return true;
-}
-
-void Player_beginSentFlyingAwayWithPoleState(Player* self)
-{
-	self->switchMainState(&Player::idleState);
-	self->switchTransitionState(ptmf_cast(Player_sentFlyingWithPoleState));
 }
 
 void Flagpole_sendPlayersFlyingAway()
@@ -269,6 +234,8 @@ ncp_endover()
 
 // Player -------------------------------------------------------------------------------
 
+fx32 Player_sendFlyingVelocities[2] = { -0x5800, 0x5800 };
+
 bool Player_missedPoleState(Player* self, void* arg)
 {
 	s8& step = self->transitionStateStep;
@@ -313,6 +280,41 @@ void Player_beginMissedPoleState(Player* self)
 {
 	self->switchMainState(&Player::idleState);
 	self->switchTransitionState(ptmf_cast(Player_missedPoleState));
+}
+
+bool Player_sentFlyingWithPoleState(Player* self, void* arg)
+{
+	s8& step = self->transitionStateStep;
+
+	if (step == Func::Init)
+	{
+		step = 1;
+
+		self->velocity.x = Player_sendFlyingVelocities[Flagpole_instance->direction];
+		self->velocity.y = -0x2000u;
+
+		return true;
+	}
+	if (step == Func::Exit)
+	{
+		return true;
+	}
+
+	self->applyVelocity();
+
+	self->rotation.z =
+		Flagpole_instance->direction ?
+			(self->rotation.z - 0x800) :
+			(self->rotation.z + 0x800);
+
+	self->updateAnimation();
+	return true;
+}
+
+void Player_beginSentFlyingAwayWithPoleState(Player* self)
+{
+	self->switchMainState(&Player::idleState);
+	self->switchTransitionState(ptmf_cast(Player_sentFlyingWithPoleState));
 }
 
 // Give some time for other players to reach the goal
