@@ -176,6 +176,8 @@ ncp_jump(0x0210024C, 10)
 	POP     {R4-R6,PC}
 )");
 
+// Look at bosses
+
 static u8 sIsPlayerLookingAtTarget[2];
 
 ncp_call(0x020FD6C4, 10)
@@ -198,6 +200,39 @@ void Game_setPlayerLookingAtTarget_OVERRIDE(bool enable)
 	sIsPlayerLookingAtTarget[0] = enable;
 	sIsPlayerLookingAtTarget[1] = enable;
 }
+
+// Flinch at bosses
+
+static u8 sIsPlayerFlinching[2];
+
+bool Player_bossCutsceneTransitState_customIsPlayerFlinching(Player* player)
+{
+	return sIsPlayerFlinching[player->linkedPlayerID];
+}
+
+asm(R"(
+ncp_jump(0x0211ACF4, 10)
+	MOV     R0, R4
+	BL      _Z55Player_bossCutsceneTransitState_customIsPlayerFlinchingP6Player
+	B       0x0211ACF8
+)");
+
+ncp_repl(0x0211AD00, 10, "MOV R0, R4")
+
+ncp_call(0x0211AD04, 10)
+void Player_bossCutsceneTransitState_AT_0211AD04_CALL(Player* player)
+{
+	sIsPlayerFlinching[player->linkedPlayerID] = false;
+}
+
+ncp_jump(0x0202000C)
+void Game_setPlayerFlinching_OVERRIDE(bool enable)
+{
+	sIsPlayerFlinching[0] = enable;
+	sIsPlayerFlinching[1] = enable;
+}
+
+// Boss defeat cutscene
 
 asm(R"(
 	Liquid_doWaves = 0x021646E0
