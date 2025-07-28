@@ -16,5 +16,6 @@ Player* getLocalTargetPlayer();
 void clearSpectators();
 void onStageLayoutCreate();
 void onStageLayoutUpdate();
+void onViewTransit(u8 transitPlayerID);
 
 }

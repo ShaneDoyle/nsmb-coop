@@ -422,6 +422,34 @@ void Player_beginBossDefeatCutsceneCoop(Player* linkedPlayer, bool battleSwitch)
 	}
 }
 
+ncp_call(0x0211881C, 10)
+u32 Player_viewTransitState_beginFadeInHook(u8 transitPlayerID)
+{
+	u32& areaNum = *rcast<u32*>(0x02085A94);
+	if (areaNum == 173)
+	{
+		// Hacky fix for the level rotator, players must always be in the same view
+
+		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+		{
+			if (playerID == transitPlayerID)
+				continue;
+
+			Entrance::setSpawnEntrance(Entrance::targetEntranceID, playerID);
+
+			// Use entrance
+			Player* player = Game::getPlayer(playerID);
+			player->switchTransitionState(&Player::viewTransitState);
+		}
+	}
+	else
+	{
+		PlayerSpectate::onViewTransit(transitPlayerID);
+	}
+
+	return Entrance::getSpawnMusic(transitPlayerID); // Keep replaced instruction
+}
+
 // asm(R"(
 // PlayerBase_freezeStage_SUPER:
 // 	PUSH    {LR}
