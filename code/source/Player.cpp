@@ -387,52 +387,6 @@ void Player_beginBossDefeatCutsceneCoop(Player* linkedPlayer, bool battleSwitch)
 	}
 }
 
-bool Player_missedPoleState(Player* self, void* arg)
-{
-	s8& step = self->transitionStateStep;
-
-	if (step == Func::Init)
-	{
-		step = 1;
-		self->velocity.x = 0;
-		return true;
-	}
-	if (step == Func::Exit)
-	{
-		return true;
-	}
-
-	if (step == 1)
-	{
-		self->updateGravityAcceleration();
-		self->updateVerticalVelocityClamped();
-		self->applyVelocity();
-
-		bool grounded = (scast<u32>(self->collisionMgr.updatePlayerGroundCollision()) & CollisionMgr::Result::GroundAny);
-		if (!grounded)
-		{
-			self->setAnimation(6, true, Player::FrameMode::Restart, 1fx);
-		}
-		else
-		{
-			step = 2;
-		}
-	}
-	else if (step == 2)
-	{
-		self->setAnimation(0, true, Player::FrameMode::Restart, 1fx);
-	}
-
-	self->updateAnimation();
-	return true;
-}
-
-void Player_beginMissedPoleState(Player* self)
-{
-	self->switchMainState(&Player::idleState);
-	self->switchTransitionState(ptmf_cast(Player_missedPoleState));
-}
-
 // asm(R"(
 // PlayerBase_freezeStage_SUPER:
 // 	PUSH    {LR}
