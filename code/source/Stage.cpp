@@ -600,6 +600,12 @@ void Flagpole_calculatePlayerOrdinals(u32 playerCount, Player** players)
 	}
 }
 
+void Flagpole_beginLevelEnd()
+{
+	*rcast<u32*>(0x020CA8C0) |= 3; // levelEndBitmask
+	rcast<Player*>(0)->stopBGM(32);
+}
+
 void Flagpole_switchToPlayerSlideState(StageEntity* self)
 {
 	u32 polePlayerCount;
@@ -612,15 +618,13 @@ void Flagpole_switchToPlayerSlideState(StageEntity* self)
 
 	Flagpole_switchState(self, &Flagpole_sPlayerSlide);
 
-	*rcast<u32*>(0x020CA8C0) |= 3; // levelEndBitmask
-
 	for (u32 i = 0; i < notPolePlayerCount; i++)
 	{
 		Player* player = notPolePlayers[i];
 		Player_beginMissedPoleState(player);
 	}
 
-	rcast<Player*>(0)->stopBGM(32);
+	Flagpole_beginLevelEnd();
 }
 
 bool Player_sentFlyingWithPoleState(Player* self, void* arg)
@@ -728,8 +732,7 @@ void Flagpole_afterTouched(StageEntity* self)
 		Flagpole_instance = self;
 
 		*rcast<u8*>(0x020CA898) |= 0x40; // Stop time counter
-		*rcast<u32*>(0x020CA8C0) |= 3; // levelEndBitmask
-		rcast<Player*>(0)->stopBGM(32);
+		Flagpole_beginLevelEnd();
 
 		Flagpole_sendPlayersFlyingAway();
 		return;
@@ -766,7 +769,7 @@ ncp_over(0x02130570, 12)
 ncp_endover()
 )");
 
-ncp_repl(0x02130588, 12, "NOP") // Do it in Flagpole_afterTouched and Flagpole_switchToPlayerSlideState
+ncp_repl(0x02130588, 12, "NOP") // Do it in Flagpole_beginLevelEnd
 
 asm(R"(
 ncp_over(0x0212FCBC, 12)
