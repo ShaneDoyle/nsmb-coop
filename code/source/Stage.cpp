@@ -550,12 +550,11 @@ extern "C" {
 	Flagpole_PTMF Flagpole_sPlayerSlide;
 }
 
-void Flagpole_getPlayersGrabbing(u32* polePlayerCount, Player** polePlayers, bool* allGrabbing)
+void Flagpole_getPlayersGrabbing(u32* polePlayerCount, Player** polePlayers, u32* notPolePlayerCount, Player** notPolePlayers, bool* allGrabbing)
 {
-	if (allGrabbing)
-		*allGrabbing = true;
-
+	bool _allGrabbing = true;
 	u32 _polePlayerCount = 0;
+	u32 _notPolePlayerCount = 0;
 
 	for (u32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
@@ -565,8 +564,12 @@ void Flagpole_getPlayersGrabbing(u32* polePlayerCount, Player** polePlayers, boo
 		Player* player = Game::getPlayer(playerID);
 		if (!player->actionFlag.flagpoleGrab)
 		{
-			if (allGrabbing)
-				*allGrabbing = false;
+			_allGrabbing = false;
+
+			if (notPolePlayers)
+				notPolePlayers[_notPolePlayerCount] = player;
+			_notPolePlayerCount++;
+
 			continue;
 		}
 
@@ -577,6 +580,10 @@ void Flagpole_getPlayersGrabbing(u32* polePlayerCount, Player** polePlayers, boo
 
 	if (polePlayerCount)
 		*polePlayerCount = _polePlayerCount;
+	if (notPolePlayerCount)
+		*notPolePlayerCount = _notPolePlayerCount;
+	if (allGrabbing)
+		*allGrabbing = _allGrabbing;
 }
 
 void Flagpole_calculatePlayerOrdinals(u32 playerCount, Player** players)
@@ -599,7 +606,9 @@ void Flagpole_switchToPlayerSlideState(StageEntity* self)
 {
 	u32 polePlayerCount;
 	Player* polePlayers[2];
-	Flagpole_getPlayersGrabbing(&polePlayerCount, polePlayers, nullptr);
+	u32 notPolePlayerCount;
+	Player* notPolePlayers[2];
+	Flagpole_getPlayersGrabbing(&polePlayerCount, polePlayers, &notPolePlayerCount, notPolePlayers, nullptr);
 
 	Flagpole_calculatePlayerOrdinals(polePlayerCount, polePlayers);
 
@@ -607,14 +616,18 @@ void Flagpole_switchToPlayerSlideState(StageEntity* self)
 
 	*rcast<u32*>(0x020CA8C0) |= 3; // levelEndBitmask
 
-	// TODO: lock player input
+	for (u32 i = 0; i < notPolePlayerCount; i++)
+	{
+		Player* player = notPolePlayers[i];
+		Player_beginMissedPoleState(player);
+	}
 }
 
 bool Flagpole_allPlayersSlidingPole()
 {
 	u32 polePlayerCount;
 	Player* polePlayers[2];
-	Flagpole_getPlayersGrabbing(&polePlayerCount, polePlayers, nullptr);
+	Flagpole_getPlayersGrabbing(&polePlayerCount, polePlayers, nullptr, nullptr, nullptr);
 
 	for (u32 i = 0; i < polePlayerCount; i++)
 	{
@@ -629,7 +642,7 @@ void Flagpole_fixFinishSlide()
 {
 	u32 polePlayerCount;
 	Player* polePlayers[2];
-	Flagpole_getPlayersGrabbing(&polePlayerCount, polePlayers, nullptr);
+	Flagpole_getPlayersGrabbing(&polePlayerCount, polePlayers, nullptr, nullptr, nullptr);
 
 	for (u32 i = 0; i < polePlayerCount; i++)
 		polePlayers[i]->actionFlag.flagpoleEnd = true;
@@ -663,12 +676,14 @@ void Flagpole_afterTouched(StageEntity* self)
 		Flagpole_waitPlayerCountdown = 180; // 3 seconds (same as NSMB Wii)
 		Flagpole_linkedPlayer = Game::getPlayer(grabberID);
 		Flagpole_instance = self;
+
+		*rcast<u8*>(0x020CA898) |= 0x40; // Stop time counter
 	}
 
 	// Check if everyone is grabbing the pole
 
 	bool allGrabbing;
-	Flagpole_getPlayersGrabbing(nullptr, nullptr, &allGrabbing);
+	Flagpole_getPlayersGrabbing(nullptr, nullptr, nullptr, nullptr, &allGrabbing);
 
 	if (!allGrabbing)
 		return;

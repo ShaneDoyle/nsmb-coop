@@ -14,11 +14,9 @@ static u8 Player_jumpedOnAnimState[2];
 static u8 Player_seqArcIDs[] = { 4, 30 };
 
 
-bool Player_isOnFlagpole(Player *self) {
-	return (self->actionFlag.flagpoleGrab)  ||
-		   (self->actionFlag.flagpoleSlide) ||
-		   (self->actionFlag.flagpoleEnd)   ||
-		   (ptmf_cast(self->transitionState) == ptmf_cast(&Player::flagpoleTransitState)); // check flagpole action update
+bool Player_isOnFlagpole(Player* self)
+{
+	return self->actionFlag.flagpoleGrab;
 }
 
 static void Player_updateJumpedOnAnimation(Player* self)
@@ -388,3 +386,66 @@ void Player_beginBossDefeatCutsceneCoop(Player* linkedPlayer, bool battleSwitch)
 		Player_beginBossDefeatCutsceneNotLinked(player);
 	}
 }
+
+bool Player_missedPoleState(Player* self, void* arg)
+{
+	s8& step = self->transitionStateStep;
+
+	if (step == Func::Init)
+	{
+		step = 1;
+		self->velocity.x = 0;
+		return true;
+	}
+	if (step == Func::Exit)
+	{
+		return true;
+	}
+
+	if (step == 1)
+	{
+		self->updateGravityAcceleration();
+		self->updateVerticalVelocityClamped();
+		self->applyVelocity();
+
+		bool grounded = (scast<u32>(self->collisionMgr.updatePlayerGroundCollision()) & CollisionMgr::Result::GroundAny);
+		if (!grounded)
+		{
+			self->setAnimation(6, true, Player::FrameMode::Restart, 1fx);
+		}
+		else
+		{
+			step = 2;
+		}
+	}
+	else if (step == 2)
+	{
+		self->setAnimation(0, true, Player::FrameMode::Restart, 1fx);
+	}
+
+	self->updateAnimation();
+	return true;
+}
+
+void Player_beginMissedPoleState(Player* self)
+{
+	self->switchMainState(&Player::idleState);
+	self->switchTransitionState(ptmf_cast(Player_missedPoleState));
+}
+
+// asm(R"(
+// PlayerBase_freezeStage_SUPER:
+// 	PUSH    {LR}
+// 	B       0x0212C134
+// )");
+// extern "C" {
+// 	void PlayerBase_freezeStage_SUPER(PlayerBase* self);
+// }
+
+// ncp_jump(0x0212C130, 11)
+// void PlayerBase_freezeStage_OVERRIDE(PlayerBase* self)
+// {
+// 	if (Game::getPlayerCount() != 1)
+// 		return;
+// 	PlayerBase_freezeStage_SUPER(self);
+// }
