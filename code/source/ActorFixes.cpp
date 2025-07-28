@@ -600,6 +600,34 @@ ncp_set_call(0x020D8524, 10, ActorFixes_isInRangeOfAllPlayers) // Fix coin perma
 ncp_repl(0x0218A898, 108, "NOP") // Pass Broozer* instead of &Broozer*->position
 ncp_set_call(0x0218A8A4, 108, ActorFixes_isOutsideCamera)
 
+// Horizontal Camera Stop -------------------------------------------------------
+
+u32 HorizontalCameraStop_playerID;
+
+asm(R"(
+.type HorizontalCameraStop_onCreate_SUPER, %function
+HorizontalCameraStop_onCreate_SUPER:
+	PUSH    {LR}
+	B       0x020D6604
+)");
+extern "C" {
+	s32 HorizontalCameraStop_onCreate_SUPER(StageEntity* self);
+}
+
+ncp_jump(0x020D6600, 10)
+s32 HorizontalCameraStop_onCreate_OVERRIDE(StageEntity* self)
+{
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		HorizontalCameraStop_playerID = playerID;
+		HorizontalCameraStop_onCreate_SUPER(self);
+	}
+
+	return 0;
+}
+
+ncp_repl(0x020D6784, 10, ".int HorizontalCameraStop_playerID")
+
 // Misc ---------------------------------------------------------------------------------
 
 ncp_over(0x02132560, 18) const auto CheepSkipper_skipRender = ActorFixes_safeSkipRender;
