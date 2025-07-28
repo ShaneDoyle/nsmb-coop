@@ -621,6 +621,8 @@ void Flagpole_switchToPlayerSlideState(StageEntity* self)
 		Player* player = notPolePlayers[i];
 		Player_beginMissedPoleState(player);
 	}
+
+	rcast<Player*>(0)->stopBGM(32);
 }
 
 bool Flagpole_allPlayersSlidingPole()
@@ -727,17 +729,16 @@ bool Player_flagpoleTransitState_OVERRIDE(Player* self, void* arg)
 		return true;
 	}
 
+	// Only the linkedPlayer finishes the level
+	if (self->transitionStateStep == 16 && self != Flagpole_linkedPlayer)
+		return true;
+
 	return Player_flagpoleTransitState_SUPER(self, arg);
 }
 
 ncp_repl(0x0211B67C, 10, "NOP") // Do not freeze other players on goal
 
-ncp_call(0x0211B688, 10)
-void Player_fixFlagpoleStopBGM(PlayerBase* self, s32 frames)
-{
-	if (Game::playerCount == 1)
-		return self->stopBGM(frames);
-}
+ncp_repl(0x0211B688, 10, "NOP") // Do not stop BGM, do it in Flagpole_switchToPlayerSlideState instead
 
 // Use stack-like positioning for the players on the pole
 
@@ -771,6 +772,7 @@ void Player_customBeginPoleSlide(Player* self)
 
 void Player_customBeginPoleJump(Player* self)
 {
+	// Only the linkedPlayer finishes the level
 	if (self == Flagpole_linkedPlayer)
 	{
 		self->fireworksToSpawn = self->playGoalFanfare();
