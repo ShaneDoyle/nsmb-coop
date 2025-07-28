@@ -9,6 +9,7 @@
 #include <nsmb/core/math/math.hpp>
 
 #include "ActorFixes.hpp"
+#include "Stage.hpp"
 //#include "PlayerSpectate.hpp"
 
 // Notes:
@@ -541,6 +542,18 @@ void WarpEntrance_customWarpPlayer(WarpEntrance* self, Player* player)
 
 ncp_set_call(0x02156258, 54, WarpEntrance_customWarpPlayer)
 ncp_set_call(0x02156350, 54, WarpEntrance_customWarpPlayer)
+
+// Disable warp entrance if someone reached flagpole
+
+bool WarpEntrance_customMainState(WarpEntrance* self)
+{
+	if (Stage_flagpoleLinkedPlayer != nullptr)
+		return true;
+
+	return self->mainState();
+}
+
+ncp_over(0x0216D27C, 54) const auto WarpEntrance_mainState = WarpEntrance_customMainState;
 
 // Bullet Bill --------------------------------------------------------------------------
 
