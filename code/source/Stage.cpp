@@ -688,14 +688,10 @@ NTR_USED static void Stage_decideForceAreaReload()
 	if (Stage_forceAreaReload == 1) // Already set to reload
 		return;
 
-	StageObject* stageObjs = Stage::stageBlocks.stageObjs;
-	for (u32 i = 0; ; i++)
+	Actor* actor = nullptr;
+	while (actor = ProcessManager::getNextActor(actor))
 	{
-		StageObject* stageObj = &stageObjs[i];
-		u16 stageObjID = stageObj->id;
-		if (stageObjID == 0xFFFF) // Array end
-			break;
-		if (stageObjID == 231 || stageObjID == 234 || stageObjID == 259) // Liquid
+		if (actor->id == 278 || actor->id == 279 || actor->id == 281) // Liquid
 		{
 			Stage_forceAreaReload = 1;
 			break;
