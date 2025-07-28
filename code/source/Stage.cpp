@@ -795,6 +795,23 @@ ncp_over(0x0211B9B8, 10)
 ncp_endover()
 )");
 
+
+
+
+
+EntranceUseResult Entrance_customTryUseEntrance(fx32 x, fx32 y, u8 playerID)
+{
+	if (Flagpole_linkedPlayer != nullptr)
+		return EntranceUseResult::InvalidEntrance;
+
+	return Entrance::tryUseEntrance(x, y, playerID);
+}
+
+ncp_set_call(0x020A77D0, 0, Entrance_customTryUseEntrance)
+ncp_set_call(0x020A79D4, 0, Entrance_customTryUseEntrance)
+ncp_set_call(0x020A7BD8, 0, Entrance_customTryUseEntrance)
+ncp_set_call(0x020A7DB0, 0, Entrance_customTryUseEntrance)
+
 // ======================================= MISC =======================================
 
 ncp_call(0x02006B28)
