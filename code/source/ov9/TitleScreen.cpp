@@ -3,17 +3,17 @@
 #endif
 
 #include <nsmb/game/sound.hpp>
+#include <nsmb/game/stage/misc.hpp>
+#include <nsmb/game/titlescreen/camera.hpp>
 #include <nsmb/core/system/save.hpp>
 #include <nsmb/core/system/input.hpp>
 
 #include "Widescreen.hpp"
 
 asm(R"(
-	TitleScreen_onCreate = 0x020D3570
 	fun020CD884 = 0x020CD884
 )");
 extern "C" {
-	s32 TitleScreen_onCreate(void*);
 	void fun020CD884(void*);
 }
 
@@ -33,6 +33,17 @@ u32 TitleScreen_getSceneIDAfterFileSelect()
 
 ncp_repl(0x020CD700, 9, "MOV R0, #6") // Bowser Jr. Intro to MvsL Menu
 ncp_repl(0x020D3708, 9, "MOV R1, #0") // MvsL returns to Main Menu button 0
+
+void TitleScreen_updateOrtho()
+{
+	fx32 cameraWidth = Widescreen::enabled[0] ? (304 << FX32_SHIFT) : (256 << FX32_SHIFT);
+	Stage::cameraWidth[0] = cameraWidth;
+	rcast<TitleScreenCamera*>(0)->setOrtho(Stage::cameraHeight[0], 0, 0, cameraWidth);
+}
+
+ncp_set_call(0x020D3D10, 9, TitleScreen_updateOrtho)
+
+ncp_repl(0x020D54DC, 9, "CMP R0, #0x150000") // Allow Bowser Jr. and Peach to go offscreen when widescreen
 
 // Widescreen toggle
 
@@ -59,7 +70,10 @@ void TitleScreen_updateHook(void* r0)
 				Save::optionSave.flags |= (1 << 1);
 				SND::playSFX(231);
 			}
+			TitleScreen_updateOrtho();
 			Save::writeOptionSave(&Save::optionSave);
 		}
 	}
 }
+
+// TODO: widescreen titlescreen logo, lighting strike fade and luigi
