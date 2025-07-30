@@ -11,10 +11,12 @@ if len(argv) < 2:
     exit(0)
 
 rom_filename = argv[1]
-verbose = len(argv) > 2 and argv[2] == "--verbose"
+language = argv[2] if len(argv) >= 3 and argv[2] != "--verbose" else 'en'
+verbose = (len(argv) > 2 and argv[2] == "--verbose") or (len(argv) > 3 and argv[3] == "--verbose")
 outputdir = "__tmp"
 ov9dir = outputdir + "/overlay9"
 ov7dir = outputdir + "/overlay7"
+supported_languages = ['en', 'fr', 'ge', 'it', 'jp', 'sp']
 
 def run_ncp():
     print("Running NCPatcher")
@@ -22,6 +24,11 @@ def run_ncp():
     args = ["ncpatcher"]
     if verbose:
         args.append("--verbose")
+
+    # Add the GAME_LANGUAGE macro definition
+    language_upper = language.upper()
+    args.extend(["--define", f"GAME_LANGUAGE_{language_upper}"])
+
     subprocess.run(args)
 
 def get_header(rom):
@@ -99,6 +106,10 @@ def pack():
     rom.saveToFile(rom_filename, updateDeviceCapacity=True)
 
 def main():
+    print(f"Using language: {language}")
+    if language not in supported_languages:
+        print(f"Warning: '{language}' is not a supported language. Supported: {', '.join(supported_languages)}")
+
     unpack()
     run_ncp()
     pack()
