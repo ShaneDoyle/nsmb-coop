@@ -1,19 +1,31 @@
 #!/usr/bin/env python3
 
 import os
-from sys import argv
+import argparse
 import subprocess
 import struct
 import ndspy.rom
 
-if len(argv) < 2:
-    print("Missing first argument: target rom path")
-    exit(0)
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Insert code into Nintendo DS ROM')
+    parser.add_argument('input_rom', help='Input ROM file path')
+    parser.add_argument('output_rom', help='Output ROM file path')
+    parser.add_argument('-l', '--language', default='en',
+                       choices=['en', 'fr', 'ge', 'it', 'jp', 'sp'],
+                       help='Game language (default: en)')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                       help='Enable verbose output')
+    parser.add_argument('--temp-dir', default='__tmp',
+                       help='Temporary directory for extracted files (default: __tmp)')
 
-rom_filename = argv[1]
-language = argv[2] if len(argv) >= 3 and argv[2] != "--verbose" else 'en'
-verbose = (len(argv) > 2 and argv[2] == "--verbose") or (len(argv) > 3 and argv[3] == "--verbose")
-outputdir = "__tmp"
+    return parser.parse_args()
+
+args = parse_arguments()
+input_rom_filename = args.input_rom
+output_rom_filename = args.output_rom
+language = args.language
+verbose = args.verbose
+outputdir = args.temp_dir
 ov9dir = outputdir + "/overlay9"
 ov7dir = outputdir + "/overlay7"
 supported_languages = ['en', 'fr', 'ge', 'it', 'jp', 'sp']
@@ -52,7 +64,7 @@ def unpack():
     if not os.path.exists(ov7dir):
         os.mkdir(ov7dir)
 
-    rom = ndspy.rom.NintendoDSRom.fromFile(rom_filename)
+    rom = ndspy.rom.NintendoDSRom.fromFile(input_rom_filename)
 
     with open(outputdir + "/header.bin", 'wb') as header_file:
         header_file.write(get_header(rom))
@@ -80,7 +92,7 @@ def unpack():
 def pack():
     print("Merging the code binaries")
 
-    rom = ndspy.rom.NintendoDSRom.fromFile(rom_filename)
+    rom = ndspy.rom.NintendoDSRom.fromFile(input_rom_filename)
 
     with open(outputdir + "/arm9.bin", 'rb') as arm9_file:
         rom.arm9 = arm9_file.read()
@@ -103,7 +115,7 @@ def pack():
         with open(ov7dir + "/overlay7_" + str(i) + ".bin", 'rb') as ov_file:
             rom.files[fileID] = ov_file.read()
 
-    rom.saveToFile(rom_filename, updateDeviceCapacity=True)
+    rom.saveToFile(output_rom_filename, updateDeviceCapacity=True)
 
 def main():
     print(f"Using language: {language}")

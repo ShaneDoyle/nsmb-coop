@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from sys import argv
+import argparse
 from pathlib import Path
 import ndspy.rom
 import ndspy.fnt
@@ -7,16 +7,29 @@ import ndspy.narc
 import subprocess
 from datetime import datetime
 
-if len(argv) < 2:
-    print("Missing first argument: target rom path")
-    exit(0)
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Insert files into Nintendo DS ROM')
+    parser.add_argument('input_rom', help='Input ROM file path')
+    parser.add_argument('output_rom', help='Output ROM file path')
+    parser.add_argument('-l', '--language', default='en',
+                       choices=['en', 'fr', 'ge', 'it', 'jp', 'sp'],
+                       help='Game language (default: en)')
+    parser.add_argument('--nitrofs-dir', default='nitrofs',
+                       help='Directory containing files to insert (default: nitrofs)')
+    parser.add_argument('--overrides-file', default='nitrofs_overrides.txt',
+                       help='Path overrides file (default: nitrofs_overrides.txt)')
 
-rom_filename = argv[1]
-language = argv[2] if len(argv) >= 3 else 'en'
-rom = ndspy.rom.NintendoDSRom.fromFile(rom_filename)
-path_overrides_filename = 'nitrofs_overrides.txt'
-newfs_dir = 'nitrofs'
+    return parser.parse_args()
+
+args = parse_arguments()
+input_rom_filename = args.input_rom
+output_rom_filename = args.output_rom
+language = args.language
+path_overrides_filename = args.overrides_file
+newfs_dir = args.nitrofs_dir
 supported_languages = ['en', 'fr', 'ge', 'it', 'jp', 'sp']
+
+rom = ndspy.rom.NintendoDSRom.fromFile(input_rom_filename)
 
 def collect_files_from_directory(directory, base_path_parts=1):
     """
@@ -275,7 +288,7 @@ def main():
     insert_nitrofs()
     insert_banner()
     insert_buildtime()
-    rom.saveToFile(rom_filename)
+    rom.saveToFile(output_rom_filename)
     print('Done inserting files')
 
 if __name__ == '__main__':
