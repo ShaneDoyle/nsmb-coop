@@ -73,6 +73,43 @@ void clearSpectators()
 	}
 }
 
+// Attempt to switch the player to the target player's view
+void followTargetToNewView(u8 playerID, u8 transitPlayerID)
+{
+	if (playerTarget[playerID] != transitPlayerID)
+		return;
+
+	// Set the destination entrance (using overriden entrance)
+	StageEntrance* respawnEntrance = &Entrance::overriddenEntrance[playerID];
+	MI_CpuCopyFast(Entrance::spawnEntrance[transitPlayerID], respawnEntrance, sizeof(StageEntrance));
+	respawnEntrance->type = EntranceType::Normal;
+
+	Entrance::spawnEntranceID[playerID] = -(playerID + 1); // This is how the game does it at Entrance::overrideEntrance
+
+	// It is not possible to just do
+	//   Entrance::spawnEntrance[playerID] = Entrance::spawnEntrance[transitPlayerID];
+	//   Entrance::spawnEntranceID[playerID] = Entrance::spawnEntranceID[transitPlayerID];
+	//
+	// because if the transitPlayerID entrance happens to be a door and we switch to spectator,
+	// the door animation will try to trigger but since the player is spectating it wouldn't update
+	// which would prevent other players from opening doors.
+
+	// Use entrance
+	Player* player = Game::getPlayer(playerID);
+	player->switchTransitionState(&Player::viewTransitState);
+}
+
+void syncSpectatorsOnViewTransition(u8 transitPlayerID)
+{
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		if (playerID == transitPlayerID)
+			continue;
+
+		followTargetToNewView(playerID, transitPlayerID);
+	}
+}
+
 void onStageLayoutCreate()
 {
 	for (u32 playerID = 0; playerID < NTR_ARRAY_SIZE(playerTarget); playerID++)
@@ -103,34 +140,6 @@ void onStageLayoutUpdate()
 			player->position.x = cameraX[i];
 		else if (player->position.x > cameraX[i] + cameraWidth[i])
 			player->position.x = cameraX[i] + cameraWidth[i];
-	}
-}
-
-void onViewTransit(u8 transitPlayerID)
-{
-	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
-	{
-		if ((playerID == transitPlayerID) || (playerTarget[playerID] != transitPlayerID))
-			continue;
-
-		// Set the destination entrance (using overriden entrance)
-		StageEntrance* respawnEntrance = &Entrance::overriddenEntrance[playerID];
-		MI_CpuCopyFast(Entrance::spawnEntrance[transitPlayerID], respawnEntrance, sizeof(StageEntrance));
-		respawnEntrance->type = EntranceType::Normal;
-
-		Entrance::spawnEntranceID[playerID] = -(playerID + 1); // This is how the game does it at Entrance::overrideEntrance
-
-		// It is not possible to just do
-		//   Entrance::spawnEntrance[playerID] = Entrance::spawnEntrance[transitPlayerID];
-		//   Entrance::spawnEntranceID[playerID] = Entrance::spawnEntranceID[transitPlayerID];
-		//
-		// because if the transitPlayerID entrance happens to be a door and we switch to spectator,
-		// the door animation will try to trigger but since the player is spectating it wouldn't update
-		// which would prevent other players from opening doors.
-
-		// Use entrance
-		Player* player = Game::getPlayer(playerID);
-		player->switchTransitionState(&Player::viewTransitState);
 	}
 }
 

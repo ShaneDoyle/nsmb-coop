@@ -14,8 +14,9 @@ bool isSpectating(u32 playerID);
 Player* getTargetPlayer(u32 playerID);
 Player* getLocalTargetPlayer();
 void clearSpectators();
+void followTargetToNewView(u8 playerID, u8 transitPlayerID);
+void syncSpectatorsOnViewTransition(u8 transitPlayerID);
 void onStageLayoutCreate();
 void onStageLayoutUpdate();
-void onViewTransit(u8 transitPlayerID);
 
 }

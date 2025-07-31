@@ -62,6 +62,17 @@ static s32 Stage_getAlivePlayerID()
 	return 2; // both
 }
 
+bool Stage_areaHasRotator()
+{
+	u32 tilesetCount = Stage::getBlockElementCount(scast<u32>(StageBlockID::Tileset));
+	for (u32 i = 0; i < tilesetCount; i++)
+	{
+		if (Stage::stageBlocks.tileset[i].screenID == 0xFF00)
+			return true;
+	}
+	return false;
+}
+
 // ======================================= ENTRANCE POSITIONING =======================================
 
 asm(R"(

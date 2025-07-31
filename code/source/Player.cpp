@@ -425,15 +425,23 @@ void Player_beginBossDefeatCutsceneCoop(Player* linkedPlayer, bool battleSwitch)
 ncp_call(0x0211881C, 10)
 u32 Player_viewTransitState_beginFadeInHook(u8 transitPlayerID)
 {
-	u32& areaNum = *rcast<u32*>(0x02085A94);
-	if (areaNum == 173)
+	if (Game::getPlayerDead(transitPlayerID))
+		goto commonEnd;
+
+	if (Stage_areaHasRotator())
 	{
-		// Hacky fix for the level rotator, players must always be in the same view
+		// If a level has a rotator, all players must always be in the same view
 
 		for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 		{
 			if (playerID == transitPlayerID)
 				continue;
+
+			if (Game::getPlayerDead(playerID))
+			{
+				PlayerSpectate::followTargetToNewView(playerID, transitPlayerID);
+				continue;
+			}
 
 			Entrance::setSpawnEntrance(Entrance::targetEntranceID, playerID);
 
@@ -441,12 +449,13 @@ u32 Player_viewTransitState_beginFadeInHook(u8 transitPlayerID)
 			Player* player = Game::getPlayer(playerID);
 			player->switchTransitionState(&Player::viewTransitState);
 		}
-	}
-	else
-	{
-		PlayerSpectate::onViewTransit(transitPlayerID);
+
+		goto commonEnd;
 	}
 
+	PlayerSpectate::syncSpectatorsOnViewTransition(transitPlayerID);
+
+commonEnd:
 	return Entrance::getSpawnMusic(transitPlayerID); // Keep replaced instruction
 }
 
