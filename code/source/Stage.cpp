@@ -962,3 +962,34 @@ ncp_set_call(0x020A77D0, 0, Entrance_customTryUseEntrance)
 ncp_set_call(0x020A79D4, 0, Entrance_customTryUseEntrance)
 ncp_set_call(0x020A7BD8, 0, Entrance_customTryUseEntrance)
 ncp_set_call(0x020A7DB0, 0, Entrance_customTryUseEntrance)
+
+// Fix the level rotator
+
+/*
+ncp_jump(0x020B0A38, 0)
+void StageLayout_fixRotatorStep2Check(void* self)
+{
+	fx32* manualCameraScroll = rcast<fx32*>(self) + (0x564/4);
+	u8& rotatorStep = *rcast<u8*>(0x020CAC74);
+
+	manualCameraScroll[0] = 0;
+	manualCameraScroll[1] = 0;
+
+	rotatorStep = 2;
+}
+*/
+
+asm(R"(
+ncp_over(0x020B0A38, 0) /* max over: 0x94 bytes, current: 0x20 bytes */
+StageLayout_fixRotatorStep2Check:
+	mov	r3, #0
+	mov	r2, #2
+	str	r3, [r0, #1380]
+	str	r3, [r0, #1384]
+	ldr	r3, .rotfix_L7
+	strb	r2, [r3, #116]
+	bx	lr
+.rotfix_L7:
+	.word	34384896
+ncp_endover()
+)");
