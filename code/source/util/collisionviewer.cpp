@@ -399,14 +399,14 @@ namespace CollisionViewer {
 
 	void renderActiveCollider(const ActiveCollider& u, Flags flags) {
 
-		FxRect box = u.hitbox.rect;
+		FxRect box = u.config.rect;
 		StageActor* owner = u.owner;
 		box.x += owner->position.x;
 		box.y += owner->position.y;
 
 		switch (u.shape) {
 
-		case ActiveColliderShape::Rectangle:
+		case AcShape::Rectangle:
 
 			if ((flags & Flags::RectActiveCollider) != Flags::None) {
 
@@ -429,7 +429,7 @@ namespace CollisionViewer {
 
 			break;
 
-		case ActiveColliderShape::Round:
+		case AcShape::Round:
 
 			if ((flags & Flags::RoundActiveCollider) != Flags::None) {
 
@@ -452,18 +452,18 @@ namespace CollisionViewer {
 
 			break;
 
-		case ActiveColliderShape::TrapezoidH:
-		case ActiveColliderShape::TrapezoidV:
+		case AcShape::TrapezoidH:
+		case AcShape::TrapezoidV:
 		{
 			Vec2 pos(box.x, box.y);
 			fx32 points[4];
 
-			points[0] = u.trapezoid.topLeftX;
-			points[1] = u.trapezoid.topRightX;
-			points[2] = u.trapezoid.botLeftX;
-			points[3] = u.trapezoid.botRightX;
+			points[0] = u.trapV.topLeft;
+			points[1] = u.trapV.topRight;
+			points[2] = u.trapV.botLeft;
+			points[3] = u.trapV.botRight;
 
-			if (u.shape == ActiveColliderShape::TrapezoidH) {
+			if (u.shape == AcShape::TrapezoidH) {
 
 				if ((flags & Flags::TrapHActiveCollider) != Flags::None) {
 

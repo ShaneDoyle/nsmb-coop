@@ -108,11 +108,11 @@ bool ActorFixes_isInRangeOfAllPlayers(StageEntity* self)
 {
 	FxRect boundingBox;
 
-	if (self->invisible)
-		return 0;
+	if (self->forceRender)
+		return false;
 
 	if (self->updateStateID == StageEntity::UpdateStateID::Carried)
-		return 0;
+		return false;
 
 	boundingBox.x = self->viewOffset.x << 12;
 	boundingBox.y = self->viewOffset.y << 12;
