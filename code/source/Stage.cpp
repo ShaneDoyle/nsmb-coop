@@ -143,13 +143,37 @@ void call_0211C21C_ov10(Player* player)
 
 // Only show one door when spawning at a door entrance
 
+ncp_call(0x02118A90, 10)
+void call_02118A90_ov10(Player* self, EntranceType entranceType)
+{
+	if (Game::getPlayerCount() != 1 && Stage_areaHasRotator())
+	{
+		// If the level has a rotator, players are need to change
+		// view at the same time, which causes them to come out of
+		// the same door at the same time.
+		// This adjusts the positions as if it were an area change.
+
+		s32 playerID = self->linkedPlayerID;
+		if (playerID == 0 && !Stage_isPlayerDead[1])
+		{
+			self->position.x += 8 << 12;
+		}
+		else if (playerID == 1 && !Stage_isPlayerDead[0])
+		{
+			self->position.x -= 8 << 12;
+		}
+	}
+
+	self->beginEntrancePose(entranceType); // Keep replaced instruction
+}
+
 ncp_repl(0x0211C980, 10, "MOV R0, R4") // Pass 'this' instead of 'this->door'
 
 ncp_call(0x0211C984, 10)
 void call_0211C984_ov10(Player* player)
 {
 	// Open door normally if we didn't change area or singleplayer
-	if (Game::getPlayerCount() == 1 || !Stage_doorFromAreaChange)
+	if (Game::getPlayerCount() == 1 || !(Stage_doorFromAreaChange || Stage_areaHasRotator()))
 	{
 		player->door->open();
 		return;
