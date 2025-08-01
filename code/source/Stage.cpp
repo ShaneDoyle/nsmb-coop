@@ -723,6 +723,13 @@ NTR_USED static void Stage_decideForceAreaReload()
 	if (Stage_forceAreaReload == 1) // Already set to reload
 		return;
 
+	// Hardcoded, prevent rotators from resetting but still get rid of the lava in W8 Final Castle
+	u32& areaNum = *rcast<u32*>(0x02085A94);
+	if (areaNum == 173 && Game::getPlayer(0)->viewID != 0)
+	{
+		return;
+	}
+
 	StageObject* stageObjs = Stage::stageBlocks.stageObjs;
 	for (u32 i = 0; ; i++)
 	{
