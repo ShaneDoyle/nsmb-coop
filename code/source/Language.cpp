@@ -136,6 +136,20 @@ const u8 Boot_logoPalette[32] = {
     0x90, 0x7E, 0xF4, 0x7E, 0x37, 0x7F, 0x79, 0x7F, 0x9C, 0x7F, 0xDD, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F,
 };
 
+#elif GAME_LANGUAGE_PT
+
+constexpr s32 FileSelectNumberXOffset = 10;
+constexpr s32 WorldmapStarCoin1XOffset = -34;
+constexpr s32 WorldmapStarCoin2XOffset = 24;
+constexpr s32 WorldmapStarCoin3XOffset = -4;
+constexpr s32 WorldmapStarCoin4XOffset = -4;
+
+asm(R"""(
+ncp_over(0x020341C4)
+.incbin "files/font_a_pt.NFTR"
+ncp_endover()
+)""");
+
 #else // GAME_LANGUAGE_EN
 
 constexpr s32 FileSelectNumberXOffset = 0;

@@ -13,8 +13,8 @@ def parse_arguments():
     parser.add_argument('-o', '--output-dir', default='build',
                        help='Output directory for generated ROMs (default: build)')
     parser.add_argument('-l', '--languages', nargs='+',
-                       choices=['en', 'fr', 'ge', 'it', 'jp', 'sp'],
-                       default=['en', 'fr', 'ge', 'it', 'jp', 'sp'],
+                       choices=['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt'],
+                       default=['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt'],
                        help='Languages to build (default: all)')
     parser.add_argument('-p', '--prefix', default=None,
                        help='Name prefix for output files (default: use input ROM stem)')

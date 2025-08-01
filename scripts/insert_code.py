@@ -11,7 +11,7 @@ def parse_arguments():
     parser.add_argument('input_rom', help='Input ROM file path')
     parser.add_argument('output_rom', help='Output ROM file path')
     parser.add_argument('-l', '--language', default='en',
-                       choices=['en', 'fr', 'ge', 'it', 'jp', 'sp'],
+                       choices=['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt'],
                        help='Game language (default: en)')
     parser.add_argument('-v', '--verbose', action='store_true',
                        help='Enable verbose output')
@@ -28,7 +28,7 @@ verbose = args.verbose
 outputdir = args.temp_dir
 ov9dir = outputdir + "/overlay9"
 ov7dir = outputdir + "/overlay7"
-supported_languages = ['en', 'fr', 'ge', 'it', 'jp', 'sp']
+supported_languages = ['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt']
 
 def run_ncp():
     print("Running NCPatcher")
