@@ -44,6 +44,11 @@ namespace Widescreen
 
 		return true;
 	}
+
+	void loadSaveOption()
+	{
+		Widescreen::enabled[0] = (Save::optionSave.flags & (1 << 1)) != 0;
+	}
 }
 
 asm(R"(

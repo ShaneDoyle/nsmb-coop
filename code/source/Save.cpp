@@ -1,6 +1,9 @@
 #include "Save.hpp"
 
 #include <nsmb/game/stage/player/common.hpp>
+#include <nsmb/core/net/core.hpp>
+
+#include "Widescreen.hpp"
 
 namespace SaveExt
 {
@@ -24,6 +27,12 @@ namespace SaveExt
 			return Save::ReturnCode::Success;
 
 		return Save::readMainSave(slot, save);
+	}
+
+	void reloadOptions()
+	{
+		*rcast<u32*>(0x02085AD4) = scast<u32>(Save::optionSave.controls);
+		Widescreen::loadSaveOption();
 	}
 }
 
@@ -67,3 +76,11 @@ ncp_jump(0x02012FB4)
 	LDR     R0, =0x50005
 	B       0x02012FB8
 )");
+
+// Fixes a bug in the original game where synced settings used player 0's settings after the connection is terminated
+ncp_call(0x0200F45C)
+void call_0200F45C()
+{
+	Net::Core::resetConnection(); // Keep replaced instruction
+	SaveExt::reloadOptions();
+}
