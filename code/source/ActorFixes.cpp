@@ -736,6 +736,15 @@ Player* VolcanoEruption_fixGetClosestPlayerOnCreate()
 // since range checks are unreliable with local-only actor positions.
 ncp_repl(0x02162F2C, 54, "MOV R0, #0")
 
+// Flame Chomp --------------------------------------------------------------------------
+
+asm(R"(
+ncp_jump(0x02175B18, 70)
+	MOV     R0, R4
+	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
+	B       0x02175B1C
+)");
+
 // Misc ---------------------------------------------------------------------------------
 
 ncp_over(0x02132560, 18) const auto CheepSkipper_skipRender = ActorFixes_safeSkipRender;
