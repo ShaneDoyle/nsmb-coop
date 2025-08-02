@@ -619,11 +619,13 @@ extern "C" {
 ncp_jump(0x020D6600, 10)
 s32 HorizontalCameraStop_onCreate_OVERRIDE(StageEntity* self)
 {
-	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	// TODO: fix this actor for real
+
+	/*for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
 		HorizontalCameraStop_playerID = playerID;
 		HorizontalCameraStop_onCreate_SUPER(self);
-	}
+	}*/
 
 	return 0;
 }
