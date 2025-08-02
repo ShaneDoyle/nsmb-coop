@@ -18,3 +18,9 @@ NTR_INLINE bool ActorFixes_isPlayerInZone(Player* player, u32 zoneID)
 
 bool ActorFixes_isPlayerInShakeRange(StageActor* self, Player* player);
 bool ActorFixes_isInRangeOfAllPlayers(StageEntity* self);
+
+constexpr u16 ActorFixes_volcanoTimerInterval = 60 * 8;
+extern u16 ActorFixes_volcanoTimer;
+extern u8 ActorFixes_volcanoTargetPlayer;
+
+void ActorFixes_updateVolcanoBackground();

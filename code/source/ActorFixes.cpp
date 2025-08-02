@@ -3,7 +3,9 @@
 #include <nsmb/game/stage/player/player.hpp>
 #include <nsmb/game/stage/entity3danm.hpp>
 #include <nsmb/game/stage/viewshaker.hpp>
+#include <nsmb/game/stage/effect.hpp>
 #include <nsmb/game/stage/actors/ov54/warpentrance.hpp>
+#include <nsmb/game/stage/actors/ov54/volcanoeruption.hpp>
 #include <nsmb/game/stage/actors/ov66/lakituspawner.hpp>
 #include <nsmb/core/system/function.hpp>
 #include <nsmb/core/math/math.hpp>
@@ -600,7 +602,7 @@ ncp_set_call(0x020D8524, 10, ActorFixes_isInRangeOfAllPlayers) // Fix coin perma
 ncp_repl(0x0218A898, 108, "NOP") // Pass Broozer* instead of &Broozer*->position
 ncp_set_call(0x0218A8A4, 108, ActorFixes_isOutsideCamera)
 
-// Horizontal Camera Stop -------------------------------------------------------
+// Horizontal Camera Stop ---------------------------------------------------------------
 
 u32 HorizontalCameraStop_playerID;
 
@@ -627,6 +629,112 @@ s32 HorizontalCameraStop_onCreate_OVERRIDE(StageEntity* self)
 }
 
 ncp_repl(0x020D6784, 10, ".int HorizontalCameraStop_playerID")
+
+// Volcano Eruption ---------------------------------------------------------------------
+
+// Original Desync Issues:
+// 1. Meteor spawns were triggered by the background animation function. This function can fail to update
+//    for the local player under certain conditions (e.g., camera freeze, cutscenes, or death), causing
+//    volcano eruptions to desynchronize between consoles.
+// 2. The usual fix for actor targeting (replacing Game::getLocalPlayer with the closest player) doesn't apply here.
+//    In this case, the code was already using the closest player, but this is still unreliable because the
+//    volcano eruption actor's position is relative to the local camera. Each console sees the actor in a
+//    different place, so only meteors spawned with the player pointer are synchronized; the actor itself is not.
+//
+// Fixes:
+// - The eruption logic is now handled after StageLayout::onUpdate (see ActorFixes_updateVolcanoBackground).
+//   This ensures the eruption timer is updated consistently for all players.
+// - Instead of targeting the closest player (which is unreliable due to local-only actor positions),
+//   the code cycles through all players in order, so no one feels unfairly targeted and all consoles
+//   spawn eruptions in sync.
+//
+// Additional changes:
+// - Disabled the original background-triggered eruption and screen shake code with NOPs.
+// - Patched the volcano eruption actor to allow out-of-range spawns, since range checks are not reliable
+//   when actor positions are local-only.
+// - Patched the actor's player targeting to use the round-robin method described above.
+
+ncp_repl(0x020B6D2C, 0, "NOP") // Disable original volcano eruption trigger
+ncp_repl(0x020B6D44, 0, "NOP") // Disable original volcano eruption trigger
+ncp_repl(0x020B6D6C, 0, "NOP") // Disable original screen shake
+
+asm(R"(
+StageLayout_volcanoShake = 0x020AD65C
+)");
+extern "C" {
+	void StageLayout_volcanoShake(StageLayout* self);
+}
+
+u16 ActorFixes_volcanoTimer = 60 * 8 - 1;
+u8 ActorFixes_volcanoTargetPlayer = 0;
+
+static inline u16 ActorFixes_getFgScreenID(u32 playerID)
+{
+	return *rcast<u16*>(&rcast<u8*>(Stage::stageLayout)[12 * playerID + 1196]);
+}
+
+struct bgScrollData
+{
+    fx32 field_0;
+    fx32 bottomScrollF32;
+    fx32 cameraOffset;
+    fx32 topScrollF32;
+};
+
+void ActorFixes_updateVolcanoBackground()
+{
+	u32 playerID = Game::localPlayerID;
+
+	u32& levelEndBitmask = *rcast<u32*>(0x020CA8C0);
+	if ((levelEndBitmask & 3) != 0 || ActorFixes_getFgScreenID(playerID) != 15)
+		return;
+
+	ActorFixes_volcanoTimer++;
+	if (ActorFixes_volcanoTimer != ActorFixes_volcanoTimerInterval)
+		return;
+	ActorFixes_volcanoTimer = 0;
+
+	u8 viewID = Game::getPlayer(playerID)->viewID;
+
+	bgScrollData* gStageHorizontalScrollData = rcast<bgScrollData*>(0x020CAF18);
+	bgScrollData* gStageVerticalScrollData = rcast<bgScrollData*>(0x020CAF38);
+
+	fx32 horizScroll = gStageHorizontalScrollData[playerID].topScrollF32 & 0xFF000;
+	fx32 vertScroll  = gStageVerticalScrollData[playerID].topScrollF32 & 0x1FF000;
+	fx32 horizOffset = gStageHorizontalScrollData[playerID].cameraOffset;
+	fx32 vertOffset  = gStageVerticalScrollData[playerID].cameraOffset;
+
+	// Compute eruption position
+	Vec3 eruptionPos;
+	eruptionPos.x = (0x2A000 - horizScroll) + horizOffset;
+	eruptionPos.y = -(0x150000 - vertScroll + vertOffset);
+	eruptionPos.z = 0;
+
+	// First eruption
+	VolcanoEruption::erupt(eruptionPos, viewID);
+
+	// Second eruption, shifted right
+	eruptionPos.x += 0x100000;
+	VolcanoEruption::erupt(eruptionPos, viewID);
+
+	ActorFixes_volcanoTargetPlayer++;
+	if (ActorFixes_volcanoTargetPlayer == Game::getPlayerCount())
+		ActorFixes_volcanoTargetPlayer = 0;
+
+	StageLayout_volcanoShake(Stage::stageLayout);
+}
+
+// We cannot use the closest player for targeting, since the actor's position is local-only.
+// Instead, cycle through all players in order to distribute eruptions fairly.
+ncp_call(0x021633DC, 54)
+Player* VolcanoEruption_fixGetClosestPlayerOnCreate()
+{
+	return Game::getPlayer(ActorFixes_volcanoTargetPlayer);
+}
+
+// Allow volcano eruptions to spawn even if the player is out of range,
+// since range checks are unreliable with local-only actor positions.
+ncp_repl(0x02162F2C, 54, "MOV R0, #0")
 
 // Misc ---------------------------------------------------------------------------------
 

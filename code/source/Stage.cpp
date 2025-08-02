@@ -19,6 +19,7 @@
 
 #include "PlayerSpectate.hpp"
 #include "Player.hpp"
+#include "ActorFixes.hpp"
 #include "DesyncGuard.hpp"
 #include "nwav/nwav.hpp"
 
@@ -593,11 +594,15 @@ void StageLayout_onCreateHook(s32 seqID)
 		*rcast<u32*>(0x020CA8B4) = 0x1000; // timeLeft
 		*rcast<u8*>(0x020CA898) = 0x21; // timeStopped
 	}
+
+	ActorFixes_volcanoTimer = ActorFixes_volcanoTimerInterval - 1;
+	ActorFixes_volcanoTargetPlayer = 0;
 }
 
 void StageLayout_onUpdateHook()
 {
 	PlayerSpectate::onStageLayoutUpdate();
+	ActorFixes_updateVolcanoBackground();
 }
 
 asm(R"(
