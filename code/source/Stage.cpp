@@ -1071,3 +1071,29 @@ StageLayout_fixRotatorStep2Check:
 	.word	34384896
 ncp_endover()
 )");
+
+// Fix potential manual camera scroll desync
+
+// ncp_repl(0x020B9F84, 0, "MOV R5, #0xFF")
+
+// asm(R"(
+// ncp_call(0x020BA008, 0)
+// ncp_call(0x020BA16C, 0)
+// 	LDR     R2, =_ZN4Game13localPlayerIDE
+// 	LDR     R2, [R2]
+// 	CMP     R7, R2
+// 	BLEQ    _ZN3SND7playSFXElPK4Vec3 // Keep replaced instruction
+// 	BX      LR
+
+// ncp_jump(0x020BA0C0, 0)
+// 	LDR     R2, =_ZN4Game13localPlayerIDE
+// 	LDR     R2, [R2]
+// 	CMP     R7, R2
+// 	BLEQ    _ZN3SND17playSFXContinuousElPK4Vec3 // Keep replaced instruction
+// 	B       0x020BA180
+// )");
+
+// TODO: no time to fix, do in later release, for now disable manual scroll to avoid issues
+// code commented above is likely incorrect!
+
+ncp_repl(0x020B9B94, 0, "NOP") // Disable scroll with shoulder buttons
