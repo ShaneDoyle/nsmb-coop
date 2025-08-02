@@ -36,12 +36,14 @@ asm(R"(
 	StageLayout_looperScrollBack = 0x020B1510
 	UI_drawDirect = 0x0200421C
 	DrawBottomScreenLives = 0x020BEC60
+	SetupGraphicsForBottomScreenInStage = 0x020BDAFC
 )");
 extern "C" {
 	void SpawnGrowingEntranceVine(Vec3*);
 	void StageLayout_looperScrollBack(void* stageLayout, s32 playerID);
 	void UI_drawDirect(u8 objectID, GXOamAttr* attrs, OAM::Flags flags, u8 palette, u8 affineSet, const Vec2 *scale, s16 rot, const s16 rotCenter[2], OAM::Settings settings, s32 xOffset, s32 yOffset);
 	void DrawBottomScreenLives();
+	void SetupGraphicsForBottomScreenInStage(int);
 }
 namespace Stage {
 	void exitLevel(u32 flag);
@@ -798,9 +800,34 @@ bool Player_updateTimesUpTransitionsHook(Player* self)
 // ncp_repl(0x0209BD2C, 0, "MOV R0, #1")
 // ncp_repl(0x020D06E0, 10, "MOV R0, #1")
 
-// Fix some bottom screen locking crap that took our time (related to wavy fading transition) :(
-ncp_repl(0x0201EB1C, "B 0x0201EB40")
-ncp_repl(0x0201EB4C, "NOP")
+// Fix bottom screen transition flag desync
+
+void Entrance_copyTransitionFlagsIfAreaChange(s32 playerID)
+{
+	u32& areaNum = *rcast<u32*>(0x02085A94);
+	if (Entrance::targetAreaID != areaNum || Stage_forceAreaReload)
+	{
+		s32 otherID = playerID ^ 1;
+		Entrance::transitionFlags[otherID] = Entrance::transitionFlags[playerID];
+	}
+}
+
+ncp_call(0x0215E7C4, 54)
+void Stage_copyTransitionFlagsOnLoad(int arg)
+{
+	// Set the flags for the other player too
+	Entrance::transitionFlags[Game::localPlayerID ^ 1] = Entrance::transitionFlags[Game::localPlayerID];
+
+	SetupGraphicsForBottomScreenInStage(arg); // Keep replaced instruction
+}
+
+asm(R"(
+ncp_jump(0x0201EBE0)
+	LDR     R0, [SP,#0] // playerID
+	BL      _Z40Entrance_copyTransitionFlagsIfAreaChangel
+	ADD     SP, SP, #4
+	B       0x0201EBE4
+)");
 
 asm(R"(
 // Disable baphs if player count is bigger than 1 (prevents desyncs)
