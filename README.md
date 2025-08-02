@@ -9,6 +9,7 @@ Play New Super Mario Bros. (DS) with a friend! This mod adds full cooperative mu
 - **Boss Battle Adaptations**: All bosses have been reworked for 2-player fights
 - **Desync Protection**: If things get out of sync, the game automatically fixes itself by rolling back to before you entered the level
 - **Widescreen Support**: Expands the game to fill the entire 3DS screen for a better view (toggle with L+R+X, requires nds-bootstrap)
+- **Multi-language Support**: Available in 7 languages (English, French, German, Italian, Japanese, Spanish, Portuguese)
 
 ## Building
 
@@ -22,6 +23,7 @@ Play New Super Mario Bros. (DS) with a friend! This mod adds full cooperative mu
   - On Windows: Install via [GNU Arm Embedded Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm)
 - **Git** - For version control and build metadata
 - **NCPatcher** - Nintendo DS code patching tool
+- **xdelta3** (optional) - For generating binary patches
 
 ### Build Steps
 1. **Clone the repository**:
@@ -32,24 +34,70 @@ Play New Super Mario Bros. (DS) with a friend! This mod adds full cooperative mu
 
 2. **Prepare the base ROM**:
    - Obtain a clean New Super Mario Bros. (USA) ROM[<sup>1</sup>](#notes)
-   - Place it as `nsmb-coop.nds` in the repository root
+   - Place it as `rom.nds` in the repository root
 
 3. **Build the modification**:
+
+   **Option A: Build all languages (recommended)**
    ```bash
-   python scripts/insert_files.py nsmb-coop.nds
-   python scripts/insert_code.py nsmb-coop.nds
+   python scripts/build_roms.py rom.nds
    ```
 
+   **Option B: Build specific languages**
+   ```bash
+   python scripts/build_roms.py rom.nds -l en fr ge
+   ```
+
+   **Option C: Manual build (single language)**
+   ```bash
+   python scripts/insert_code.py rom.nds __tmp/rom_code.nds --language en
+   python scripts/insert_files.py __tmp/rom_code.nds nsmb-coop.nds --language en
+   ```
+
+### Build Options
+The `build_roms.py` script supports several options:
+- `-l, --languages`: Specify which languages to build (en, fr, ge, it, jp, sp, pt)
+- `-o, --output-dir`: Set custom output directory (default: `build`)
+- `-p, --prefix`: Custom name prefix for output files
+- `--no-patches`: Skip xdelta patch generation
+- `--temp-dir`: Custom temporary directory (default: `__tmp`)
+- `--clean-temp`: Clean temporary files after build
+- `-v, --verbose`: Enable verbose output
+
+### Build Output
+The build process generates:
+- **ROMs**: Built ROMs for each language in `build/nds/` directory
+- **Patches**: xdelta binary patches in `build/xdelta/` directory (optional)
+- **Multi-language support**: Separate ROM files for different game languages
+
+Example output structure:
+```
+build/
+├── nds/
+│   ├── rom_en.nds      # English version
+│   ├── rom_fr.nds      # French version
+│   ├── rom_ge.nds      # German version
+│   └── ...
+└── xdelta/
+    ├── rom_en.xdelta   # English patch
+    ├── rom_fr.xdelta   # French patch
+    └── ...
+```
+
 The build process will:
-- Insert custom files and assets
+- Insert custom files and assets for the specified language(s)
 - Update the ROM with build metadata (commit hash and timestamp)
 - Generate object tables and compile C++ source code
-- Apply code patches using NCPatcher
+- Apply code patches using NCPatcher with language-specific definitions
+- Generate xdelta patches for distribution (optional)
 
 ### Troubleshooting
 - Ensure all prerequisites are installed and in your system PATH
 - Verify the ROM matches the expected checksums listed in [Notes](#notes)
 - Check that the ARM toolchain is properly configured for cross-compilation
+- If xdelta3 is not found, patch generation will be automatically skipped
+- Use `--verbose` flag with build scripts for detailed debugging output
+- For build issues, try cleaning the temporary directory with `--clean-temp`
 
 ## Credits
 
