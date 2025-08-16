@@ -874,6 +874,26 @@ s32 StageIntroScene_onRender_hook()
 	return 1;
 }
 
+ncp_call(0x02152874, 54)
+void StageIntro_syncSwitchScene(u32 r0, u32 r1)
+{
+	if (!Net::isConnected())
+		goto sceneSwitch;
+
+	// Notify other consoles that this console has finished loading the level.
+	Net::Core::setMarker(0);
+
+	// Wait until all consoles have finished loading before switching to the stage scene.
+	if (!Net::Core::checkMarker(0))
+		return;
+
+	// All consoles are ready; clear the marker and proceed to switch the scene.
+	Net::Core::clearMarker(0);
+
+sceneSwitch:
+	Scene::switchScene(r0, r1);
+}
+
 ncp_repl(0x020FBD70, 10, "NOP") // Disables "Lose" music. (End Flag & Boss)
 
 asm(R"(
