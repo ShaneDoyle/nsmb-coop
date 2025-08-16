@@ -84,6 +84,7 @@ void followTargetToNewView(u8 playerID, u8 transitPlayerID)
 	MI_CpuCopyFast(Entrance::spawnEntrance[transitPlayerID], respawnEntrance, sizeof(StageEntrance));
 	respawnEntrance->type = EntranceType::Normal;
 
+	Entrance::spawnEntrance[playerID] = respawnEntrance;
 	Entrance::spawnEntranceID[playerID] = -(playerID + 1); // This is how the game does it at Entrance::overrideEntrance
 
 	// It is not possible to just do

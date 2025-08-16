@@ -151,7 +151,7 @@ void call_02118A90_ov10(Player* self, EntranceType entranceType)
 {
 	if (Game::getPlayerCount() != 1 && Stage_areaHasRotator())
 	{
-		// If the level has a rotator, players are need to change
+		// If the level has a rotator, players need to change
 		// view at the same time, which causes them to come out of
 		// the same door at the same time.
 		// This adjusts the positions as if it were an area change.
