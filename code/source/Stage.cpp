@@ -1150,3 +1150,12 @@ ncp_endover()
 // code commented above is likely incorrect!
 
 ncp_repl(0x020B9B94, 0, "NOP") // Disable scroll with shoulder buttons
+
+// Do not show "TOUCH" if the player is dead
+
+ncp_call(0x020BE1F0, 0)
+u32 Stage_customPowerupDeployCondition(u32 playerID)
+{
+	return Game::getPlayerInventoryPowerup(playerID) && // Keep replaced instruction
+		!Game::getPlayerDead(playerID);
+}
