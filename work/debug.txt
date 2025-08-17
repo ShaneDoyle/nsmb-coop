@@ -48,3 +48,45 @@ void replaaa(StageEntity *actor, u32 flags)
 	bool a = actor->destroyInactive(flags);
 	Log::print("%d %d\n", (int)a, (int)actor->permanentDelete);
 }
+
+
+
+
+
+u32 knownLRs[128];
+
+extern "C"
+void printUniqueLR(int lr)
+{
+    for (int i = 0; i < 128; i++)
+	{
+        if (knownLRs[i] == lr)
+            return;
+        if (knownLRs[i] == 0)
+		{
+            knownLRs[i] = lr;
+            Log::print("LR: 0x%08X\n", lr);
+            return;
+        }
+    }
+}
+
+asm(R"(
+// print current bg animation function
+// ncp_jump(0x020B8AE8, 0)
+// 	PUSH {R3}
+// 	LDR R3, [R3]
+// 	print "%r3%\n"
+// 	POP {R3}
+// 	LDR     R1, [R3,#4]
+// 	B       0x020B8AE8+4
+
+// track MIi_CpuCopy16, find what is doing changes to the bg
+ncp_jump(0x02066E7C)
+	PUSH {R0-R3,LR}
+	MOV R0, LR
+	BL  printUniqueLR
+	POP {R0-R3,LR}
+	MOV     R12, #0
+	B       0x02066E7C+4
+)");
