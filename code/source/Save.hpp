@@ -10,4 +10,6 @@ namespace SaveExt
 	void reloadMainSave();
 	Save::ReturnCode readMainSavePatch(u32 slot, MainSave* save);
 	void restoreOptions();
+	void loadBackupParams();
+	void saveBackupParams();
 }
