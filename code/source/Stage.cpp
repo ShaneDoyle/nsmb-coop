@@ -17,6 +17,7 @@
 #include <nsmb/core/wifi/wifi.hpp>
 #include <nsmb/core/filesystem.hpp>
 
+#include "fid.hpp"
 #include "PlayerSpectate.hpp"
 #include "Player.hpp"
 #include "ActorFixes.hpp"
@@ -25,7 +26,7 @@
 
 NTR_USED static u32 sTempVar;
 
-constexpr u32 spectateTextFileID = 2095 - 131;
+constexpr u32 spectateTextFileID = "coop/A_text_spectate_ncg.bin"fid;
 
 u8 Stage_isPlayerDead[2];
 u8 Stage_doorFromAreaChange;
@@ -717,7 +718,7 @@ ncp_call(0x020C0A34, 0)
 void call_020C0A34_ov0(u32 extFileID, void* dest)
 {
 	if (Game::getPlayerCount() != 1)
-		extFileID = 2092 - 131;
+		extFileID = "coop/d_2d_UI_O_1P_game_in_d_nsc.bin"fid;
 	FS::loadFileLZ77(extFileID, dest);
 }
 
@@ -1057,17 +1058,20 @@ ncp_endover()
 
 // Use NWAV for the cannon sounds to save memory
 
+constexpr u32 marioCannonShootSfxFileID = "coop/SE_VOC_MA_SHOT.nwav"fid;
+constexpr u32 luigiCannonShootSfxFileID = "coop/SE_VOC_LU_SHOT.nwav"fid;
+
 ncp_call(0x020F871C, 10)
 void PipeCannon_customPlayShootSound(s32 sfxID, const Vec3* pos)
 {
 	SND::playSFXUnique(sfxID, pos); // Keep replaced instruction
-	NWAV::play(sfxID == 69 ? 2089 : 2090);
+	NWAV::play(sfxID == 69 ? marioCannonShootSfxFileID : luigiCannonShootSfxFileID);
 }
 
 void WarpCannon_customPlayShootSound(s32 sfxID, const Vec3* pos)
 {
 	SND::playSFX(sfxID, pos); // Keep replaced instruction
-	NWAV::play(sfxID == 68 ? 2089 : 2090);
+	NWAV::play(sfxID == 68 ? marioCannonShootSfxFileID : luigiCannonShootSfxFileID);
 }
 
 ncp_set_call(0x0217F23C, 89, WarpCannon_customPlayShootSound)

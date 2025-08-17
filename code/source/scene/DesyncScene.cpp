@@ -9,6 +9,7 @@
 #include <nsmb/core/net.hpp>
 #include <nsmb/core/wifi.hpp>
 
+#include "fid.hpp"
 #include "Widescreen.hpp"
 #include "DesyncGuard.hpp"
 #include "Save.hpp"
@@ -79,8 +80,8 @@ static void writeString(u32 x, u32 y, u32 spacing, const char* text)
 	}
 }
 
-constexpr u32 topScreenImgFileID = 2093 - 131;
-constexpr u32 subScreenImgFileID = 2094 - 131;
+constexpr u32 topScreenImgFileID = "coop/desyncwarn_top.enpg"fid;
+constexpr u32 subScreenImgFileID = "coop/desyncwarn_sub.enpg"fid;
 
 const char* DesyncScene::levelNames[] = {
 	"Mushroom House",

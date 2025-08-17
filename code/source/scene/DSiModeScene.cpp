@@ -7,6 +7,7 @@
 #include <nsmb/core/system/input.hpp>
 #include <nsmb/core/system/misc.hpp>
 
+#include "fid.hpp"
 #include "Widescreen.hpp"
 
 #define BASE_SHARED			0x027FF000
@@ -37,7 +38,7 @@ void BootScene_goToTitlescreenHook(u32 sceneID, u32 settings)
 ncp_set_call(0x020CCAD0, 1, BootScene_goToTitlescreenHook)
 ncp_set_call(0x020CC720, 1, BootScene_goToTitlescreenHook)
 
-constexpr u32 topScreenImgFileID = 2091 - 131;
+constexpr u32 topScreenImgFileID = "coop/dsimode.enpg"fid;
 
 ObjectProfile DSiModeScene::profile = {
 	&constructObject<DSiModeScene>,

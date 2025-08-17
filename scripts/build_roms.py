@@ -27,6 +27,7 @@ def parse_arguments():
     parser.add_argument('--clean-temp', action='store_true',
                        help='Clean temporary directory after build')
 
+
     return parser.parse_args()
 
 def run_command(cmd, cwd=None, check=True):
@@ -77,19 +78,34 @@ def build_rom_for_language(language, base_name):
 
     # Ensure subdirectories exist
     ensure_directory(nds_dir)
+    ensure_directory(args.temp_dir)
     if not args.no_patches:
         ensure_directory(xdelta_dir)
 
     # Define file paths
-    code_rom = os.path.join(args.temp_dir, f"{base_name}_code_{language}.nds")
+    files_rom = os.path.join(args.temp_dir, f"{base_name}_files_{language}.nds")
     final_rom = os.path.join(nds_dir, f"{base_name}_{language}.nds")
     patch_file = os.path.join(xdelta_dir, f"{base_name}_{language}.xdelta")
 
-    # Step 1: Insert code
-    print(f"Step 1: Inserting code for {language}...")
+    # Step 1: Insert files first to generate file IDs
+    print(f"Step 1: Inserting files for {language}...")
+    insert_files_cmd = [
+        sys.executable, 'scripts/insert_files.py',
+        args.input_rom, files_rom,
+        '--language', language
+    ]
+
+    # Generate fid.hpp at code/include/fid.hpp
+    fid_path = os.path.join('code/include', 'fid.hpp')
+    insert_files_cmd.extend(['--fid-output', fid_path])
+
+    run_command(insert_files_cmd)
+
+    # Step 2: Insert code
+    print(f"Step 2: Inserting code for {language}...")
     insert_code_cmd = [
         sys.executable, 'scripts/insert_code.py',
-        args.input_rom, code_rom,
+        files_rom, final_rom,
         '--language', language
     ]
     if args.verbose:
@@ -98,16 +114,6 @@ def build_rom_for_language(language, base_name):
         insert_code_cmd.extend(['--temp-dir', args.temp_dir])
 
     run_command(insert_code_cmd)
-
-    # Step 2: Insert files
-    print(f"Step 2: Inserting files for {language}...")
-    insert_files_cmd = [
-        sys.executable, 'scripts/insert_files.py',
-        code_rom, final_rom,
-        '--language', language
-    ]
-
-    run_command(insert_files_cmd)
 
     # Step 3: Generate xdelta patch
     if not args.no_patches:
@@ -121,8 +127,8 @@ def build_rom_for_language(language, base_name):
             print(f"Warning: Failed to generate patch for {language}: {e}")
 
     # Clean up intermediate ROM
-    if os.path.exists(code_rom):
-        os.remove(code_rom)
+    if os.path.exists(files_rom):
+        os.remove(files_rom)
 
     print(f"Built ROM: {final_rom}")
     return final_rom, patch_file if not args.no_patches else None
