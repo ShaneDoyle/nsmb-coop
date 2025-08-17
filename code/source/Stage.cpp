@@ -653,6 +653,17 @@ ncp_set_call(0x020BD820, 0, Game::getPlayerCount) // Bottom screen background dr
 ncp_set_call(0x020BDA90, 0, Game::getPlayerCount) // Bottom screen background execute
 ncp_set_call(0x020BDC1C, 0, Game::getPlayerCount) // Bottom screen background load
 
+asm(R"(
+// Do not set the BG1 CNT with the other player's data, we don't have it!!! (Fix 2-4 background)
+ncp_jump(0x020BA3AC, 0)
+    LDR     R2, =_ZN4Game13localPlayerIDE
+    LDR     R2, [R2]
+    CMP     R2, R4
+    BNE     0x020BA488 // Do not apply the BG changes
+    LDRH    R2, [R0] // Keep replaced instruction
+    B       0x020BA3B0
+)");
+
 ncp_repl(0x020A3578, 0, "MOV R0, #0") // Draw Luigi's HUD with Mario's values (shared coins)
 ncp_repl(0x020C03F4, 0, "MOV R0, #0") // Display Mario's score instead of local player score
 
