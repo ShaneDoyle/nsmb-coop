@@ -72,7 +72,7 @@ void call_02006F74()
 
 void StageFX_customOamDraw(GXOamAttr* oamAttrs, s32 x, s32 y, OAM::Flags flags, u8 palette, u8 affineSet, const Vec2* scale, s16 rot, const s16 rotCenter[2], OAM::Settings settings)
 {
-	if (!Widescreen::enabled[Game::localPlayerID])
+	if (!Widescreen::shouldApply[Game::localPlayerID])
 	{
 		OAM::draw(oamAttrs, x, y, flags, palette, affineSet, scale, rot, rotCenter, settings);
 		return;
