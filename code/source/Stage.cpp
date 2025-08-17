@@ -25,6 +25,8 @@
 
 NTR_USED static u32 sTempVar;
 
+constexpr u32 spectateTextFileID = 2095 - 131;
+
 u8 Stage_isPlayerDead[2];
 u8 Stage_doorFromAreaChange;
 Player* Stage_flagpoleLinkedPlayer; // Player in the pole responsible for triggering events
@@ -245,17 +247,37 @@ void Player_freezeTimerOnDeathHook(s32 playerID, bool dead)
 	isTimeStopped |= 0x48;
 }
 
+static bool Stage_isRespawnAllowed(Player* player, Player* other)
+{
+	return
+		Game::getPlayerLives(player->linkedPlayerID) != 0 &&
+		!Game::getPlayerDead(other->linkedPlayerID) &&
+		!other->transitioningFlag &&
+		!Stage_isBossFight() &&
+		!Stage_hasLevelFinished();
+}
+
 static bool Stage_playerDeadState(Player* player, void* arg)
 {
+	constexpr u32 TextStayTime = 90;
+	constexpr u32 TextHideTime = 90;
+
 	u32 playerID = player->linkedPlayerID;
 
 	s8& step = player->transitionStateStep;
+	s16& timer = player->transitStepTimer;
 	if (step == Func::Init)
 	{
 		step = 1;
+		timer = TextHideTime;
 
 		player->visible = false;
 		*rcast<u8*>(0x020CA880) &= ~0x10; // Restore pausing
+
+		if (playerID == Game::localPlayerID)
+		{
+			FS::loadFileLZ77(spectateTextFileID, (u16*)HW_OBJ_VRAM); // Overwrite StageFX VRAM
+		}
 
 		return true;
 	}
@@ -275,25 +297,36 @@ static bool Stage_playerDeadState(Player* player, void* arg)
 	Stage::zoom[playerID] = Stage::zoom[otherID];
 
 	// Check if player is allowed to respawn or not
-	if (player->getJumpKeyPressed() &&
-		Game::getPlayerLives(playerID) != 0 &&
-		!Game::getPlayerDead(otherID) &&
-		!other->transitioningFlag &&
-		!Stage_isBossFight() &&
-		!Stage_hasLevelFinished())
+	if (Stage_isRespawnAllowed(player, other))
 	{
-		player->position.x = other->position.x - 0x10000;
-		player->position.y = other->position.y;
+		timer++;
+		if (timer > TextHideTime)
+		{
+			if (playerID == Game::localPlayerID)
+			{
+				GXOamAttr* stageFxAttrs = rcast<GXOamAttr*>(0x0216F6C8);
+				u8 palette = Game::getPlayerCharacter(playerID) ? 3 : 1;
+				OAM::draw(stageFxAttrs, 128, 180, OAM::Flags::None, palette, 0, OAM::Settings::None);
+			}
+			if (timer > TextStayTime + TextHideTime)
+				timer = 0;
+		}
 
-		player->spawnDefault();
+		if (player->getJumpKeyPressed())
+		{
+			player->position.x = other->position.x - 0x10000;
+			player->position.y = other->position.y;
 
-		Particle::Handler::createParticle(249, player->position);
-		Particle::Handler::createParticle(250, player->position);
+			player->spawnDefault();
 
-		player->visible = true;
-		PlayerSpectate::setTarget(playerID, playerID);
-		Stage_isPlayerDead[playerID] = false;
-		Game::setPlayerDead(playerID, false);
+			Particle::Handler::createParticle(249, player->position);
+			Particle::Handler::createParticle(250, player->position);
+
+			player->visible = true;
+			PlayerSpectate::setTarget(playerID, playerID);
+			Stage_isPlayerDead[playerID] = false;
+			Game::setPlayerDead(playerID, false);
+		}
 	}
 
 	return true;
