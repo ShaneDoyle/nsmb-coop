@@ -86,6 +86,9 @@ s32 DSiModeScene::onCreate()
 
 s32 DSiModeScene::onUpdate()
 {
+	if (!Game::fader.fadedIn())
+		return 1;
+
 	u16 pressed = Input::consoleKeys[0].pressed;
 
 	if (pressed & Keys::A)

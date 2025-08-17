@@ -191,6 +191,9 @@ void DesyncScene::mainState()
 		return;
 	}
 
+	if (!Game::fader.fadedIn())
+		return;
+
 	u16 pressed = Input::consoleKeys[0].pressed;
 
 	if (pressed & Keys::A)
