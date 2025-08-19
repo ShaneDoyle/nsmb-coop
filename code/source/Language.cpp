@@ -144,6 +144,7 @@ constexpr s32 WorldmapStarCoin2XOffset = 24;
 constexpr s32 WorldmapStarCoin3XOffset = -4;
 constexpr s32 WorldmapStarCoin4XOffset = -4;
 
+// We can overwrite up to 5857 bytes
 asm(R"""(
 ncp_over(0x020341C4)
 .incbin "files/font_a_pt.NFTR"
