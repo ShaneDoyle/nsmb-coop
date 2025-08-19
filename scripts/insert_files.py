@@ -14,7 +14,7 @@ def parse_arguments():
     parser.add_argument('input_rom', help='Input ROM file path')
     parser.add_argument('output_rom', help='Output ROM file path')
     parser.add_argument('-l', '--language', default='en',
-                       choices=['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt'],
+                       choices=['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt', 'ko'],
                        help='Game language (default: en)')
     parser.add_argument('--nitrofs-dir', default='nitrofs',
                        help='Directory containing files to insert (default: nitrofs)')
@@ -31,7 +31,7 @@ output_rom_filename = args.output_rom
 language = args.language
 path_overrides_filename = args.overrides_file
 newfs_dir = args.nitrofs_dir
-supported_languages = ['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt']
+supported_languages = ['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt', 'ko']
 
 rom = ndspy.rom.NintendoDSRom.fromFile(input_rom_filename)
 

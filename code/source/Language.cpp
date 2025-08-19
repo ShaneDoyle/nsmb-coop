@@ -1,6 +1,8 @@
 #include <nsmb_nitro.hpp>
 #include <nsmb/core/graphics/2d/oam.hpp>
 
+#include "fid.hpp"
+
 #ifdef GAME_LANGUAGE_FR
 
 constexpr s32 FileSelectNumberXOffset = 10;
@@ -150,6 +152,69 @@ ncp_over(0x020341C4)
 .incbin "files/font_a_pt.NFTR"
 ncp_endover()
 )""");
+
+#elif GAME_LANGUAGE_KO
+
+constexpr s32 FileSelectNumberXOffset = -8;
+constexpr s32 WorldmapStarCoin1XOffset = -34;
+constexpr s32 WorldmapStarCoin2XOffset = 23;
+constexpr s32 WorldmapStarCoin3XOffset = -5;
+constexpr s32 WorldmapStarCoin4XOffset = -5;
+
+/*
+// Shfit NSMB USA OAM offsets and print them
+
+OAM::File* file = rcast<OAM::File*>(0x020DB1A4);
+for (s32 i = 0; i < file->oamAttrCount; i++)
+{
+	GXOamAttr* oamAttrs = file->pOamAttrs[i];
+	GXOamAttr* oamAttr = oamAttrs;
+
+	while (true)
+	{
+		if (oamAttr->charNo > 97)
+		{
+			oamAttr->charNo += 12;
+			Log::print("ncp_over(0x%08X, 9) u32 over_%08X[2] = { 0x%08X, 0x%08X };\n", rcast<u32>(oamAttr), rcast<u32>(oamAttr), rcast<u32*>(oamAttr)[0], rcast<u32*>(oamAttr)[1]);
+		}
+
+		if (oamAttr->_3 == 0xFFFF)
+			break;
+		oamAttr++;
+	};
+}
+*/
+
+// Auto-generated from code above
+ncp_over(0x020DBA98, 9) u32 over_020DBA98[2] = { 0x805C0010, 0x0000206E };
+ncp_over(0x020DBAA0, 9) u32 over_020DBAA0[2] = { 0xC18400D0, 0x00002072 };
+ncp_over(0x020DBAA8, 9) u32 over_020DBAA8[2] = { 0xC1C400D0, 0x00002082 };
+ncp_over(0x020DBAB0, 9) u32 over_020DBAB0[2] = { 0xC00400D0, 0x00002092 };
+ncp_over(0x020DBAB8, 9) u32 over_020DBAB8[2] = { 0x804480F0, 0x000020A2 };
+ncp_over(0x020DBAC0, 9) u32 over_020DBAC0[2] = { 0xC1844010, 0x000020A4 };
+ncp_over(0x020DBAC8, 9) u32 over_020DBAC8[2] = { 0xC1C44010, 0x000020AC };
+ncp_over(0x020DBAD0, 9) u32 over_020DBAD0[2] = { 0xC0044010, 0x000020B4 };
+ncp_over(0x020DBAD8, 9) u32 over_020DBAD8[2] = { 0x80448010, 0x000020BC };
+ncp_over(0x020DBAE0, 9) u32 over_020DBAE0[2] = { 0x40548010, 0xFFFF20BE };
+ncp_over(0x020DBAE8, 9) u32 over_020DBAE8[2] = { 0x807000F8, 0x0000206E };
+ncp_over(0x020DBAF0, 9) u32 over_020DBAF0[2] = { 0xC19800B8, 0x00002072 };
+ncp_over(0x020DBAF8, 9) u32 over_020DBAF8[2] = { 0xC1D800B8, 0x00002082 };
+ncp_over(0x020DBB00, 9) u32 over_020DBB00[2] = { 0xC01800B8, 0x00002092 };
+ncp_over(0x020DBB08, 9) u32 over_020DBB08[2] = { 0x805880D8, 0x000020A2 };
+ncp_over(0x020DBB10, 9) u32 over_020DBB10[2] = { 0xC19840F8, 0x000020A4 };
+ncp_over(0x020DBB18, 9) u32 over_020DBB18[2] = { 0xC1D840F8, 0x000020AC };
+ncp_over(0x020DBB20, 9) u32 over_020DBB20[2] = { 0xC01840F8, 0x000020B4 };
+ncp_over(0x020DBB28, 9) u32 over_020DBB28[2] = { 0x805880F8, 0x000020BC };
+ncp_over(0x020DBB30, 9) u32 over_020DBB30[2] = { 0x406880F8, 0x000020BE };
+ncp_over(0x020DB9EC, 9) u32 over_020DB9EC[2] = { 0x01F800F8, 0xFFFF00BF };
+
+ncp_over(0x020CD914, 1)
+const u8 Boot_logoPalette[32] = {
+	0x00, 0x00, 0x00, 0x00, 0x42, 0x08, 0x84, 0x10, 0xC6, 0x18, 0x29, 0x25, 0x6B, 0x2D, 0xAD, 0x35,
+	0xEF, 0x3D, 0x52, 0x4A, 0x94, 0x52, 0xD6, 0x5A, 0x39, 0x67, 0x7B, 0x6F, 0xBD, 0x77, 0xFF, 0x7F,
+};
+
+ncp_over(0x02014A8C) const u32 MainFontFileID = "i18n/font_a_KO.NFTR"fid + 131;
 
 #else // GAME_LANGUAGE_EN
 

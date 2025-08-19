@@ -14,4 +14,32 @@ GXOamAttr TitleScreen_logoOamSubtitleAttrs[] = {
 ncp_repl(0x020CD12C, 9, ".int TitleScreen_logoOamSubtitleAttrs")
 ncp_repl(0x020DBA5C, 9, ".int TitleScreen_logoOamSubtitleAttrs")
 
+#elif GAME_LANGUAGE_KO
+
+#include <nsmb/core/graphics/2d/oam.hpp>
+
+GXOamAttr TitleScreen_logoOamSubtitleAttrs[] = {
+	OAM::getOBJAttr(0-88, -8, 0, GX_OAM_MODE_NORMAL, false, GX_OAM_EFFECT_NONE, GX_OAM_SHAPE_32x16, GX_OAM_COLOR_16, 97+2, 0, 0, 0),
+	OAM::getOBJAttr(32-88, -8, 0, GX_OAM_MODE_NORMAL, false, GX_OAM_EFFECT_NONE, GX_OAM_SHAPE_32x16, GX_OAM_COLOR_16, 99+2, 0, 0, 0),
+	OAM::getOBJAttr(64-88, -8, 0, GX_OAM_MODE_NORMAL, false, GX_OAM_EFFECT_NONE, GX_OAM_SHAPE_32x16, GX_OAM_COLOR_16, 101+2, 0, 0, 0),
+	OAM::getOBJAttr(96-88, -8, 0, GX_OAM_MODE_NORMAL, false, GX_OAM_EFFECT_NONE, GX_OAM_SHAPE_32x16, GX_OAM_COLOR_16, 103+2, 0, 0, 0),
+	OAM::getOBJAttr(128-88, -8, 0, GX_OAM_MODE_NORMAL, false, GX_OAM_EFFECT_NONE, GX_OAM_SHAPE_32x16, GX_OAM_COLOR_16, 105+2, 0, 0, 0),
+	OAM::getOBJAttr(160-88, -8, 0, GX_OAM_MODE_NORMAL, false, GX_OAM_EFFECT_NONE, GX_OAM_SHAPE_16x16, GX_OAM_COLOR_16, 107+2, 0, 0, 0xFFFF)
+};
+
+ncp_repl(0x020CD12C, 9, ".int TitleScreen_logoOamSubtitleAttrs")
+ncp_repl(0x020DBA5C, 9, ".int TitleScreen_logoOamSubtitleAttrs")
+
+GXOamAttr TitleScreen_logoOamCopyrightAttrs[] = {
+	OAM::getOBJAttr(0-88-8, -8, 0, GX_OAM_MODE_NORMAL, false, GX_OAM_EFFECT_NONE, GX_OAM_SHAPE_32x16, GX_OAM_COLOR_16, 97-10, 0, 0, 0),
+	OAM::getOBJAttr(32-88-8, -8, 0, GX_OAM_MODE_NORMAL, false, GX_OAM_EFFECT_NONE, GX_OAM_SHAPE_32x16, GX_OAM_COLOR_16, 99-10, 0, 0, 0),
+	OAM::getOBJAttr(64-88-8, -8, 0, GX_OAM_MODE_NORMAL, false, GX_OAM_EFFECT_NONE, GX_OAM_SHAPE_32x16, GX_OAM_COLOR_16, 101-10, 0, 0, 0),
+	OAM::getOBJAttr(96-88-8, -8, 0, GX_OAM_MODE_NORMAL, false, GX_OAM_EFFECT_NONE, GX_OAM_SHAPE_32x16, GX_OAM_COLOR_16, 103-10, 0, 0, 0),
+	OAM::getOBJAttr(128-88-8, -8, 0, GX_OAM_MODE_NORMAL, false, GX_OAM_EFFECT_NONE, GX_OAM_SHAPE_32x16, GX_OAM_COLOR_16, 105-10, 0, 0, 0),
+	OAM::getOBJAttr(160-88-8, -8, 0, GX_OAM_MODE_NORMAL, false, GX_OAM_EFFECT_NONE, GX_OAM_SHAPE_32x16, GX_OAM_COLOR_16, 107-10, 0, 0, 0xFFFF)
+};
+
+ncp_repl(0x020CD130, 9, ".int TitleScreen_logoOamCopyrightAttrs")
+ncp_repl(0x020DBA58, 9, ".int TitleScreen_logoOamCopyrightAttrs")
+
 #endif
