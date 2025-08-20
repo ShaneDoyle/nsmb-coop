@@ -18,6 +18,11 @@
 #include "Stage.hpp"
 #include "util/ThumbBarrier.hpp"
 
+extern "C" {
+	void setupFSCacheToUseOverlay55();
+	void func20F4660();
+	void FinalBowser_loadResources();
+}
 namespace Stage {
 	void exitLevel(u32 flag);
 }
@@ -355,8 +360,6 @@ ncp_thumb void BossControllerCommon_setupCoopTransitionState(Player* closestPlay
 }
 
 // ============================= Misc =============================
-
-extern "C" void setupFSCacheToUseOverlay55();
 
 ncp_thumb void BossFixes_beginCutsceneAllPlayers()
 {
@@ -725,11 +728,6 @@ ncp_repl(0x021329D8, 17, "LDRSB R0, [R0,#0x1E]") // Stomp hit
 ncp_set_call(0x02131554, 17, BossFixes_endCutsceneAllPlayers)
 
 //============================= World 8: Final Bowser =============================
-
-extern "C" {
-	void func20F4660();
-	void FinalBowser_loadResources();
-}
 
 ncp_call(0x020AF2E4, 0)
 ncp_thumb void BossFixes_doNotLoadCastleModel()
