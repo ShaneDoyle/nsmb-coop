@@ -97,7 +97,7 @@ ncp_jump(0x02012E6C)
 	B       0x02012E70
 )");}
 
-ncp_asmfunc void Save_extendedBackupParams_ASM()
+ncp_asmfunc void Save_luigiLivesOnSaveClear_ASM()
 {asm(R"(
 ncp_jump(0x02012FB4)
 	LDR     R0, =0x50005
