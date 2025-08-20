@@ -787,6 +787,19 @@ ncp_thumb Player* BossKey_getPlayerWhoWon(s32 winnerPlayerID)
 	return winnerPlayer;
 }
 
+//============================= Princess Peach =============================
+
+ncp_repl(0x021443C8, 40, "MOV R0, R4")
+ncp_set_call(0x021443CC, 40, ActorFixes_getClosestPlayer)
+
+ncp_repl(0x021444CC, 40, "MOV R0, R4")
+ncp_set_call(0x021444D0, 40, ActorFixes_getClosestPlayer)
+
+ncp_repl(0x021447A4, 40, "MOV R0, R4")
+ncp_set_call(0x021447AC, 40, ActorFixes_getClosestPlayer)
+
+ncp_set_call(0x02144530, 40, BossFixes_setZoomAll)
+
 //============================= Mini-mushroom Cutscene =============================
 
 ncp_repl(0x02144DCC, 40, "B 0x02144E00") // Do not load world signs
