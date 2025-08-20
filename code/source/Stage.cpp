@@ -1188,3 +1188,47 @@ u32 Stage_customPowerupDeployCondition(u32 playerID)
 	return Game::getPlayerInventoryPowerup(playerID) && // Keep replaced instruction
 		!Game::getPlayerDead(playerID);
 }
+
+// Fix forced cutscene camera scroll
+
+NTR_USED static u32 sForcedHCameraScroll[2];
+
+ncp_asmfunc void StageLayout_fixForcedHCameraScroll_ASM()
+{asm(R"(
+// Initialize for both players
+ncp_jump(0x020BBEAC, 0)
+	LDR     R1, =_ZL20sForcedHCameraScroll
+	STR     R0, [R1]
+	STR     R0, [R1,#4]
+	B       0x020BBEB0
+
+// Read the values per player
+ncp_jump(0x020B9A0C, 0)
+	LDR     R3, =_ZL20sForcedHCameraScroll
+	LDR     R4, [R3,R6,LSL#2]
+	B       0x020B9A10
+
+ncp_jump(0x020B9B04, 0)
+	LDR     R0, =_ZL20sForcedHCameraScroll
+	LDR     R2, [R0,R4,LSL#2]
+	B       0x020B9B08
+
+// Write the value for both players
+ncp_over(0x020B9B10, 0)
+	STR     R1, [R0,R4,LSL#2]
+ncp_endover()
+
+ncp_jump(0x0213A8B0, 13)
+	STR     R2, [R1]
+	STR     R2, [R1,#4]
+	B       0x0213A8B4
+
+ncp_call(0x0213AAA0, 13)
+ncp_call(0x0214599C, 40)
+	STR     R3, [R1]
+	STR     R3, [R1,#4]
+	BX      LR
+)");}
+
+ncp_repl(0x0213AD18, 13, ".int _ZL20sForcedHCameraScroll")
+ncp_repl(0x02145CE8, 40, ".int _ZL20sForcedHCameraScroll")
