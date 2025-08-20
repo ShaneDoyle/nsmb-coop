@@ -398,14 +398,17 @@ ncp_set_call(0x0213CC84, 28, ActorFixes_isOutsideCamera)
 
 // Victory freeze on ground touch
 
-ncp_call(0x0213D0BC, 28)
-ncp_thumb void call_0213D0BC_ov28()
+ncp_call(0x0213D0AC, 28)
+ncp_thumb void call_0213D0AC_ov28()
 {
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
 		Game::getPlayer(playerID)->actionFlag.bowserJrBeaten = true;
 	}
 }
+
+ncp_repl(0x0213D0B0, 28, "NOP")
+ncp_repl(0x0213D0B8, 28, "NOP; NOP")
 
 // ov28:021FF154 (dunno what it does, doesn't desync, might not need changing)
 
