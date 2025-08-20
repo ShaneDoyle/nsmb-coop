@@ -1,4 +1,4 @@
-#include "playerdragger.hpp"
+#include "PlayerDragger.hpp"
 
 #include <nsmb/game/stage/player/player.hpp>
 #include <nsmb/core/system/input.hpp>
@@ -10,7 +10,7 @@ fx32 playerDragAccelY = 0;
 namespace PlayerDragger
 {
 
-bool dragState(Player* player, void* arg)
+ncp_thumb bool dragState(Player* player, void* arg)
 {
 	if (player->transitionStateStep == Func::Init)
 	{

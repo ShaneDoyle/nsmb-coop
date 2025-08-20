@@ -1,4 +1,4 @@
-#include "collisionviewer.hpp"
+#include "CollisionViewer.hpp"
 
 namespace CollisionViewer {
 
@@ -16,7 +16,7 @@ namespace CollisionViewer {
 	u8 fillAlpha = 15;
 	Flags renderFlags = Flags::ActiveCollider | Flags::Collider | Flags::Platform | Flags::CollisionSensor | Flags::RenderBox;
 
-	void renderLine(const Vec2& pt1, const Vec2& pt2, u16 color) {
+	ncp_thumb void renderLine(const Vec2& pt1, const Vec2& pt2, u16 color) {
 
 		G3_LoadMtx43(&Game::viewMatrix);
 		G3_Translate(pt1.x, pt1.y, 512.0fx);
@@ -35,7 +35,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderBox(const FxRect& rect, u16 color, bool wireframe) {
+	ncp_thumb void renderBox(const FxRect& rect, u16 color, bool wireframe) {
 
 		G3_LoadMtx43(&Game::viewMatrix);
 		G3_Translate(rect.x, rect.y, 512.0fx);
@@ -67,7 +67,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderArc(const FxRect& rect, s32 start, s32 arc, u16 color, bool wireframe) {
+	ncp_thumb void renderArc(const FxRect& rect, s32 start, s32 arc, u16 color, bool wireframe) {
 
 		if (arc < 0)
 			return;
@@ -136,11 +136,11 @@ namespace CollisionViewer {
 
 	}
 
-	void renderCircle(const FxRect& rect, u16 color, bool wireframe) {
+	ncp_thumb void renderCircle(const FxRect& rect, u16 color, bool wireframe) {
 		renderArc(rect, 0deg, 180deg, color, wireframe);
 	}
 
-	void renderTrapezoidH(const Vec2& pos, fx32 height, const fx32 (&points)[4], u16 color, bool wireframe) {
+	ncp_thumb void renderTrapezoidH(const Vec2& pos, fx32 height, const fx32 (&points)[4], u16 color, bool wireframe) {
 
 		fx32 t = Math::abs(points[1] - points[0]);
 		fx32 b = Math::abs(points[3] - points[2]);
@@ -181,7 +181,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderTrapezoidV(const Vec2& pos, fx32 width, const fx32(&points)[4], u16 color, bool wireframe) {
+	ncp_thumb void renderTrapezoidV(const Vec2& pos, fx32 width, const fx32(&points)[4], u16 color, bool wireframe) {
 
 		fx32 l = Math::abs(points[1] - points[0]);
 		fx32 r = Math::abs(points[3] - points[2]);
@@ -222,7 +222,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderHorizontalSensor(const Vec2& pos, const Sensor* sensor, u16 color) {
+	ncp_thumb void renderHorizontalSensor(const Vec2& pos, const Sensor* sensor, u16 color) {
 
 		Vec2 t = pos;
 		Game::wrapPosition(t);
@@ -281,7 +281,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderVerticalSensor(const Vec2& pos, const Sensor* sensor, u16 color) {
+	ncp_thumb void renderVerticalSensor(const Vec2& pos, const Sensor* sensor, u16 color) {
 
 		Vec2 a = pos;
 		Vec2 b = pos;
@@ -359,7 +359,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderClimbSensor(const Vec2& pos, const LineSensorV* sensor, u16 color) {
+	ncp_thumb void renderClimbSensor(const Vec2& pos, const LineSensorV* sensor, u16 color) {
 
 		fx32 bottom = sensor->bottom;
 		if (bottom <= sensor->top)
@@ -397,7 +397,7 @@ namespace CollisionViewer {
 
 
 
-	void renderActiveCollider(const ActiveCollider& u, Flags flags) {
+	ncp_thumb void renderActiveCollider(const ActiveCollider& u, Flags flags) {
 
 		FxRect box = u.config.rect;
 		StageActor* owner = u.owner;
@@ -515,7 +515,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderCollider(const Collider& u, Flags flags) {
+	ncp_thumb void renderCollider(const Collider& u, Flags flags) {
 
 		FxRect box;
 		box.halfWidth = (u.endPoint.x - u.originPoint.x) / 2;
@@ -544,7 +544,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderPlatform(const Platform& u, Flags flags) {
+	ncp_thumb void renderPlatform(const Platform& u, Flags flags) {
 
 		fx32 dx = u.pointEnd.x - u.pointStart.x;
 		fx32 tx = u.pointEnd.x;
@@ -734,7 +734,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderCollisionSensor(const CollisionMgr& u, Flags flags) {
+	ncp_thumb void renderCollisionSensor(const CollisionMgr& u, Flags flags) {
 
 		StageActor* sa = u.owner;
 
@@ -752,7 +752,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderEntityBox(const StageEntity& u, Flags flags) {
+	ncp_thumb void renderEntityBox(const StageEntity& u, Flags flags) {
 
 		FxRect box;
 		box.x = Fx32::cast(u.viewOffset.x) + u.position.x;
@@ -805,7 +805,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderActiveColliders(Flags flags) {
+	ncp_thumb void renderActiveColliders(Flags flags) {
 
 		const ActiveCollider* ac = ActiveCollider::listHead;
 		while (ac) {
@@ -815,7 +815,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderColliders(Flags flags) {
+	ncp_thumb void renderColliders(Flags flags) {
 
 		const Collider* c = Collider::listHead;
 		while (c) {
@@ -825,7 +825,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderPlatforms(Flags flags) {
+	ncp_thumb void renderPlatforms(Flags flags) {
 
 		const Platform* p = Platform::listHead;
 		while (p) {
@@ -835,7 +835,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderCollisionSensors(Flags flags) {
+	ncp_thumb void renderCollisionSensors(Flags flags) {
 
 		const Actor* a = ProcessManager::getNextActor();
 		while (a) {
@@ -850,7 +850,7 @@ namespace CollisionViewer {
 
 	}
 
-	void renderEntityBoxes(Flags flags) {
+	ncp_thumb void renderEntityBoxes(Flags flags) {
 
 		const Actor* a = ProcessManager::getNextActor();
 		while (a) {
@@ -866,7 +866,7 @@ namespace CollisionViewer {
 	}
 
 
-	void render() {
+	ncp_thumb void render() {
 
 		NNS_G3dGeFlushBuffer();
 		G3X_AntiAlias(false);

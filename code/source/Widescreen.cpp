@@ -52,9 +52,6 @@ namespace Widescreen
 	}
 }
 
-asm(R"(
-	fun0200738C = 0x0200738C
-)");
 extern "C"
 {
 	void fun0200738C();
@@ -95,9 +92,8 @@ void StageFX_customOamDraw(GXOamAttr* oamAttrs, s32 x, s32 y, OAM::Flags flags, 
 ncp_set_call(0x020FC200, 10, StageFX_customOamDraw)
 ncp_set_call(0x020FBCE8, 10, StageFX_customOamDraw)
 
-asm(R"(
-.text
-
+ncp_asmfunc void Widescreen_ASM()
+{asm(R"(
 Widescreen_shouldApplyForLocalPlayer:
 	PUSH    {R0-R1,LR}
 	LDR     R1, =_ZN3Net8localAidE
@@ -214,4 +210,4 @@ ncp_jump(0x020D8AC4, 8)
 ncp_over(0x020D8AC8, 8)
 	MOV     R1, #0x190
 ncp_endover()
-)");
+)");}

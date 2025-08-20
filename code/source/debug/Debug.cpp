@@ -5,8 +5,8 @@
 #include <nsmb/core/entity/scene.hpp>
 #include <nsmb/core/system/input.hpp>
 #include <nsmb/core/system/function.hpp>
-#include "util/collisionviewer.hpp"
-#include "util/playerdragger.hpp"
+#include "util/CollisionViewer.hpp"
+#include "util/PlayerDragger.hpp"
 
 #include "PlayerSpectate.hpp"
 

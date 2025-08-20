@@ -8,6 +8,8 @@
 #include <nsmb/core/filesystem.hpp>
 #include <nsmb/core/system/memory.hpp>
 
+#include "util/ThumbBarrier.hpp"
+
 /*==============================================================\
 |  Player settings, change these according to your game needs.  |
 \==============================================================*/
@@ -157,7 +159,7 @@ namespace NWAV
 	bool getPaused() { return sInfo.isPaused; }
 
 	//Sets if the music is paused by stopping or starting the timers.
-	void setPaused(bool paused)
+	ncp_thumb void setPaused(bool paused)
 	{
 		//If music is playing and stopped flag isn't the one already set.
 		if (sInfo.isPlaying && sInfo.isPaused != paused)
@@ -179,7 +181,7 @@ namespace NWAV
 	u32 getVolume() { return sInfo.volume; }
 
 	//Sets the volume by shifting it during the specified frame period.
-	void setVolume(u32 volume, u32 frames)
+	ncp_thumb void setVolume(u32 volume, u32 frames)
 	{
 		//Do nothing if volume doesn't change.
 		if (sInfo.volume == volume)
@@ -203,7 +205,7 @@ namespace NWAV
 
 	//Stops the music. (For internal use ONLY)
 	//WARNING: You can either use frames or waitForUpdate, not both!!!
-	void stop(u32 frames, bool waitForUpdate)
+	ncp_thumb void stop(u32 frames, bool waitForUpdate)
 	{
 		//Do nothing if not playing.
 		if (!sInfo.isPlaying)
@@ -371,7 +373,7 @@ namespace NWAV
 	}
 
 	//Setups the music channels, timers and sound alarm.
-	void setup()
+	ncp_thumb void setup()
 	{
 		//Calculate timer values.
 		s32 timerValue = SND_TIMER_CLOCK / sInfo.playRate;
@@ -417,7 +419,7 @@ namespace NWAV
 	}
 
 	//Reloads the current timers to apply new settings.
-	void reloadTimers()
+	ncp_thumb void reloadTimers()
 	{
 		bool notPaused = !sInfo.isPaused;
 		if (notPaused)
@@ -431,7 +433,7 @@ namespace NWAV
 	fx32 getSpeed() { return sInfo.speed; }
 
 	//Sets the music speed.
-	void setSpeed(fx32 speed)
+	ncp_thumb void setSpeed(fx32 speed)
 	{
 		//Set the music speed.
 		fx32 sampleRate = hInfo.sampleRate << FX32_SHIFT;
@@ -442,7 +444,7 @@ namespace NWAV
 
 #ifndef NWAV_NO_EVENTS
 	//Loads the NWAV events that will be used to trigger the current callback function set.
-	void loadEvents()
+	ncp_thumb void loadEvents()
 	{
 		//Allocate events.
 		events = scast<EventInfo*>(Memory::rootHeapPtr->allocate(hInfo.numEvents * sizeof(EventInfo), 4));
@@ -469,7 +471,7 @@ namespace NWAV
 #endif
 
 	//Plays the music.
-	void play(u32 fileID)
+	ncp_thumb void play(u32 fileID)
 	{
 		//If music is already playing, stop it.
 		if (sInfo.isPlaying)
@@ -527,6 +529,8 @@ namespace NWAV
 		setPaused(false);
 	}
 
+	THUMB_BARRIER_FUNCTION
+
 	//The OS thread that runs the updater.
 	static void StrmThread(void* arg)
 	{
@@ -541,7 +545,7 @@ namespace NWAV
 	}
 
 	//Initializes the NWAV player.
-	void init()
+	ncp_thumb void init()
 	{
 		//Lock the channels.
 #ifndef NWAV_NO_STEREO

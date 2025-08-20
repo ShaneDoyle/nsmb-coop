@@ -23,6 +23,7 @@
 #include "ActorFixes.hpp"
 #include "DesyncGuard.hpp"
 #include "nwav/nwav.hpp"
+#include "util/ThumbBarrier.hpp"
 
 NTR_USED static u32 sTempVar;
 
@@ -32,19 +33,10 @@ u8 Stage_isPlayerDead[2];
 u8 Stage_doorFromAreaChange;
 Player* Stage_flagpoleLinkedPlayer; // Player in the pole responsible for triggering events
 
-asm(R"(
-	SpawnGrowingEntranceVine = 0x020D0CEC
-	_ZN5Stage9exitLevelEm = 0x020A189C
-	_ZN5Stage4zoomE = 0x020CADB4
-	StageLayout_looperScrollBack = 0x020B1510
-	UI_drawDirect = 0x0200421C
-	DrawBottomScreenLives = 0x020BEC60
-	SetupGraphicsForBottomScreenInStage = 0x020BDAFC
-)");
 extern "C" {
 	void SpawnGrowingEntranceVine(Vec3*);
+	void StageLayout_setupView(StageLayout* self, Vec3* focusPos, s32 playerID, u32 isFromStageOnCreate);
 	void StageLayout_looperScrollBack(void* stageLayout, s32 playerID);
-	void UI_drawDirect(u8 objectID, GXOamAttr* attrs, OAM::Flags flags, u8 palette, u8 affineSet, const Vec2 *scale, s16 rot, const s16 rotCenter[2], OAM::Settings settings, s32 xOffset, s32 yOffset);
 	void DrawBottomScreenLives();
 	void SetupGraphicsForBottomScreenInStage(int);
 }
@@ -68,7 +60,7 @@ static s32 Stage_getAlivePlayerID()
 	return 2; // both
 }
 
-bool Stage_areaHasRotator()
+ncp_thumb bool Stage_areaHasRotator()
 {
 	u32 tilesetCount = Stage::getBlockElementCount(scast<u32>(StageBlockID::Tileset));
 	for (u32 i = 0; i < tilesetCount; i++)
@@ -79,9 +71,15 @@ bool Stage_areaHasRotator()
 	return false;
 }
 
+static inline u16 Stage_getFgScreenID(u32 playerID)
+{
+	return *rcast<u16*>(&rcast<u8*>(Stage::stageLayout)[12 * playerID + 1196]);
+}
+
 // ======================================= ENTRANCE POSITIONING =======================================
 
-asm(R"(
+ncp_asmfunc void Stage_forceLuigiSpawnSameEntrance_ASM()
+{asm(R"(
 // Force Luigi to spawn in the same entrance as Mario
 ncp_jump(0x0215E5A4, 54)
 	LDRB    R5, [R1,#8]
@@ -92,10 +90,10 @@ ncp_jump(0x0215EFF0, 54)
 	LDRB    R2, [R1,#8]
 	STRB    R2, [R1,#9]
 	B       0x0215EFF4
-)");
+)");}
 
 // Player positioning on multiplayer entrance spawn
-NTR_USED static void Stage_adjustEntrancePosition()
+ncp_thumb NTR_USED static void Stage_adjustEntrancePosition()
 {
 	if (Game::getPlayerCount() == 1 || Stage_getAlivePlayerID() != 2)
 		return;
@@ -128,17 +126,18 @@ NTR_USED static void Stage_adjustEntrancePosition()
 
 ncp_repl(0x0215E914, 54, "MOV R1, R6")
 
-asm(R"(
+ncp_asmfunc void Stage_adjustEntrancePositionCall_ASM()
+{asm(R"(
 ncp_jump(0x0215E924, 54)
 	BL      _ZL28Stage_adjustEntrancePositionv
 	B       0x0215E958
-)");
+)");}
 
 // Center vine head
 ncp_repl(0x0211C218, 10, "MOV R0, R4")
 
 ncp_call(0x0211C21C, 10)
-void call_0211C21C_ov10(Player* player)
+ncp_thumb void call_0211C21C_ov10(Player* player)
 {
 	s32 playerID = player->linkedPlayerID;
 	if (playerID == 0 || (playerID == 1 && Stage_isPlayerDead[0]))
@@ -150,7 +149,7 @@ void call_0211C21C_ov10(Player* player)
 // Only show one door when spawning at a door entrance
 
 ncp_call(0x02118A90, 10)
-void call_02118A90_ov10(Player* self, EntranceType entranceType)
+ncp_thumb void call_02118A90_ov10(Player* self, EntranceType entranceType)
 {
 	if (Game::getPlayerCount() != 1 && Stage_areaHasRotator())
 	{
@@ -176,7 +175,7 @@ void call_02118A90_ov10(Player* self, EntranceType entranceType)
 ncp_repl(0x0211C980, 10, "MOV R0, R4") // Pass 'this' instead of 'this->door'
 
 ncp_call(0x0211C984, 10)
-void call_0211C984_ov10(Player* player)
+ncp_thumb void call_0211C984_ov10(Player* player)
 {
 	// Open door normally if we didn't change area or singleplayer
 	if (Game::getPlayerCount() == 1 || !(Stage_doorFromAreaChange || Stage_areaHasRotator()))
@@ -233,7 +232,7 @@ ncp_set_call(0x0212B318, 11, Stage_getMultiplayer)
 ncp_repl(0x02119CB8, 10, "NOP") // Do not freeze timer on player death (so we can control ourselves)
 
 ncp_call(0x02119CC0, 10)
-void Player_freezeTimerOnDeathHook(s32 playerID, bool dead)
+ncp_thumb void Player_freezeTimerOnDeathHook(s32 playerID, bool dead)
 {
 	Game::setPlayerDead(playerID, dead); // Keep replaced instruction
 
@@ -248,7 +247,7 @@ void Player_freezeTimerOnDeathHook(s32 playerID, bool dead)
 	isTimeStopped |= 0x48;
 }
 
-static bool Stage_isRespawnAllowed(Player* player, Player* other)
+ncp_thumb static bool Stage_isRespawnAllowed(Player* player, Player* other)
 {
 	return
 		Game::getPlayerLives(player->linkedPlayerID) != 0 &&
@@ -258,7 +257,9 @@ static bool Stage_isRespawnAllowed(Player* player, Player* other)
 		!Stage_hasLevelFinished();
 }
 
-static bool Stage_playerDeadState(Player* player, void* arg)
+THUMB_BARRIER_FUNCTION
+
+ncp_thumb static bool Stage_playerDeadState(Player* player, void* arg)
 {
 	constexpr u32 TextStayTime = 90;
 	constexpr u32 TextHideTime = 90;
@@ -333,7 +334,7 @@ static bool Stage_playerDeadState(Player* player, void* arg)
 	return true;
 }
 
-static void Stage_beginPlayerSpectate(u32 playerID)
+ncp_thumb static void Stage_beginPlayerSpectate(u32 playerID)
 {
 	PlayerSpectate::setTarget(playerID, playerID ^ 1);
 	Stage_isPlayerDead[playerID] = true;
@@ -346,7 +347,7 @@ static void Stage_switchToPlayerSpectateState(Player* player)
 	player->switchTransitionState(ptmf_cast(Stage_playerDeadState));
 }
 
-NTR_USED static bool Stage_customPlayerCreateCase(Player* player)
+ncp_thumb NTR_USED static bool Stage_customPlayerCreateCase(Player* player)
 {
 	u32 playerID = player->linkedPlayerID;
 	if (Game::getPlayerLives(playerID) == 0 || Stage_isPlayerDead[playerID])
@@ -359,7 +360,7 @@ NTR_USED static bool Stage_customPlayerCreateCase(Player* player)
 	return false;
 }
 
-NTR_USED static bool Stage_customRespawnCondition(u32 playerID, s32 lives)
+ncp_thumb NTR_USED static bool Stage_customRespawnCondition(u32 playerID, s32 lives)
 {
 	// Prevent lives going negative
 	if (lives < 0)
@@ -376,14 +377,14 @@ NTR_USED static bool Stage_customRespawnCondition(u32 playerID, s32 lives)
 }
 
 ncp_call(0x02118968, 10)
-static void Stage_customRespawnReset(Player* player)
+ncp_thumb static void Stage_customRespawnReset(Player* player)
 {
 	player->reset(); // Keep replaced instruction
 	Stage_beginPlayerSpectate(player->linkedPlayerID);
 }
 
 ncp_call(0x02118DE4, 10)
-static void Stage_customPlayerRespawnCreateCase(Player* player)
+ncp_thumb static void Stage_customPlayerRespawnCreateCase(Player* player)
 {
 	Stage_switchToPlayerSpectateState(player);
 
@@ -391,7 +392,8 @@ static void Stage_customPlayerRespawnCreateCase(Player* player)
 	SND::playStageBGM(seqID);
 }
 
-asm(R"(
+ncp_asmfunc void Stage_customRespawnConditionCall_ASM()
+{asm(R"(
 // Do not allow player to respawn so we can control it ourselves
 ncp_jump(0x0212B334, 11)
 	MOV     R0, R6
@@ -407,10 +409,10 @@ ncp_jump(0x020FFB4C, 10)
 	BNE     0x020FFD7C
 	CMP     R4, #0x14
 	B       0x020FFB50
-)");
+)");}
 
 ncp_call(0x02118980, 10)
-Vec3 Stage_customRespawnEntrance(u8 playerID)
+ncp_thumb Vec3 Stage_customRespawnEntrance(u8 playerID)
 {
 	u32 otherID = playerID ^ 1;
 	Player* other = Game::getPlayer(otherID);
@@ -421,7 +423,7 @@ Vec3 Stage_customRespawnEntrance(u8 playerID)
 	return Entrance::accessSpawnEntrance(playerID);
 }
 
-void Stage_customTransitEntranceSpawn(Player* player, EntranceType entranceType)
+ncp_thumb void Stage_customTransitEntranceSpawn(Player* player, EntranceType entranceType)
 {
 	if (Stage_isPlayerDead[player->linkedPlayerID])
 	{
@@ -435,7 +437,8 @@ ncp_set_call(0x02118D0C, 10, Stage_customTransitEntranceSpawn)
 ncp_set_call(0x02118D98, 10, Stage_customTransitEntranceSpawn)
 ncp_set_call(0x02118DFC, 10, Stage_customTransitEntranceSpawn)
 
-asm(R"(
+ncp_asmfunc void Stage_skipViewReloadOnRespawn_ASM()
+{asm(R"(
 // Skip view reload on respawn if there is autoscroll
 ncp_jump(0x021189BC, 10)
 	LDR     R0, =0x020CACD4
@@ -443,43 +446,36 @@ ncp_jump(0x021189BC, 10)
 	CMP     R0, #0
 	BNE     0x02118AFC
 	B       0x02118A34
-)");
+)");}
 
-asm(R"(
-StageLayout_setupView = 0x020BBBDC
-
-.type Player_beginCutscene_SUPER, %function
-Player_beginCutscene_SUPER:
+ncp_asmfunc void Player_beginCutscene_SUPER(Player* self, bool lookAtBoss)
+{asm(R"(
 	PUSH    {R4,R5,LR}
 	B       0x0211F350
+)");}
 
-.type Player_endCutscene_SUPER, %function
-Player_endCutscene_SUPER:
+ncp_asmfunc void Player_endCutscene_SUPER(Player* self)
+{asm(R"(
 	PUSH    {R4,LR}
 	B       0x0211F2F0
-)");
-extern "C" {
-	void Player_beginCutscene_SUPER(Player* self, bool lookAtBoss);
-	void Player_endCutscene_SUPER(Player* self);
-	void StageLayout_setupView(StageLayout* self, Vec3* focusPos, s32 playerID, u32 isFromStageOnCreate);
-}
+)");}
 
 ncp_jump(0x0211F34C, 10)
 void Player_beginCutscene_OVERRIDE(Player* self, bool lookAtBoss)
 {
-	if (!Game::getPlayerDead(self->linkedPlayerID))
+	if (!Game::playerDead[self->linkedPlayerID])
 		Player_beginCutscene_SUPER(self, lookAtBoss);
 }
 
 ncp_jump(0x0211F2EC, 10)
 void Player_endCutscene_OVERRIDE(Player* self)
 {
-	if (!Game::getPlayerDead(self->linkedPlayerID))
+	if (!Game::playerDead[self->linkedPlayerID])
 		Player_endCutscene_SUPER(self);
 }
 
 ncp_call(0x02118AF8, 10)
-static void Player_viewTransitState_respawnViewSetup(StageLayout* self, Vec3* focusPos, s32 playerID, u32 isFromStageOnCreate)
+ncp_thumb static void Player_viewTransitState_respawnViewSetup(StageLayout* self, Vec3* focusPos, s32 playerID, u32 isFromStageOnCreate)
 {
 	StageLayout_setupView(self, focusPos, playerID, isFromStageOnCreate);
 
@@ -542,7 +538,8 @@ void nsub_0212B908_ov_0B(u8* player)
 
 // ======================================= PAUSE =======================================
 
-asm(R"(
+ncp_asmfunc void Stage_fixPauseMenuDesyncs_ASM()
+{asm(R"(
 // Fix desyncs on pause menu
 ncp_call(0x020A20EC, 0)
 ncp_call(0x020A2280, 0)
@@ -565,7 +562,7 @@ ncp_jump(0x020A2230, 0)
 	CMP     R0, #1
 	BLEQ    0x020C1F14
 	B       0x020A24D0
-)");
+)");}
 
 // ======================================= LOOPER =======================================
 
@@ -582,18 +579,19 @@ NTR_USED static void StageLayout_customLooperScrollBack(void* stageLayout)
 	}
 }
 
-asm(R"(
+ncp_asmfunc void StageLayout_customLooperScrollBackCall_ASM()
+{asm(R"(
 ncp_over(0x020AE8F0, 0)
 	MOV     R0, R6
 	BL      _ZL34StageLayout_customLooperScrollBackPv
 	B       0x020AE90C
 ncp_endover()
-)");
+)");}
 
 // ======================================= MISC =======================================
 
 ncp_call(0x02006B28)
-void Stage_loadLevelHook(const void* pSrc, u32 offset, u32 szByte)
+ncp_thumb void Stage_loadLevelHook(const void* pSrc, u32 offset, u32 szByte)
 {
 	GX_LoadBGPltt(pSrc, offset, szByte); // Keep replaced instruction
 
@@ -606,7 +604,7 @@ void Stage_loadLevelHook(const void* pSrc, u32 offset, u32 szByte)
 }
 
 ncp_call(0x020BB7DC, 0)
-void StageLayout_onCreateHook(s32 seqID)
+ncp_thumb void StageLayout_onCreateHook(s32 seqID)
 {
 	SND::stopRequestedBGM(seqID); // Keep replaced instruction
 
@@ -638,15 +636,21 @@ void StageLayout_onCreateHook(s32 seqID)
 void StageLayout_onUpdateHook()
 {
 	PlayerSpectate::onStageLayoutUpdate();
-	ActorFixes_updateVolcanoBackground();
+
+	u32& levelEndBitmask = *rcast<u32*>(0x020CA8C0);
+	if ((levelEndBitmask & 3) == 0 && Stage_getFgScreenID(Game::localPlayerID) == 15)
+	{
+		ActorFixes_updateVolcanoBackground();
+	}
 }
 
-asm(R"(
+ncp_asmfunc void StageLayout_onUpdateHookCall_ASM()
+{asm(R"(
 ncp_jump(0x020BAC24, 0)
 	BL      _Z24StageLayout_onUpdateHookv
 	LDR     R0, =0x020CA850
 	B       0x020BAC28
-)");
+)");}
 
 ncp_repl(0x020AECA4, 0, "MOV R1, #1") // Disable background HDMA parallax
 
@@ -654,7 +658,8 @@ ncp_set_call(0x020BD820, 0, Game::getPlayerCount) // Bottom screen background dr
 ncp_set_call(0x020BDA90, 0, Game::getPlayerCount) // Bottom screen background execute
 ncp_set_call(0x020BDC1C, 0, Game::getPlayerCount) // Bottom screen background load
 
-asm(R"(
+ncp_asmfunc void Stage_fixBG1CNTForOtherPlayer_ASM()
+{asm(R"(
 // Do not set the BG1 CNT with the other player's data, we don't have it!!! (Fix 2-4 background)
 ncp_jump(0x020BA3AC, 0)
     LDR     R2, =_ZN4Game13localPlayerIDE
@@ -663,7 +668,7 @@ ncp_jump(0x020BA3AC, 0)
     BNE     0x020BA488 // Do not apply the BG changes
     LDRH    R2, [R0] // Keep replaced instruction
     B       0x020BA3B0
-)");
+)");}
 
 ncp_repl(0x020A3578, 0, "MOV R0, #0") // Draw Luigi's HUD with Mario's values (shared coins)
 ncp_repl(0x020C03F4, 0, "MOV R0, #0") // Display Mario's score instead of local player score
@@ -681,7 +686,8 @@ bool call_020BE5C4_ov0(u32 playerID)
 	return Game::getPlayer(playerID) && !Stage_isPlayerDead[playerID];
 }
 
-asm(R"(
+ncp_asmfunc void Stage_drawMvsLProgressBar_ASM()
+{asm(R"(
 // Draw MvsL progress bar instead of singleplayer
 ncp_jump(0x020BF124, 0)
 	MOV     R1, #0
@@ -690,7 +696,7 @@ ncp_jump(0x020BF124, 0)
 	MOV     R0, R4
 	BL      0x020BECC4 // Draw the singleplayer one
 	B       0x020BF128
-)");
+)");}
 
 // Draw bottom screen lives my way
 ncp_call(0x020BF12C, 0)
@@ -770,7 +776,7 @@ u16 Level_createHook() {
 
 NTR_USED static u8 Stage_forceAreaReload = 0;
 
-NTR_USED static void Stage_decideForceAreaReload()
+ncp_thumb NTR_USED static void Stage_decideForceAreaReload()
 {
 	if (Stage_forceAreaReload == 1) // Already set to reload
 		return;
@@ -797,7 +803,8 @@ NTR_USED static void Stage_decideForceAreaReload()
 	}
 }
 
-asm(R"(
+ncp_asmfunc void Stage_forceAreaReloadLogic_ASM()
+{asm(R"(
 // Force reload if destination area number is not 0
 ncp_call(0x0201E91C)
 ncp_call(0x0201E8A0)
@@ -827,7 +834,7 @@ ncp_jump(0x02119638, 10)
 	STRB    R2, [R3]
 	BNE     0x02119664
 	B       0x02119640
-)");
+)");}
 
 ncp_repl(0x0215E4AC, 54, "NOP") // StageScene::setup load the area even if the same
 
@@ -847,7 +854,7 @@ bool Player_updateTimesUpTransitionsHook(Player* self)
 
 // Fix bottom screen transition flag desync
 
-void Entrance_copyTransitionFlagsIfAreaChange(s32 playerID)
+ncp_thumb void Entrance_copyTransitionFlagsIfAreaChange(s32 playerID)
 {
 	u32& areaNum = *rcast<u32*>(0x02085A94);
 	if (Entrance::targetAreaID != areaNum || Stage_forceAreaReload)
@@ -866,15 +873,17 @@ void Stage_copyTransitionFlagsOnLoad(int arg)
 	SetupGraphicsForBottomScreenInStage(arg); // Keep replaced instruction
 }
 
-asm(R"(
+ncp_asmfunc void Stage_copyTransitionFlagsOnAreaChange_ASM()
+{asm(R"(
 ncp_jump(0x0201EBE0)
 	LDR     R0, [SP,#0] // playerID
 	BL      _Z40Entrance_copyTransitionFlagsIfAreaChangel
 	ADD     SP, SP, #4
 	B       0x0201EBE4
-)");
+)");}
 
-asm(R"(
+ncp_asmfunc void Stage_disableBaphs_ASM()
+{asm(R"(
 // Disable baphs if player count is bigger than 1 (prevents desyncs)
 ncp_jump(0x02012584)
 	BL      _ZN4Game14getPlayerCountEv
@@ -882,7 +891,7 @@ ncp_jump(0x02012584)
 	BGT     0x0201258C
 	LDR     R0, =0x02088B94
 	B       0x02012588
-)");
+)");}
 
 ncp_repl(0x020FBF60, 10, "BX LR") // Fix end of level for player that "lost the race"
 
@@ -895,7 +904,7 @@ ncp_repl(0x0215ED54, 54, "NOP") // Disable mega mushroom destruction counter
 //ncp_set_call(0x0215293C, 54, Stage_getLuigiMode) // Allow Luigi head on stage intro scene
 
 ncp_call(0x02152A4C, 54)
-s32 StageIntroScene_onRender_hook()
+ncp_thumb s32 StageIntroScene_onRender_hook()
 {
 	if (Game::getPlayerCount() == 1)
 		return 1;
@@ -914,13 +923,13 @@ s32 StageIntroScene_onRender_hook()
 	else
 		attrs[1].attr2 = attrs[1].attr2 & 0xFC00 | digits[lives / 10]->attr2 & 0x3FF;
 
-	UI_drawDirect(34, attrs, OAM::Flags::None, 0, 0, nullptr, 0, nullptr, OAM::Settings::None, 0, 0);
+	UI::draw(34, attrs, OAM::Flags::None, 0, 0, nullptr, 0, nullptr, OAM::Settings::None, 0, 0);
 
 	return 1;
 }
 
 ncp_call(0x02152874, 54)
-void StageIntro_syncSwitchScene(u32 r0, u32 r1)
+ncp_thumb void StageIntro_syncSwitchScene(u32 r0, u32 r1)
 {
 	if (!Net::isConnected())
 		goto sceneSwitch;
@@ -941,7 +950,8 @@ sceneSwitch:
 
 ncp_repl(0x020FBD70, 10, "NOP") // Disables "Lose" music. (End Flag & Boss)
 
-asm(R"(
+ncp_asmfunc void Stage_spawnEnemiesFromMegaGroundPound_ASM()
+{asm(R"(
 // Store Player* for SpawnEnemiesFromMegaGroundPound
 ncp_jump(0x021121EC, 10)
 	LDR     R0, =_ZL8sTempVar
@@ -970,11 +980,12 @@ ncp_jump(0x02157414, 54)
 	LDRB    R0, [R5,#10] // (settings >> 16) & 0xFF
 	BL      _ZN4Game9getPlayerEl
 	B       0x02157418
-)");
+)");}
 
 // TODO: Fix Mega Mushroom destruction counter
 
-asm(R"(
+ncp_asmfunc void Stage_preventFreezingFlagOnLevelLoad_ASM()
+{asm(R"(
 // Prevent freezing flag being set on level load
 ncp_jump(0x02006AA0)
 	LDR     R0, =_ZN4Game11playerCountE
@@ -985,7 +996,7 @@ ncp_over(0x02006AB0)
 	MOVGT   R0, #1
 	MOVLE   R0, #0
 ncp_endover()
-)");
+)");}
 
 // Prevent particle handler from always updating in VS mode
 // This should allow Mario Vs Luigi mods to freeze the particles if they want
@@ -993,7 +1004,7 @@ ncp_repl(0x02022C50, "B 0x02022C7C")
 
 // Only disable the particle handler on transitions and powerup change in singleplayer
 ncp_call(0x021207F0, 10)
-void Stage_fixTransitParticles()
+ncp_thumb void Stage_fixTransitParticles()
 {
 	if (Game::getPlayerCount() == 1)
 		Particle::Handler::disable();
@@ -1013,13 +1024,14 @@ ncp_endover()
 )");*/
 
 // Fix stage zoom on view edges
-asm(R"(
+ncp_asmfunc void Stage_fixStageZoomOnViewEdges_ASM()
+{asm(R"(
 ncp_jump(0x020BA1C4, 0)
 	MOV     R5, R3
 	LDR     R3, =_ZL8sTempVar
 	STR     R5, [R3]
 	B       0x020BA1C8
-)");
+)");}
 
 ncp_repl(0x020B8D20, 0, ".int _ZL8sTempVar")
 
@@ -1029,14 +1041,15 @@ ncp_repl(0x0212B930, 11, "NOP") // Do not freeze time on transitions
 
 // Spawn actors for both players on setup
 
-asm(R"(
+ncp_asmfunc void Stage_spawnActorsForBothPlayers_ASM()
+{asm(R"(
 ncp_over(0x0209C4A4, 0)
 	CMP     R0, #1
 	BEQ     0x0209C50C
 	NOP
 	NOP
 ncp_endover()
-)");
+)");}
 
 ncp_repl(0x0209C4E0, 0, "NOP") // Do not spawn some MvsL actor
 
@@ -1045,7 +1058,8 @@ ncp_repl(0x0209C584, 0, ".int _ZN4Game11playerCountE")
 // Disable entrance camera X and Y
 // TODO: Find a fix for this that doesn't involve disabling it
 
-asm(R"(
+ncp_asmfunc void Stage_disableEntranceCameraXY_ASM()
+{asm(R"(
 ncp_over(0x020BC67C, 0)
 	LDR     R0, .over_0x020BC67C_0_vars
 	MOV     R2, #0
@@ -1054,7 +1068,7 @@ ncp_over(0x020BC67C, 0)
 .over_0x020BC67C_0_vars:
 	.word	0x020CACC0
 ncp_endover()
-)");
+)");}
 
 // Use NWAV for the cannon sounds to save memory
 
@@ -1062,13 +1076,13 @@ constexpr u32 marioCannonShootSfxFileID = "coop/SE_VOC_MA_SHOT.nwav"fid;
 constexpr u32 luigiCannonShootSfxFileID = "coop/SE_VOC_LU_SHOT.nwav"fid;
 
 ncp_call(0x020F871C, 10)
-void PipeCannon_customPlayShootSound(s32 sfxID, const Vec3* pos)
+ncp_thumb void PipeCannon_customPlayShootSound(s32 sfxID, const Vec3* pos)
 {
 	SND::playSFXUnique(sfxID, pos); // Keep replaced instruction
 	NWAV::play(sfxID == 69 ? marioCannonShootSfxFileID : luigiCannonShootSfxFileID);
 }
 
-void WarpCannon_customPlayShootSound(s32 sfxID, const Vec3* pos)
+ncp_thumb void WarpCannon_customPlayShootSound(s32 sfxID, const Vec3* pos)
 {
 	SND::playSFX(sfxID, pos); // Keep replaced instruction
 	NWAV::play(sfxID == 68 ? marioCannonShootSfxFileID : luigiCannonShootSfxFileID);
@@ -1086,17 +1100,18 @@ void call_0204F2F0()
 
 // Do not clear event timers on view change, only area reload
 
-asm(R"(
+ncp_asmfunc void Stage_doNotClearEventTimersOnViewChange_ASM()
+{asm(R"(
 ncp_jump(0x02118860, 10)
 	BL      _ZN4Game14getPlayerCountEv
 	CMP     R0, #1
 	BLEQ    0x0201DD5C // clearEventTimers
 	B       0x02118E00
-)");
+)");}
 
 // Do not allow entering entrances if flagpole in use
 
-EntranceUseResult Entrance_customTryUseEntrance(fx32 x, fx32 y, u8 playerID)
+ncp_thumb EntranceUseResult Entrance_customTryUseEntrance(fx32 x, fx32 y, u8 playerID)
 {
 	if (Stage_flagpoleLinkedPlayer != nullptr)
 		return EntranceUseResult::InvalidEntrance;
@@ -1125,9 +1140,9 @@ void StageLayout_fixRotatorStep2Check(void* self)
 }
 */
 
-asm(R"(
 ncp_over(0x020B0A38, 0) /* max over: 0x94 bytes, current: 0x20 bytes */
-StageLayout_fixRotatorStep2Check:
+ncp_asmfunc void StageLayout_fixRotatorStep2Check_ASM()
+{asm(R"(
 	mov	r3, #0
 	mov	r2, #2
 	str	r3, [r0, #1380]
@@ -1137,34 +1152,7 @@ StageLayout_fixRotatorStep2Check:
 	bx	lr
 .rotfix_L7:
 	.word	34384896
-ncp_endover()
-)");
-
-// Fix potential manual camera scroll desync
-
-// ncp_repl(0x020B9F84, 0, "MOV R5, #0xFF")
-
-// asm(R"(
-// ncp_call(0x020BA008, 0)
-// ncp_call(0x020BA16C, 0)
-// 	LDR     R2, =_ZN4Game13localPlayerIDE
-// 	LDR     R2, [R2]
-// 	CMP     R7, R2
-// 	BLEQ    _ZN3SND7playSFXElPK4Vec3 // Keep replaced instruction
-// 	BX      LR
-
-// ncp_jump(0x020BA0C0, 0)
-// 	LDR     R2, =_ZN4Game13localPlayerIDE
-// 	LDR     R2, [R2]
-// 	CMP     R7, R2
-// 	BLEQ    _ZN3SND17playSFXContinuousElPK4Vec3 // Keep replaced instruction
-// 	B       0x020BA180
-// )");
-
-// TODO: no time to fix, do in later release, for now disable manual scroll to avoid issues
-// code commented above is likely incorrect!
-
-ncp_repl(0x020B9B94, 0, "NOP") // Disable scroll with shoulder buttons
+)");}
 
 // Do not show "TOUCH" if the player is dead
 

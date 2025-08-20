@@ -13,22 +13,21 @@
 // Some desync check marks are set in other sources
 // RNG uses another marker to avoid making the other checks useless if RNG is called every update
 
-asm(R"(
-Stage_switchScene = 0x020A183C
-
-PlayerBase_requestPowerupSwitch_SUPER:
-	LDRB    R2, [R0,#0x7A9]
-	B       0x0212B9B0
-
-Net_getRandom_SUPER:
-	PUSH    {LR}
-	B       0x0200E6F8
-)");
 extern "C" {
 	void Stage_switchScene(u32 sceneID, u32 settings);
-	bool PlayerBase_requestPowerupSwitch_SUPER(PlayerBase* self, PowerupState powerup);
-	u32 Net_getRandom_SUPER();
 }
+
+ncp_asmfunc bool PlayerBase_requestPowerupSwitch_SUPER(PlayerBase* self, PowerupState powerup)
+{asm(R"(
+	LDRB    R2, [R0,#0x7A9]
+	B       0x0212B9B0
+)");}
+
+ncp_asmfunc u32 Net_getRandom_SUPER()
+{asm(R"(
+	PUSH    {LR}
+	B       0x0200E6F8
+)");}
 
 namespace DesyncGuard
 {

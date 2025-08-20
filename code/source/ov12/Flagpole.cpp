@@ -22,22 +22,17 @@ u8 Flagpole_playerOrdinal[2];
 u8 Flagpole_waitPlayerCountdown;
 StageEntity* Flagpole_instance;
 
-asm(R"(
-Flagpole_switchState = 0x02130734
-Flagpole_updateGoalGrab = 0x0213042C
-Flagpole_sPlayerSlide = 0x02132500
-
-.type Player_flagpoleTransitState_SUPER, %function
-Player_flagpoleTransitState_SUPER:
-	PUSH    {R4,LR}
-	B       0x0211B5CC
-)");
 extern "C" {
 	bool Flagpole_switchState(StageEntity* self, Flagpole_PTMF* function);
 	bool Flagpole_updateGoalGrab(StageEntity* self);
-	bool Player_flagpoleTransitState_SUPER(Player* self, void* arg);
-	Flagpole_PTMF Flagpole_sPlayerSlide;
+	extern Flagpole_PTMF Flagpole_sPlayerSlide;
 }
+
+ncp_asmfunc bool Player_flagpoleTransitState_SUPER(Player* self, void* arg)
+{asm(R"(
+	PUSH    {R4,LR}
+	B       0x0211B5CC
+)");}
 
 void Flagpole_getPlayersGrabbing(u32* polePlayerCount, Player** polePlayers, u32* notPolePlayerCount, Player** notPolePlayers, bool* allGrabbing)
 {
@@ -157,7 +152,8 @@ void Flagpole_fixFinishSlide()
 		polePlayers[i]->actionFlag.flagpoleEnd = true;
 }
 
-asm(R"(
+ncp_asmfunc void Flagpole_allPlayersSliding_ASM()
+{asm(R"(
 ncp_over(0x02130154, 12)
 	BL      _Z30Flagpole_allPlayersSlidingPolev
 	CMP     R0, #0
@@ -172,7 +168,7 @@ ncp_over(0x021301B0, 12)
 	NOP
 	NOP
 ncp_endover()
-)");
+)");}
 
 ncp_repl(0x0213056C, 12, "NOP") // Only switch the state when everyone grabbed to keep the pole tangible
 
@@ -217,22 +213,24 @@ void Flagpole_afterTouched(StageEntity* self)
 	Flagpole_switchToPlayerSlideState(self);
 }
 
-asm(R"(
+ncp_asmfunc void Flagpole_afterTouched_ASM()
+{asm(R"(
 ncp_over(0x02130570, 12)
 	MOV     R0, R6
 	BL      _Z21Flagpole_afterTouchedP11StageEntity
 	B       0x021305B8
 ncp_endover()
-)");
+)");}
 
 ncp_repl(0x02130588, 12, "NOP") // Do it in Flagpole_beginLevelEnd
 
-asm(R"(
+ncp_asmfunc void Flagpole_getClosestPlayer_ASM()
+{asm(R"(
 ncp_over(0x0212FCBC, 12)
 	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 	NOP
 ncp_endover()
-)");
+)");}
 
 // Player -------------------------------------------------------------------------------
 
@@ -398,13 +396,14 @@ void Player_customBeginPoleJump(Player* self)
     self->targetVelH = targetH;
 }
 
-asm(R"(
+ncp_asmfunc void Flagpole_customBeginPoleJump_ASM()
+{asm(R"(
 ncp_over(0x0211B9B8, 10)
 	MOV     R0, R4
 	BL      _Z26Player_customBeginPoleJumpP6Player
 	B       0x0211BDD8
 ncp_endover()
-)");
+)");}
 
 ncp_call(0x0211BB84, 10)
 bool Player_customGoalUpdatePowerupState(Player* self)

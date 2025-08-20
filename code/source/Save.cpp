@@ -89,18 +89,20 @@ ncp_call(0x02012ECC) void call_02012ECC(u32, u8 data)
 }
 
 // Set lives for Luigi too when loading new save
-asm(R"(
+ncp_asmfunc void Save_setLivesLuigi_ASM()
+{asm(R"(
 ncp_jump(0x02012E6C)
 	ORRNE   R4, R4, R4, LSL#16
 	STRNE   R4, [R0, #0xC]
 	B       0x02012E70
-)");
+)");}
 
-asm(R"(
+ncp_asmfunc void Save_extendedBackupParams_ASM()
+{asm(R"(
 ncp_jump(0x02012FB4)
 	LDR     R0, =0x50005
 	B       0x02012FB8
-)");
+)");}
 
 // Use the extended backup params
 ncp_set_call(0x020CFC9C, 8, SaveExt::loadBackupParams)

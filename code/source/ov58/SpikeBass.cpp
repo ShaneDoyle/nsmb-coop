@@ -30,7 +30,8 @@ NTR_USED static Player* SpikeBassSpawner_fixCheckPlayerInView(StageEntity* self)
 	return nullptr;
 }
 
-asm(R"(
+ncp_asmfunc void SpikeBass_fixPatches_ASM()
+{asm(R"(
 ncp_call(0x02173318, 58)
 	MOV     R0, R4
 	B       _ZL37SpikeBassSpawner_fixCheckPlayerInViewP11StageEntity
@@ -40,7 +41,7 @@ ncp_jump(0x021734C8, 58)
 	LDRB    R2, [R4,#0x402] // R2 = SpikeBassSpawner*->zoneID
 	STR     R2, [R0,#0x4B8] // SpikeBass*->zoneID = R2
 	B       0x021734CC      // Return to code
-)");
+)");}
 
 ncp_call(0x02173370, 58)
 bool SpikeBassSpawner_fixCheckPlayerInZone(StageEntity* self, Player* player, u32 zoneID)

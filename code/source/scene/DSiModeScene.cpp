@@ -25,7 +25,7 @@ static inline bool isDSCpuMode()
 	return *rcast<vu32*>(0x01FFA780) == 0xE2500004;
 }
 
-void BootScene_goToTitlescreenHook(u32 sceneID, u32 settings)
+ncp_thumb void BootScene_goToTitlescreenHook(u32 sceneID, u32 settings)
 {
 	if (isDSiDevice() && isDSCpuMode())
 	{
@@ -45,7 +45,7 @@ ObjectProfile DSiModeScene::profile = {
 	0, 0
 };
 
-s32 DSiModeScene::onCreate()
+ncp_thumb s32 DSiModeScene::onCreate()
 {
 	Game::fader.fadingTarget[0] = 1; // Top screen only
 
@@ -85,7 +85,7 @@ s32 DSiModeScene::onCreate()
 	return 1;
 }
 
-s32 DSiModeScene::onUpdate()
+ncp_thumb s32 DSiModeScene::onUpdate()
 {
 	if (!Game::fader.fadedIn())
 		return 1;
@@ -101,7 +101,7 @@ s32 DSiModeScene::onUpdate()
 	return 1;
 }
 
-s32 DSiModeScene::onDestroy()
+ncp_thumb s32 DSiModeScene::onDestroy()
 {
 	Game::fader.fadingTarget[0] = 3; // Both screens
 	return 1;
