@@ -633,15 +633,13 @@ ncp_asmfunc s32 HorizontalCameraStop_onCreate_SUPER(StageEntity* self)
 ncp_jump(0x020D6600, 10)
 s32 HorizontalCameraStop_onCreate_OVERRIDE(StageEntity* self)
 {
-	// TODO: fix this actor for real
-
-	/*for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
 		HorizontalCameraStop_playerID = playerID;
 		HorizontalCameraStop_onCreate_SUPER(self);
-	}*/
+	}
 
-	return 0;
+	return 1;
 }
 
 ncp_repl(0x020D6784, 10, ".int HorizontalCameraStop_playerID")
