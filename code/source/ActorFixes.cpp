@@ -12,7 +12,7 @@
 
 #include "ActorFixes.hpp"
 #include "Stage.hpp"
-//#include "PlayerSpectate.hpp"
+#include "PlayerSpectate.hpp"
 
 // Notes:
 //  - Any actor using `Model::getNodePosition` (0x020196DC) or `Model::getNodeMatrix` (0x0201972C) that does
@@ -412,20 +412,15 @@ struct WarpCannon_PTMF
 	u32 adj;
 };
 
-asm(R"(
-	WarpCannon_sAfterShoot = 0x0217FE60
-	WarpCannon_switchState = 0x0217F7D4
-)");
-
 extern "C"
 {
-	WarpCannon_PTMF WarpCannon_sAfterShoot;
 	bool WarpCannon_switchState(StageEntity* self, WarpCannon_PTMF* ptmf);
+	extern WarpCannon_PTMF WarpCannon_sAfterShoot;
 }
 
 ncp_repl(0x0217F6C8, 89, "MOV R2, #0") // Force player 0 to be shot
 
-bool WarpCannon_shootOtherPlayersState(StageEntity* self)
+ncp_thumb bool WarpCannon_shootOtherPlayersState(StageEntity* self)
 {
 	const u32 ShootInterval = 10;
 
@@ -439,9 +434,6 @@ bool WarpCannon_shootOtherPlayersState(StageEntity* self)
 		step++;
 		waitingInCannon = 0; // Stop updating player 0
 		playersShot = 1; // Player 0 already shot by the time it reaches here
-
-		//for (s32 playerID = 1; playerID < Game::getPlayerCount(); playerID++)
-		//	PlayerSpectate::setTarget(playerID, 0);
 
 		return true;
 	}
@@ -468,6 +460,7 @@ bool WarpCannon_shootOtherPlayersState(StageEntity* self)
 	step = 1;
 
 	Player* player = Game::getPlayer(playersShot);
+	player->visible = true;
 
 	s16 angleX = -rcast<s16*>(self)[0x6E4 / 2] - (0x200 * playersShot);
 	s16 angleY = rcast<s16*>(self)[0x6E0 / 2] + 0x4400;
@@ -489,7 +482,7 @@ bool WarpCannon_shootOtherPlayersState(StageEntity* self)
 static WarpCannon_PTMF WarpCannon_sShootOtherPlayers = { WarpCannon_shootOtherPlayersState, 0 };
 
 ncp_call(0x0217F218, 89)
-void WarpCannon_customSwitchStateAfterShoot(StageEntity* self, WarpCannon_PTMF* ptmf)
+ncp_thumb void WarpCannon_customSwitchStateAfterShoot(StageEntity* self, WarpCannon_PTMF* ptmf)
 {
 	if (Game::getPlayerCount() == 1)
 	{
@@ -497,7 +490,29 @@ void WarpCannon_customSwitchStateAfterShoot(StageEntity* self, WarpCannon_PTMF* 
 		return;
 	}
 
+	Game::getPlayer(0)->visible = true;
+
+	// Match player 0's camera
+	for (s32 playerID = 1; playerID < Game::getPlayerCount(); playerID++)
+		PlayerSpectate::setTarget(playerID, 0);
+
 	WarpCannon_switchState(self, &WarpCannon_sShootOtherPlayers);
+}
+
+ncp_call(0x0217F70C, 89)
+ncp_thumb void WarpCannon_customSwitchToRotatingState(StageEntity* self, WarpCannon_PTMF* ptmf)
+{
+	WarpCannon_switchState(self, ptmf);
+
+	if (Game::getPlayerCount() == 1)
+		return;
+
+	// Hide the players because they stack up for whatever reason
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		Player* player = Game::getPlayer(playerID);
+		player->visible = false;
+	}
 }
 
 ncp_asmfunc void WarpCannon_playerEntryFix_ASM()
