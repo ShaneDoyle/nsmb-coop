@@ -1206,3 +1206,22 @@ ncp_call(0x0214599C, 40)
 
 ncp_repl(0x0213AD18, 13, ".int _ZL20sForcedHCameraScroll")
 ncp_repl(0x02145CE8, 40, ".int _ZL20sForcedHCameraScroll")
+
+// Fix the pipes background
+
+// There is a check for background ID 29 (pipes) that sets a camera offset.
+// The issue is that screenFG data is only available for the local player, but the
+// original code was accessing it with any playerID, causing a desync.
+// Nintendo was aware of this issue so they just disabled this offset in VS mode,
+// but nsmb-coop doesn't use VS mode.
+
+ncp_asmfunc void StageLayout_fixPipesBackground_ASM()
+{asm(R"(
+ncp_jump(0x020B286C, 0)
+	// R7 = playerID
+	// R3 safe to use
+    LDR     R3, =_ZN4Game13localPlayerIDE
+    LDR     R3, [R3]
+	MLA     R1, R3, R1, R10 // Replace R7 with R3 (use localPlayerID instead of playerID)
+	B       0x020B2870
+)");}
