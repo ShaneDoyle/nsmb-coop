@@ -122,6 +122,12 @@ ncp_thumb static bool Player_customSpecialPlayerBump(Player* self, Player* other
 
 	if (offender->checkGroundpoundBump())
 	{
+		u32 timer = Game::getStarmanTimer(offender->linkedPlayerID);
+		if (timer)
+		{
+			victim->applyStarman(timer);
+		}
+
 		s32 direction = StageEntity::unitDirection[(selfCollisionPointX < 0) ^ marioOffender];
 		Vec2 velocity(0xD00 * direction, 0x3000);
 		victim->doPlayerBump(velocity, true);
