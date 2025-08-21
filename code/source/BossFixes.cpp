@@ -5,6 +5,7 @@
 #include <nsmb/game/stage/entity.hpp>
 #include <nsmb/game/stage/entity3danm.hpp>
 #include <nsmb/game/stage/misc.hpp>
+#include <nsmb/game/sound.hpp>
 #include <nsmb/core/entity/scene.hpp>
 #include <nsmb/core/filesystem/cache.hpp>
 #include <nsmb/core/graphics/fader.hpp>
@@ -799,6 +800,18 @@ ncp_repl(0x021447A4, 40, "MOV R0, R4")
 ncp_set_call(0x021447AC, 40, ActorFixes_getClosestPlayer)
 
 ncp_set_call(0x02144530, 40, BossFixes_setZoomAll)
+
+// If player 0 is not alive when we reach the cutscene
+// where Bowser Jr. runs away with Peach, the game soft locks.
+// I have no idea what the issue is, so I just force player 0 to spawn.
+ncp_call(0x02144A04, 40)
+void BossFixes_fixPeachKidnap(s32 sfxID, Vec3* pos)
+{
+	SND::playSFX(sfxID, pos); // Keep replaced instruction
+
+	if (Game::getPlayerDead(0))
+		Game::getPlayer(0)->spawnDefault();
+}
 
 //============================= Mini-mushroom Cutscene =============================
 
