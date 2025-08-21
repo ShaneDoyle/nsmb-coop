@@ -465,6 +465,55 @@ commonEnd:
 	return Entrance::getSpawnMusic(transitPlayerID); // Keep replaced instruction
 }
 
+// The invincible flag is typically set only for the local player,
+// which should be fine since it seems to only control music playback.
+// However, to ensure compatibility with ROM hacks or any singleplayer
+// code that might rely on this flag, update it for all players.
+
+/*
+ncp_jump(0x0212B740, 11)
+void Player_fixInvincibleFlag(PlayerBase* self, s32 bgmID)
+{
+	self->subActionFlag.invincible = true;
+	self->invincibleMusicID = bgmID;
+
+	if (self->linkedPlayerID == Game::localPlayerID)
+	{
+		SND::requestSpecialBGM(bgmID);
+	}
+}
+*/
+
+ncp_over(0x0212B740, 11) /* max over: 0x7C bytes, current: 0x54 bytes */
+ncp_asmfunc void Player_fixInvincibleFlag_ASM()
+{asm(R"(
+	mov	r3, r0
+	ldrb	r2, [r3, #1918]
+	str	r1, [r3, #1944]
+	orr	r2, r2, #128
+	strb	r2, [r3, #1918]
+	add	r3, r3, #284
+	ldrsb	r2, [r3, #2]
+	ldr	r3, .fixinv_L147
+	mov	r0, r1
+	ldr	r3, [r3]
+	cmp	r2, r3
+	bxne	lr
+	b	_ZN3SND17requestSpecialBGMEl
+
+ncp_jump(0x0212B730, 11)
+	LDR     R3, .fixinv_L147
+	LDR     R3, [R3]
+	LDRB    R2, [R0,#0x11E]
+	CMP     R3, R2
+	LDREQ   R0, [R0,#0x798]
+	BLEQ    _ZN3SND16stopRequestedBGMEl
+	B       0x0212B738
+
+.fixinv_L147:
+	.word	_ZN4Game13localPlayerIDE
+)");}
+
 // asm(R"(
 // PlayerBase_freezeStage_SUPER:
 // 	PUSH    {LR}
