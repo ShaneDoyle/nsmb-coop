@@ -1,8 +1,6 @@
 #include <nsmb_nitro.hpp>
 #include <nsmb/core/graphics/2d/oam.hpp>
 
-#include "fid.hpp"
-
 #ifdef GAME_LANGUAGE_FR
 
 constexpr s32 FileSelectNumberXOffset = 10;
@@ -146,13 +144,6 @@ constexpr s32 WorldmapStarCoin2XOffset = 24;
 constexpr s32 WorldmapStarCoin3XOffset = -4;
 constexpr s32 WorldmapStarCoin4XOffset = -4;
 
-// We can overwrite up to 5857 bytes
-asm(R"""(
-ncp_over(0x020341C4)
-.incbin "files/font_a_pt.NFTR"
-ncp_endover()
-)""");
-
 #elif GAME_LANGUAGE_KO
 
 constexpr s32 FileSelectNumberXOffset = -8;
@@ -214,8 +205,6 @@ const u8 Boot_logoPalette[32] = {
 	0xEF, 0x3D, 0x52, 0x4A, 0x94, 0x52, 0xD6, 0x5A, 0x39, 0x67, 0x7B, 0x6F, 0xBD, 0x77, 0xFF, 0x7F,
 };
 
-ncp_over(0x02014A8C) const u32 MainFontFileID = "i18n/font_a_KO.NFTR"fid + 131;
-
 #elif GAME_LANGUAGE_CH
 
 constexpr s32 FileSelectNumberXOffset = -4;
@@ -276,8 +265,6 @@ const u8 Boot_logoPalette[32] = {
 	0x00, 0x00, 0x31, 0x46, 0x52, 0x4A, 0x73, 0x4E, 0x94, 0x52, 0xB5, 0x56, 0xD6, 0x5A, 0xF7, 0x5E,
 	0x18, 0x63, 0x39, 0x67, 0x5A, 0x6B, 0x7B, 0x6F, 0x9C, 0x73, 0xBD, 0x77, 0xDE, 0x7B, 0xFF, 0x7F,
 };
-
-ncp_over(0x02014A8C) const u32 MainFontFileID = "i18n/font_a_CH.NFTR"fid + 131;
 
 #else // GAME_LANGUAGE_EN
 

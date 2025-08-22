@@ -26,6 +26,9 @@
 			["source/nwav", false],
 			["source/debug", false],
 			["build/gen", false]
+		],
+		"overwrites": [
+			["0x02026CE0", "0x02039170"]
 		]
 	}, {
 		"dest": "ov8",
