@@ -90,3 +90,25 @@ ncp_jump(0x02066E7C)
 	MOV     R12, #0
 	B       0x02066E7C+4
 )");
+
+
+
+
+
+
+
+// Force singleplayer multiplayer
+ncp_repl(0x020AD138, 0, "MOV R0, #2")
+ncp_repl(0x020AD23C, 0, "MOV R0, #2")
+ncp_repl(0x020BAAE4, 0, "MOV R0, #2")
+ncp_repl(0x020BAC18, 0, "MOV R0, #2")
+// ncp_repl(0x020BBAD0, 0, "MOV R0, #2") // conflicts with coop patch, using alt below
+asm(R"(
+ncp_jump(0x020BBAD4, 0)
+	MOV R0, #2
+	CMP R0, #0
+	B 0x020BBAD8
+)");
+ncp_repl(0x020BBB30, 0, "MOV R0, #2")
+ncp_repl(0x020069D8, "MOV R0, #2")
+ncp_repl(0x020069E0, "MOV R0, #3")
