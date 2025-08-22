@@ -1154,6 +1154,16 @@ ncp_asmfunc void StageLayout_fixRotatorStep2Check_ASM()
 	.word	34384896
 )");}
 
+// Not fully sure of the effect of this function on the level.
+// It appears to displace the actors, but it is causing desyncs.
+// TODO: Investigate actor displacement for rotator.
+ncp_repl(0x020AE7EC, 0, "NOP")
+
+// During the level rotation, Stage::cameraX[1] desyncs on console 0.
+// Since it only happens during the rotation, it seems to be safe.
+// The patch commented below disables the code that causes the problem,
+// ncp_repl(0x020B0B68, 0, "NOP")
+
 // Do not show "TOUCH" if the player is dead
 
 ncp_call(0x020BE1F0, 0)
