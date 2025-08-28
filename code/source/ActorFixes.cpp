@@ -620,6 +620,8 @@ ncp_set_call(0x020D8524, 10, ActorFixes_isInRangeOfAllPlayers) // Fix coin perma
 ncp_repl(0x0218A898, 108, "NOP") // Pass Broozer* instead of &Broozer*->position
 ncp_set_call(0x0218A8A4, 108, ActorFixes_isOutsideCamera)
 
+ncp_repl(0x0218AAA0, 108, "LDRB R0, [R5,#0x11E]") // Fix stomp hit
+
 // Horizontal Camera Stop ---------------------------------------------------------------
 
 u32 HorizontalCameraStop_playerID;
