@@ -114,7 +114,7 @@ ncp_repl(0x0204ED14, "NOP") // Always load both players' sounds
 ncp_repl(0x0204ED50, "NOP") // Always load both players' sounds
 
 ncp_call(0x021098C8, 10)
-ncp_thumb static bool Player_customSpecialPlayerBump(Player* self, Player* other, fx32& selfCollisionPointX)
+ncp_thumb bool Player_customSpecialPlayerBump(Player* self, Player* other, fx32& selfCollisionPointX)
 {
 	bool marioOffender = Player::bumpOffender == Player::BumpOffender::Mario;
 	Player* offender = marioOffender ? self : other;
@@ -164,7 +164,7 @@ ncp_repl(0x020E3260, 10, "MOV R0, R4") // Fireballs pass through player
 //ncp_repl(0x020E32C4, 10, "ADD SP, SP, #0x10; POP {R4-R6,PC}") // Player immune to fireballs
 
 ncp_call(0x020FD56C, 10)
-static bool Player_updateHook(Player* self)
+bool Player_updateHook(Player* self)
 {
 	Player_updateJumpedOnAnimation(self);
 	return self->updateCarryPartialAnimation(); // Keep replaced instruction

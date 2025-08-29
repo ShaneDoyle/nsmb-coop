@@ -53,7 +53,7 @@ ncp_repl(0x020CF880, 8, "NOP") // Prevent the worldmap from disconnecting multip
 
 // Replace get player powerup (now unused) with pre-load code
 ncp_call(0x020CEF1C, 8)
-static void Worldmap_beforeLevelLoad()
+void Worldmap_beforeLevelLoad()
 {
 	DesyncGuard::storeState();
 }

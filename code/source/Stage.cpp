@@ -377,14 +377,14 @@ ncp_thumb NTR_USED static bool Stage_customRespawnCondition(u32 playerID, s32 li
 }
 
 ncp_call(0x02118968, 10)
-ncp_thumb static void Stage_customRespawnReset(Player* player)
+ncp_thumb void Stage_customRespawnReset(Player* player)
 {
 	player->reset(); // Keep replaced instruction
 	Stage_beginPlayerSpectate(player->linkedPlayerID);
 }
 
 ncp_call(0x02118DE4, 10)
-ncp_thumb static void Stage_customPlayerRespawnCreateCase(Player* player)
+ncp_thumb void Stage_customPlayerRespawnCreateCase(Player* player)
 {
 	Stage_switchToPlayerSpectateState(player);
 
@@ -475,7 +475,7 @@ void Player_endCutscene_OVERRIDE(Player* self)
 }
 
 ncp_call(0x02118AF8, 10)
-ncp_thumb static void Player_viewTransitState_respawnViewSetup(StageLayout* self, Vec3* focusPos, s32 playerID, u32 isFromStageOnCreate)
+ncp_thumb void Player_viewTransitState_respawnViewSetup(StageLayout* self, Vec3* focusPos, s32 playerID, u32 isFromStageOnCreate)
 {
 	StageLayout_setupView(self, focusPos, playerID, isFromStageOnCreate);
 
