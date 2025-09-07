@@ -513,6 +513,16 @@ ncp_jump(0x0212B730, 11)
 	.word	_ZN4Game13localPlayerIDE
 )");}
 
+// Allow the game to wait for the player to shrink without the freeze flag
+ncp_call(0x0211F8EC, 10)
+bool customUpdateMegaShrinking(::Player* self)
+{
+	self->updateMegaShrinking();
+	return self->transitionFlag.megaShrink;
+}
+
+ncp_repl(0x0211F90C, 10, "NOP") // Do not rely on the freeze flag
+
 // asm(R"(
 // PlayerBase_freezeStage_SUPER:
 // 	PUSH    {LR}
