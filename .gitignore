@@ -1,35 +1,15 @@
-## Stuff added for by/for mariomadproductions
-
-# ROM related files
 *.nds
 *.sav
 *.sav.*
 
-# Original ROM data
-/code/backup/
-
-# Built code
-/code/build/
-/code/build7/
-
-# Exclude Nitro SDK headers
-/code/include/nitro/
-/code/include/nitro_wl/
-/code/include/nnsys/
-/code/include/nitro.h
-/code/include/nnsys.h
-/code/include/nitro_sp.h
-/code/include/nitro_win32.h
-
-# VS Code
-/code/.vscode
-
-# Operating system files
-*.lnk
-
-# Release files
-*.xdelta
-
-# Temporary code files
 /__tmp
-code/include/fid.hpp
+/backup
+/build
+
+/modules/nitrosdk
+
+/.vscode
+/.venv
+
+*.lnk
+*.xdelta

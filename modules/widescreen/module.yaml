@@ -1,0 +1,13 @@
+name: Widescreen
+
+authors:
+  - TheGameratorT
+  - gamemasterplc
+
+defines:
+  - MODULE_WIDESCREEN
+
+targets:
+  - arm9:
+      includes: "include"
+      sources: "source9/*"

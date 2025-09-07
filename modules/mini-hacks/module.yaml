@@ -1,0 +1,22 @@
+name: Mini-Hacks
+description: Various mini-hacks for NSMB.
+
+authors:
+  - TheGameratorT
+
+targets:
+  - arm9:
+      sources: "source9/*"
+
+components:
+  - FadeFix:
+      target: arm9
+      sources: "source9/FadeFix.s"
+
+  - SelectDeploy:
+      target: arm9
+      sources: "source9/SelectDeploy.s"
+
+  - FreeOverlayTexture:
+      target: arm9
+      sources: "source9/FreeOverlayTexture.cpp"

@@ -1,0 +1,9 @@
+name: Debug
+
+authors:
+  - TheGameratorT
+
+targets:
+  - arm9:
+      includes: "include"
+      sources: "source9/*"

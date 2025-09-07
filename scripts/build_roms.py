@@ -20,12 +20,18 @@ def parse_arguments():
                        help='Name prefix for output files (default: use input ROM stem)')
     parser.add_argument('-v', '--verbose', action='store_true',
                        help='Enable verbose output')
+    parser.add_argument('--verbose-patcher', action='store_true',
+                       help='Enable verbose output for NCPatcher')
     parser.add_argument('--no-patches', action='store_true',
                        help='Skip xdelta patch generation')
     parser.add_argument('--temp-dir', default='__tmp',
                        help='Temporary directory for intermediate files')
     parser.add_argument('--clean-temp', action='store_true',
                        help='Clean temporary directory after build')
+    parser.add_argument('--nitrofs-map', default='build/generated/nitrofs_file_map.txt',
+                       help='Path to nitrofs file mapping (default: build/generated/nitrofs_file_map.txt)')
+    parser.add_argument('--skip-module-gen', action='store_true',
+                       help='Skip automatic module generation (use existing nitrofs map)')
 
 
     return parser.parse_args()
@@ -35,12 +41,17 @@ def run_command(cmd, cwd=None, check=True):
     if args.verbose:
         print(f"Running: {' '.join(cmd)}")
 
-    # Always let stdout/stderr flow to terminal to prevent hanging
-    # Tools like ncpatcher may expect live stdout
-    result = subprocess.run(cmd, cwd=cwd, text=True)
+    # Control stdout/stderr based on verbose mode
+    if args.verbose:
+        result = subprocess.run(cmd, cwd=cwd, text=True)
+    else:
+        result = subprocess.run(cmd, cwd=cwd, text=True, capture_output=True)
 
     if check and result.returncode != 0:
         print(f"Command failed with return code {result.returncode}")
+        # Always show error output even in non-verbose mode
+        if not args.verbose and result.stderr:
+            print(f"Error output: {result.stderr}")
         sys.exit(1)
 
     return result
@@ -67,6 +78,35 @@ def check_dependencies():
 def ensure_directory(path):
     """Create directory if it doesn't exist"""
     Path(path).mkdir(parents=True, exist_ok=True)
+
+def run_module_generation():
+    """Run module_gen.py to generate build configurations and nitrofs file mapping"""
+    if args.skip_module_gen:
+        print("Skipping module generation as requested")
+        return
+
+    print("Generating module configurations and nitrofs file mapping...")
+
+    # Determine the generated directory
+    generated_dir = os.path.join(args.output_dir, 'generated')
+
+    # Run module_gen.py
+    module_gen_cmd = [
+        sys.executable, 'scripts/module_gen.py',
+        '--out-dir', generated_dir
+    ]
+
+    if args.verbose:
+        print(f"Running: {' '.join(module_gen_cmd)}")
+
+    result = run_command(module_gen_cmd)
+
+    # Set the nitrofs map path if not provided
+    if not args.nitrofs_map:
+        args.nitrofs_map = os.path.join(generated_dir, 'nitrofs_file_map.txt')
+        print(f"Using generated nitrofs map: {args.nitrofs_map}")
+
+    return result
 
 def build_rom_for_language(language, base_name):
     """Build ROM for a specific language"""
@@ -95,8 +135,12 @@ def build_rom_for_language(language, base_name):
         '--language', language
     ]
 
-    # Generate fid.hpp at code/include/fid.hpp
-    fid_path = os.path.join('code/include', 'fid.hpp')
+    # Use nitrofs map if available
+    if args.nitrofs_map and os.path.exists(args.nitrofs_map):
+        insert_files_cmd.extend(['--nitrofs-map', args.nitrofs_map])
+
+    # Generate fid.hpp at build/generated/include/fid.hpp
+    fid_path = os.path.join('build/generated/include', 'fid.hpp')
     insert_files_cmd.extend(['--fid-output', fid_path])
 
     run_command(insert_files_cmd)
@@ -108,7 +152,7 @@ def build_rom_for_language(language, base_name):
         files_rom, final_rom,
         '--language', language
     ]
-    if args.verbose:
+    if args.verbose_patcher:
         insert_code_cmd.append('--verbose')
     if args.temp_dir != '__tmp':
         insert_code_cmd.extend(['--temp-dir', args.temp_dir])
@@ -159,6 +203,9 @@ def main():
 
     # Check dependencies
     check_dependencies()
+
+    # Run module generation if needed
+    run_module_generation()
 
     # Ensure output directory exists
     ensure_directory(args.output_dir)

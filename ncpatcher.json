@@ -5,22 +5,22 @@
 	"$asm_flags": "-Os -x assembler-with-cpp -fomit-frame-pointer",
 	"$ld_flags": "-lgcc,-lc,-lstdc++,--use-blx",
 
-	"backup": "code/backup",
+	"backup": "backup",
 	"filesystem": "__tmp",
 	"toolchain": "arm-none-eabi-",
 
 	"arm7": {
-		"target": "code/arm7.json",
-		"build": "code/build7"
+		"target": "build/generated/arm7.json",
+		"build": "build/arm7",
+		"workdir": "${root}"
 	},
 	"arm9": {
-		"target": "code/arm9.json",
-		"build": "code/build"
+		"target": "build/generated/arm9.json",
+		"build": "build/arm9",
+		"workdir": "${root}"
 	},
 
-	"pre-build": [
-		"python scripts/gen_obj_table.py"
-	],
+	"pre-build": [],
 	"post-build": [],
 
 	"thread-count": 0

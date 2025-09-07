@@ -41,7 +41,10 @@ def run_ncp():
     language_upper = language.upper()
     args.extend(["--define", f"GAME_LANGUAGE_{language_upper}"])
 
-    subprocess.run(args)
+    result = subprocess.run(args)
+    if result.returncode != 0:
+        print(f"Error: NCPatcher failed with return code {result.returncode}")
+        exit(1)
 
 def get_header(rom):
     return rom.save(updateDeviceCapacity=True)[0:0x4000]

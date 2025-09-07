@@ -1,0 +1,12 @@
+name: DSi Mode Warning
+description: Recommends the player to enable DSi CPU mode if the console supports it.
+
+authors:
+  - TheGameratorT
+
+targets:
+  - arm7:
+      sources: "source7/*"
+  - arm9:
+      includes: "include"
+      sources: "source9/*"

@@ -1,0 +1,310 @@
+name: NSMB Co-op
+description: Adds co-op multiplayer support to the game.
+
+authors:
+  - TheGameratorT
+  - Shadey21
+
+repo: https://github.com/ShaneDoyle/nsmb-coop/
+
+defines: MODULE_COOP
+
+# a target can be: arm7, arm7(ov), arm9, arm9(ov)
+targets:
+  - arm9:
+      - includes:
+          - "include"
+      - sources:
+          - "source9/**"
+
+# TODO: Add many components and maybe organize better
+
+# each component can be disabled by the parent modules.yaml file
+# an enabled component will define its "defines"
+# a disabled component will exclude its "sources" and "files"_
+components:
+  - Vanilla:
+      target: arm9
+      sources:
+        - "source9/vanilla/*"
+      files:
+        - "z_new/coop/SE_VOC_MA_SHOT.nwav"
+        - "z_new/coop/SE_VOC_LU_SHOT.nwav"
+
+  - DesyncGuard_Update_Hook:
+      target: arm9
+      defines: COOP_DESYNC_GUARD_UPDATE_HOOK
+
+  - DesyncGuard_SwitchScene_Hook:
+      target: arm9
+      defines: COOP_DESYNC_GUARD_SWITCH_SCENE_HOOK
+
+  - DesyncGuard_DamagePlayer_Hook:
+      target: arm9
+      defines: COOP_DESYNC_GUARD_DAMAGE_PLAYER_HOOK
+
+  - DesyncGuard_SwitchPowerup_Hook:
+      target: arm9
+      defines: COOP_DESYNC_GUARD_SWITCH_POWERUP_HOOK
+
+  - DesyncGuard_GetRandom_Hook:
+      target: arm9
+      defines: COOP_DESYNC_GUARD_GET_RANDOM_HOOK
+
+  # Custom World Unlock
+
+  - CustomWorldUnlock:
+      target: arm9
+      defines: COOP_CUSTOM_WORLD_UNLOCK
+      sources:
+        - "source9/actors/CoopWorldUnlockSign.cpp"
+        - "source9/WorldUnlock.cpp"
+      files:
+        - "enemy/w3_sign.nsbmd"
+        - "enemy/w6_sign.nsbmd"
+
+  # Actors
+
+  - EndingSceneFix:
+      target: arm9
+      sources: "source9/fixes/EndingScene.cpp"
+
+  - WorldmapFix:
+      target: arm9(8)
+      sources: "source9/fixes/worldmap/*"
+
+  - FlagpoleFix:
+      target: arm9(12)
+      sources: "source9/fixes/flagpole/*"
+
+  - ThwompFix:
+      target: arm9(24)
+      sources: "source9/fixes/Thwomp.cpp"
+
+  - WhompFix:
+      target: arm9(34)
+      sources: "source9/fixes/Whomp.cpp"
+
+  - JumpingCheepCheepFix:
+      target: arm9(50)
+      sources: "source9/fixes/JumpingCheepCheep.cpp"
+
+  - SpikeBassFix:
+      target: arm9(58)
+      defines:
+        - COOP_FIX_SPIKE_BASS_ADD_ZONE_ID_FIELD=1
+        - COOP_FIX_SPIKE_BASS_ZONE_ID_FIELD_OFFSET=0x4B8
+      sources: "source9/fixes/SpikeBass.cpp"
+
+  - SpikeBassSpawnerFix:
+      target: arm9(58)
+      requires: SpikeBassFix
+      sources: "source9/fixes/SpikeBassSpawner.cpp"
+
+  - UnagiEelFix:
+      target: arm9(79)
+      sources: "source9/fixes/UnagiEel.cpp"
+
+  - ToadsworthFix:
+      target: arm9(123)
+      sources: "source9/fixes/Toadsworth.cpp"
+
+  - ToadsworthFix:
+      target: arm9(123)
+      sources: "source9/fixes/MushroomHouseBlock.cpp"
+
+  - BalloonBooFix:
+      target: arm9
+      sources: "source9/fixes/BalloonBoo.cpp"
+
+  - BlockhopperFix:
+      target: arm9
+      sources: "source9/fixes/Blockhopper.cpp"
+
+  - BooFix:
+      target: arm9
+      sources: "source9/fixes/Boo.cpp"
+
+  - BoomerangBroFix:
+      target: arm9
+      sources: "source9/fixes/BoomerangBro.cpp"
+
+  - BroozerFix:
+      target: arm9
+      sources: "source9/fixes/Broozer.cpp"
+
+  - BulletBillFix:
+      target: arm9
+      sources: "source9/fixes/BulletBill.cpp"
+
+  - CheepCheepSpawnerFix:
+      target: arm9
+      sources: "source9/fixes/CheepCheepSpawner.cpp"
+
+  - CoinFix:
+      target: arm9
+      sources: "source9/fixes/Coin.cpp"
+
+  - DorrieFix:
+      target: arm9
+      sources: "source9/fixes/Dorrie.cpp"
+
+  - DryBonesFix:
+      target: arm9
+      sources: "source9/fixes/DryBones.cpp"
+
+  - FireBroFix:
+      target: arm9
+      sources: "source9/fixes/FireBro.cpp"
+
+  - FlameChompFix:
+      target: arm9
+      sources: "source9/fixes/FlameChomp.cpp"
+
+  - FlyingRedBlockFix:
+      target: arm9
+      sources: "source9/fixes/FlyingRedBlock.cpp"
+
+  - HammerBroFix:
+      target: arm9
+      sources: "source9/fixes/HammerBro.cpp"
+
+  - HammerBroSpawnPointFix:
+      target: arm9
+      sources: "source9/fixes/HammerBroSpawnPoint.cpp"
+
+  - HorizontalCameraStopFix:
+      target: arm9
+      sources: "source9/fixes/HorizontalCameraStop.cpp"
+
+  - ItemFix:
+      target: arm9
+      sources: "source9/fixes/Item.cpp"
+
+  - LakituSpawnerFix:
+      target: arm9
+      sources: "source9/fixes/LakituSpawner.cpp"
+
+  - LiquidFix:
+      target: arm9
+      defines: COOP_FIX_LIQUID
+      sources: "source9/fixes/Liquid.cpp"
+
+  - MoneyBagFix:
+      target: arm9
+      sources: "source9/fixes/MoneyBag.cpp"
+
+  - PipeCannonFix:
+      target: arm9
+      sources: "source9/fixes/PipeCannon.cpp"
+
+  - RedRingFix:
+      target: arm9
+      sources: "source9/fixes/RedRing.cpp"
+
+  - RotatingWallPlatformFix:
+      target: arm9
+      sources: "source9/fixes/RotatingWallPlatform.cpp"
+
+  - SledgeBroFix:
+      target: arm9
+      sources: "source9/fixes/SledgeBro.cpp"
+
+  - StageFix:
+      target: arm9
+      sources: "source9/fixes/Stage.cpp"
+
+  - SushiFix:
+      target: arm9
+      sources: "source9/fixes/Sushi.cpp"
+
+  - TileGodFix:
+      target: arm9
+      sources: "source9/fixes/TileGod.cpp"
+
+  - TrampolineFix:
+      target: arm9
+      sources: "source9/fixes/Trampoline.cpp"
+
+  - VolcanoEruptionFix:
+      target: arm9
+      defines: COOP_FIX_VOLCANO_ERUPTION
+      sources: "source9/fixes/VolcanoEruption.cpp"
+
+  - WarpCannonFix:
+      target: arm9
+      sources: "source9/fixes/WarpCannon.cpp"
+
+  - WarpEntranceFix:
+      target: arm9
+      sources: "source9/fixes/WarpEntrance.cpp"
+
+  # Bosses
+
+  - BowserJrFix:
+      target: arm9(28)
+      sources: "source9/fixes/bosses/BowserJr.cpp"
+
+  - BowserFix:
+      target: arm9
+      sources: "source9/fixes/bosses/Bowser.cpp"
+
+  - MummyPokeyFix:
+      target: arm9
+      sources: "source9/fixes/bosses/MummyPokey.cpp"
+
+  - CheepSkipperFix:
+      target: arm9
+      sources: "source9/fixes/bosses/CheepSkipper.cpp"
+
+  - MegaGoombaFix:
+      target: arm9
+      sources: "source9/fixes/bosses/MegaGoomba.cpp"
+
+  - PeteyPiranhaFix:
+      target: arm9(15)
+      sources: "source9/fixes/bosses/PeteyPiranha.cpp"
+
+  - MontyTankFix:
+      target: arm9(19)
+      sources: "source9/fixes/bosses/MontyTank.cpp"
+
+  - LakithunderFix:
+      target: arm9
+      sources: "source9/fixes/bosses/Lakithunder.cpp"
+
+  - FinalBowserFix:
+      target: arm9(43)
+      sources: "source9/fixes/bosses/FinalBowser.cpp"
+
+  - BossControllerFix:
+      target: arm9
+      defines: COOP_FIX_BOSS_CONTROLLER
+      sources: "source9/fixes/bosses/BossController.cpp"
+
+  - FinalBossControllerFix:
+      target: arm9
+      defines: COOP_FIX_FINAL_BOSS_CONTROLLER
+      sources: "source9/fixes/bosses/FinalBossController.cpp"
+
+  - BossKeyFix:
+      target: arm9
+      sources: "source9/fixes/bosses/BossKey.cpp"
+
+  - PrincessPeachFix:
+      target: arm9
+      sources: "source9/fixes/bosses/PrincessPeach.cpp"
+
+  # Stage Fixes
+
+  - PauseMenuFix:
+      target: arm9
+      defines: COOP_FIX_PAUSE_MENU
+
+  - LooperFix:
+      target: arm9
+      defines: COOP_FIX_LOOPER
+
+  - PipesBgFix:
+      target: arm9
+      defines: COOP_FIX_PIPES_BG

@@ -1,0 +1,17 @@
+modules:
+  - coop:
+      enabled: True
+  - mini-hacks:
+      enabled: True
+  - debug:
+      enabled: True
+  - dsimodewarn:
+      enabled: True
+  - nwav:
+      enabled: True
+  - widescreen:
+      enabled: True
+  - message:
+      enabled: True
+  - nitrosdk:
+      enabled: True
