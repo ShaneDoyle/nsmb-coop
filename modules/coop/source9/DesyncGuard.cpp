@@ -26,6 +26,12 @@ ncp_asmfunc u32 Net_getRandom_SUPER()
 	B       0x0200E6F8
 )");}
 
+ncp_asmfunc void Game_gainPlayerLife_SUPER(s32 playerID)
+{asm(R"(
+	BICS    R1, R0, #1
+	B       0x02020548
+)");}
+
 namespace DesyncGuard
 {
 	constexpr u32 markerIndex = 2;
@@ -174,6 +180,16 @@ namespace DesyncGuard
 		markDesyncCheck();
 
 		return ret;
+	}
+#endif
+
+#ifdef COOP_DESYNC_GUARD_GIVE_PLAYER_LIFE_HOOK
+	ncp_jump(0x02020544)
+	void Game_getPlayerLife_OVERRIDE(s32 playerID)
+	{
+		markDesyncCheck();
+
+		Game_gainPlayerLife_SUPER(playerID); // Keep replaced instruction
 	}
 #endif
 

@@ -47,6 +47,10 @@ components:
       target: arm9
       defines: COOP_DESYNC_GUARD_SWITCH_POWERUP_HOOK
 
+  - DesyncGuard_GivePlayerLife_Hook:
+      target: arm9
+      defines: COOP_DESYNC_GUARD_GIVE_PLAYER_LIFE_HOOK
+
   - DesyncGuard_GetRandom_Hook:
       target: arm9
       defines: COOP_DESYNC_GUARD_GET_RANDOM_HOOK
