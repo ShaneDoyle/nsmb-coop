@@ -1,3 +1,5 @@
+#include "coop/CoopActor.hpp"
+
 namespace CoopFixes::Item {
 
 ncp_repl(0x020D24EC, 10, "MOV R2, #0")
@@ -19,5 +21,7 @@ ncp_over(0x020D2598, 10)
 	B       item_loop_start
 ncp_endover()
 )");}
+
+ncp_set_call(0x020D0D3C, 10, CoopActor::megaRewardSpawnActor)
 
 } // namespace CoopFixes::Item

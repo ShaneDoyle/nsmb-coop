@@ -66,6 +66,7 @@ bool sentFlyingWithPoleState(::Player* self, void* arg)
 	{
 		step = 1;
 
+		CoopStage::playerInFlagpoleSentFlying[self->linkedPlayerID] = true;
 		CoopCamera::setFollowTarget(self->linkedPlayerID, CoopStage::flagpoleLinkedPlayer->linkedPlayerID);
 
 		self->velocity.x = sendFlyingVelocities[Flagpole::instance->direction];

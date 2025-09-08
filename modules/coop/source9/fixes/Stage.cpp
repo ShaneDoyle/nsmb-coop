@@ -172,8 +172,6 @@ ncp_repl(0x020FBF60, 10, "BX LR") // Fix end of level for player that "lost the 
 ncp_set_call(0x021624C8, 54, Coop::getLocalPlayerID) // Midway point draws from local player
 ncp_set_call(0x02162110, 54, Coop::getLocalPlayerID) // Midway point plays sound at local player position
 
-ncp_repl(0x0215ED54, 54, "NOP") // Disable mega mushroom destruction counter
-
 #ifdef COOP_FIX_STAGE_INTRO
 
 //ncp_set_call(0x02152944, 54, Coop::isLuigiMode) // Allow Luigi lives on stage intro scene
@@ -226,21 +224,6 @@ ncp_jump(0x02157414, 54)
 	BL      _ZN4Game9getPlayerEl
 	B       0x02157418
 )");}
-
-// TODO: Fix Mega Mushroom destruction counter
-
-// Do not know what this does yet
-/*asm(R"(
-ncp_jump(0x020BE184, 0)
-	LDR     R0, =_ZN4Game11playerCountE
-	B       0x020BE188
-
-ncp_over(0x020BE18C, 0)
-	CMP     R0, #1
-	MOVGT   R0, #1
-	MOVLE   R0, #0
-ncp_endover()
-)");*/
 
 // Fix stage zoom on view edges
 ncp_asmfunc void fixStageZoomOnViewEdges_ASM()

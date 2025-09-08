@@ -6,6 +6,8 @@
 #include <nsmb/core/system/function.hpp>
 #include <nsmb/core/math/math.hpp>
 
+#include "coop/CoopStage.hpp"
+
 // Notes:
 //  - Any actor using `Model::getNodePosition` (0x020196DC) or `Model::getNodeMatrix` (0x0201972C) that does
 //    not override `skipRender` to always render but become invisible must use `CoopActor::safeSkipRender`.
@@ -121,6 +123,11 @@ Player* StageActor_getClosestPlayer_OVERRIDE(StageActor* self, s32* distanceX, s
 		return Game::getPlayer(0);
 
 	return player;
+}
+
+Actor* megaRewardSpawnActor(u16 objectID, u32 settings, const Vec3* position, const Vec3s* rotation, const fx32* scale, const s8* linkPlayerID)
+{
+	return Actor::spawnActor(objectID, settings | (CoopStage::tempVar << 16), position, rotation, scale, linkPlayerID);
 }
 
 } // namespace CoopActor

@@ -24,5 +24,6 @@ Player* getClosestPlayerInZone(StageActor* self, u32 zoneID);
 u8 getHorizontalDirectionToPlayer(StageEntity* self, const Vec3& position, u32 playerID);
 bool isPlayerInRange(StageActor* self, Player* player);
 bool isInRangeOfAllPlayers(StageEntity* self);
+Actor* megaRewardSpawnActor(u16 objectID, u32 settings, const Vec3* position, const Vec3s* rotation, const fx32* scale, const s8* linkPlayerID);
 
 } // namespace CoopActor

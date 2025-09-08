@@ -3,6 +3,8 @@
 #include <nsmb_nitro.hpp>
 #include <nsmb/game/stage.hpp>
 
+#include "coop/Coop.hpp"
+
 class Player;
 
 namespace CoopStage {
@@ -11,6 +13,7 @@ extern u32 tempVar;
 extern u8 isPlayerDead[2];
 extern u8 forceAreaReload;
 extern Player* flagpoleLinkedPlayer;
+extern u8 playerInFlagpoleSentFlying[Coop::MaxPlayerCount];
 
 NTR_INLINE static bool isFlagpoleGrabbed()
 {

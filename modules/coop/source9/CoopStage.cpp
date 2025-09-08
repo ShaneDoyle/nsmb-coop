@@ -50,6 +50,7 @@ u8 doorFromAreaChange;
 u8 forceAreaReload;
 u8 forcedAreaReloadsBlocked;
 Player* flagpoleLinkedPlayer; // Player in the pole responsible for triggering events
+u8 playerInFlagpoleSentFlying[Coop::MaxPlayerCount];
 
 s32 getAlivePlayerID()
 {
@@ -595,6 +596,8 @@ ncp_thumb void defaultOnLevelLoad()
 	isPlayerDead[1] = false;
 
 	flagpoleLinkedPlayer = nullptr;
+	playerInFlagpoleSentFlying[0] = false;
+	playerInFlagpoleSentFlying[1] = false;
 }
 
 ncp_thumb void defaultOnLayoutCreate()
