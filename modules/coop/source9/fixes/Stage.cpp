@@ -387,4 +387,6 @@ ncp_jump(0x020B286C, 0)
 
 #endif
 
+ncp_repl(0x020C0660, 0, "B 0x020C067C") // Do not skip local player check for empty inventory SFX
+
 } // namespace CoopFixes::Stage
