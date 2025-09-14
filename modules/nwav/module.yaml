@@ -1,9 +1,8 @@
+id: NWAV
 name: Nitro WAV
 description: Adds stream-able audio to the game.
 
 authors: TheGameratorT
-
-defines: MODULE_NWAV
 
 targets:
   - arm9:

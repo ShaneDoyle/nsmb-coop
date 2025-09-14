@@ -5,7 +5,7 @@
 #include "coop/CoopCamera.hpp"
 #include "coop/CoopStage.hpp"
 
-ActorProfile CoopFlagActor::profile = {
+ActorProfile CoopFlagActor::Profile = {
 	&constructObject<CoopFlagActor>,
 	0xFB, 0x69,
 	nullptr

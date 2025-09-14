@@ -7,15 +7,22 @@ import shutil
 from pathlib import Path
 import sys
 
+# Import project configuration
+from project_config import get_script_project_config
+
 def parse_arguments():
+    # Get project configuration to determine available languages
+    project_config = get_script_project_config()
+    available_languages = project_config.language_codes
+
     parser = argparse.ArgumentParser(description='Build many Nintendo DS ROMs')
     parser.add_argument('input_rom', help='Input original ROM file path')
     parser.add_argument('-o', '--output-dir', default='build',
                        help='Output directory for generated ROMs (default: build)')
     parser.add_argument('-l', '--languages', nargs='+',
-                       choices=['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt', 'ko', 'ch'],
-                       default=['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt', 'ko', 'ch'],
-                       help='Languages to build (default: all)')
+                       choices=available_languages,
+                       default=available_languages,
+                       help=f'Languages to build (default: all) - Available: {", ".join(available_languages)}')
     parser.add_argument('-p', '--prefix', default=None,
                        help='Name prefix for output files (default: use input ROM stem)')
     parser.add_argument('-v', '--verbose', action='store_true',
@@ -187,6 +194,9 @@ def main():
     global args
     args = parse_arguments()
 
+    # Get project configuration
+    project_config = get_script_project_config()
+
     # Validate input ROM
     if not os.path.isfile(args.input_rom):
         print(f"Error: Input ROM '{args.input_rom}' not found")
@@ -195,6 +205,7 @@ def main():
     # Extract base name from input ROM or use prefix
     base_name = args.prefix if args.prefix else Path(args.input_rom).stem
 
+    print(f"Project: {project_config.project_name}")
     print(f"Building ROMs from: {args.input_rom}")
     print(f"Output directory: {args.output_dir}")
     print(f"Output name: {base_name}")

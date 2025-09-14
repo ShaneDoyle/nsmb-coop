@@ -1,0 +1,50 @@
+name: NSMB-Coop
+
+languages:
+  en: English
+  fr: French
+  de: German
+  it: Italian
+  es: Spanish
+  ja: Japanese
+  ko: Korean
+  zh: Chinese
+  pt: Portuguese
+
+# NSMB Co-op's code currently fits in the space freed
+# by the NARC offload of the "message" module so until
+# we find a way to use the extra memory not used by our code
+# for storing different kinds of data, using the overlays
+# will just make the loading of said scenes slightly slower.
+# If your code ends up using more memory than the NARC offload
+# can free, then it will make sense to use the overlays instead.
+
+modules:
+  - coop:
+      enabled: True
+      # uncomment to use overlay instead
+      # components:
+      #   - DesyncScene:
+      #       enabled: true
+      #       target: arm9(9)
+  - mini-hacks:
+      enabled: True
+  - debug:
+      enabled: True
+  - dsimodewarn:
+      enabled: True
+      # uncomment to use overlay instead
+      # components:
+      #   - DSiModeScene:
+      #       enabled: true
+      #       target: arm9(9)
+  - nwav:
+      enabled: True
+  - widescreen:
+      enabled: True
+  - process:
+      enabled: True
+  - message:
+      enabled: True
+  - nitrosdk:
+      enabled: True

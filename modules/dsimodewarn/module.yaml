@@ -1,3 +1,4 @@
+id: DSiModeWarn
 name: DSi Mode Warning
 description: Recommends the player to enable DSi CPU mode if the console supports it.
 
@@ -10,3 +11,12 @@ targets:
   - arm9:
       includes: "include"
       sources: "source9/*"
+
+components:
+  - DSiModeScene:
+      target: arm9
+      # source not specified because the scene can not be removed
+      objects:
+        - name: "DSiModeScene"
+          type: "scene"
+          header: "dsimodewarn/DSiModeScene.hpp"

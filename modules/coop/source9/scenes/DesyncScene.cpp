@@ -114,7 +114,7 @@ const char* DesyncScene::levelNames[] = {
 	"Mushroom House"
 };
 
-ObjectProfile DesyncScene::profile = {
+ObjectProfile DesyncScene::Profile = {
 	&constructObject<DesyncScene>,
 	0, 0
 };

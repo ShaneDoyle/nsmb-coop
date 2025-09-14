@@ -1,10 +1,9 @@
+id: Message
 name: Message
 description: Off-loads a 72 KB NARC from memory allowing it to be overwritten with code and adds localization.
 
 authors:
   - TheGameratorT
-
-defines: MODULE_MESSAGE
 
 targets:
   - arm9:

@@ -1,11 +1,9 @@
+id: Widescreen
 name: Widescreen
 
 authors:
   - TheGameratorT
   - gamemasterplc
-
-defines:
-  - MODULE_WIDESCREEN
 
 targets:
   - arm9:

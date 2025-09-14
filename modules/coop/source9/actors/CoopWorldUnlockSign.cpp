@@ -3,7 +3,7 @@
 #include <nsmb/game/game.hpp>
 #include <nsmb/core/filesystem/cache.hpp>
 
-ActorProfile CoopWorldUnlockSign::profile = {
+ActorProfile CoopWorldUnlockSign::Profile = {
 	&constructObject<CoopWorldUnlockSign>,
 	0xFB, 0x69,
 	CoopWorldUnlockSign::loadResources

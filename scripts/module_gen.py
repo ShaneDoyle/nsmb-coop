@@ -16,6 +16,21 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Union
 
+# Import project configuration
+from project_config import get_script_project_config
+
+
+@dataclass
+class ObjectRegistration:
+    """Registration for a custom object."""
+    name: str
+    obj_type: str  # "actor" or "scene"
+    module_name: str = ""
+    module_id: str = ""  # Module ID from config
+    component_name: str = ""
+    obj_id: int = 0  # Assigned during allocation
+    header_path: str = ""  # Include path for the class header
+
 
 @dataclass
 class ComponentOverride:
@@ -46,6 +61,9 @@ class ModuleProcessor:
         self.root_dir = Path.cwd()
         self.nitrofs_map_filename = 'nitrofs_file_map.txt'  # Default filename
 
+        # Get project configuration for languages
+        self.project_config = get_script_project_config()
+
         # Collections for build configuration
         self.arm7_defines: Dict[str, Union[str, int, bool, None]] = {}
         self.arm9_defines: Dict[str, Union[str, int, bool, None]] = {}
@@ -53,6 +71,10 @@ class ModuleProcessor:
 
         # Collections for nitrofs file mapping
         self.nitrofs_file_map: Dict[str, str] = {}  # final_path -> source_path
+
+        # Collections for object ID registration
+        self.object_id_registrations: List[ObjectRegistration] = []
+        self.next_object_id: int = 0x182  # Starting ID for extended objects
 
     def load_yaml(self, path: Path) -> dict:
         """Load and parse a YAML file."""
@@ -193,8 +215,60 @@ class ModuleProcessor:
 
         target_defines[define_name] = define_value
 
+    def validate_module_id(self, module_id: str, module_name: str) -> bool:
+        """Validate that module ID only contains a-z and A-Z characters."""
+        if not module_id:
+            print(f"Error: Module '{module_name}' is missing required 'id' field")
+            return False
+
+        if not module_id.replace('_', '').replace('-', '').replace(' ', '').isalpha():
+            print(f"Error: Module '{module_name}' has invalid id '{module_id}'. ID must only contain a-z and A-Z characters.")
+            return False
+
+        # Check for invalid characters
+        if any(c in module_id for c in '_- '):
+            print(f"Error: Module '{module_name}' has invalid id '{module_id}'. ID must not contain spaces, underscores, or hyphens.")
+            return False
+
+        return True
+
+    def process_module_id(self, module: ProcessedModule) -> None:
+        """Process module ID and generate MODULE_<ID> define."""
+        module_id = module.config.get('id')
+        if not self.validate_module_id(module_id, module.name):
+            return
+
+        # Generate MODULE_<UPPERCASE_ID> define
+        module_define = f"MODULE_{module_id.upper()}"
+
+        # Determine which ARM processors this module targets (similar to process_module_defines)
+        targets = module.config.get('targets', {})
+        arm_targets = set()
+
+        # Handle both dict and list format for targets
+        target_items = targets.items() if isinstance(targets, dict) else []
+        if isinstance(targets, list):
+            for target_item in targets:
+                if isinstance(target_item, dict):
+                    target_items.extend(target_item.items())
+
+        for target_name, _ in target_items:
+            base, _, _ = self.parse_target(target_name)
+            if base in ('arm7', 'arm9'):
+                arm_targets.add(base)
+
+        # Default to arm9 if no specific targets
+        if not arm_targets:
+            arm_targets.add('arm9')
+
+        # Add MODULE_<ID> define to appropriate ARM configurations
+        if 'arm7' in arm_targets:
+            self.add_define(self.arm7_defines, module_define, None)
+        if 'arm9' in arm_targets:
+            self.add_define(self.arm9_defines, module_define, None)
+
     def parse_component_overrides(self, components_config: List) -> Dict[str, ComponentOverride]:
-        """Parse component override configuration from modules.yaml."""
+        """Parse component override configuration from project.yaml."""
         overrides = {}
 
         for component_item in self.ensure_list(components_config):
@@ -230,51 +304,61 @@ class ModuleProcessor:
         return overrides
 
     def load_enabled_modules(self) -> List[ProcessedModule]:
-        """Load and process all enabled modules from modules.yaml."""
-        modules_yaml = self.modules_dir / "modules.yaml"
-        if not modules_yaml.exists():
-            print(f"Error: {modules_yaml} not found")
-            return []
-
-        modules_config = self.load_yaml(modules_yaml)
+        """Load and process all enabled modules from project.yaml."""
+        # First try to load from project.yaml
+        modules_config_from_project = self.project_config.modules
         processed_modules = []
 
-        for module_item in modules_config.get('modules', []):
-            if not isinstance(module_item, dict):
-                continue
+        if modules_config_from_project:
+            print("Loading module configuration from project.yaml")
 
-            for module_name, module_config in module_item.items():
-                if not module_config or not module_config.get('enabled', False):
+            for module_item in modules_config_from_project:
+                if not isinstance(module_item, dict):
                     continue
 
-                module_path = self.modules_dir / module_name
-                module_yaml_path = module_path / "module.yaml"
+                for module_name, module_config in module_item.items():
+                    if not module_config or not module_config.get('enabled', False):
+                        continue
 
-                if not module_yaml_path.exists():
-                    print(f"Warning: module.yaml not found for '{module_name}' at {module_yaml_path}")
-                    continue
+                    module_path = self.modules_dir / module_name
+                    module_yaml_path = module_path / "module.yaml"
 
-                module_data = self.load_yaml(module_yaml_path)
-                overrides = self.parse_component_overrides(module_config.get('components', []))
+                    if not module_yaml_path.exists():
+                        print(f"Warning: module.yaml not found for '{module_name}' at {module_yaml_path}")
+                        continue
 
-                processed_module = ProcessedModule(
-                    name=module_name,
-                    path=module_path,
-                    config=module_data,
-                    overrides=overrides
-                )
+                    module_data = self.load_yaml(module_yaml_path)
 
-                # Determine enabled/disabled components
-                for component_item in module_data.get('components', []):
-                    if isinstance(component_item, dict):
-                        for comp_name in component_item.keys():
-                            override = overrides.get(comp_name, ComponentOverride())
-                            if override.enabled is False:
-                                processed_module.disabled_components.add(comp_name)
-                            else:
-                                processed_module.enabled_components.add(comp_name)
+                    # Validate module ID early - abort if invalid
+                    module_id = module_data.get('id')
+                    if not self.validate_module_id(module_id, module_name):
+                        print(f"Error: Module '{module_name}' has invalid or missing ID. Aborting.")
+                        exit(1)
 
-                processed_modules.append(processed_module)
+                    overrides = self.parse_component_overrides(module_config.get('components', []))
+
+                    processed_module = ProcessedModule(
+                        name=module_name,
+                        path=module_path,
+                        config=module_data,
+                        overrides=overrides
+                    )
+
+                    # Determine enabled/disabled components
+                    for component_item in module_data.get('components', []):
+                        if isinstance(component_item, dict):
+                            for comp_name in component_item.keys():
+                                override = overrides.get(comp_name, ComponentOverride())
+                                if override.enabled is False:
+                                    processed_module.disabled_components.add(comp_name)
+                                else:
+                                    processed_module.enabled_components.add(comp_name)
+
+                    processed_modules.append(processed_module)
+
+        if not processed_modules:
+            print("Error: No modules found in project.yaml")
+            return []
 
         return processed_modules
 
@@ -730,8 +814,8 @@ class ModuleProcessor:
                     for file_pattern in self.ensure_list(component_files):
                         excluded_files.add(file_pattern)
 
-        # Define supported language prefixes
-        supported_languages = ['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt', 'ko', 'ch']
+        # Define supported language prefixes from project configuration
+        supported_languages = self.project_config.language_codes
 
         # Collect all files from nitrofs directory
         for file_path in nitrofs_dir.rglob('*'):
@@ -768,6 +852,297 @@ class ModuleProcessor:
                     module_files[rel_path_str] = str(file_path)
 
         return module_files
+
+    def parse_object_id_registrations(self, component_config: dict, module_name: str, module_id: str, component_name: str) -> List[ObjectRegistration]:
+        """Parse objects from component configuration."""
+        objects = component_config.get('objects', [])
+        registrations = []
+
+        for obj_config in self.ensure_list(objects):
+            if not isinstance(obj_config, dict):
+                continue
+
+            name = obj_config.get('name')
+            obj_type = obj_config.get('type', 'actor')
+            header_path = obj_config.get('header', '')
+
+            if not name:
+                print(f"Warning: object missing 'name' in component '{component_name}' of module '{module_name}'")
+                continue
+
+            if obj_type not in ('actor', 'scene'):
+                print(f"Warning: object '{name}' has invalid type '{obj_type}' (must be 'actor' or 'scene')")
+                continue
+
+            if not header_path:
+                print(f"Warning: object '{name}' missing required 'header' field in component '{component_name}' of module '{module_name}'")
+                continue
+
+            registrations.append(ObjectRegistration(
+                name=name,
+                obj_type=obj_type,
+                module_name=module_name,
+                module_id=module_id,
+                component_name=component_name,
+                header_path=header_path
+            ))
+
+        return registrations
+
+    def collect_object_id_registrations(self, modules: List[ProcessedModule]) -> None:
+        """Collect all object ID registrations from enabled modules."""
+        print("Collecting object ID registrations...")
+
+        all_registrations = []
+
+        for module in modules:
+            # Get the module ID from config
+            module_id = module.config.get('id')
+
+            for component_item in module.config.get('components', []):
+                if not isinstance(component_item, dict):
+                    continue
+
+                for comp_name, comp_config in component_item.items():
+                    if not isinstance(comp_config, dict):
+                        continue
+
+                    # Skip disabled components
+                    if comp_name in module.disabled_components:
+                        continue
+
+                    registrations = self.parse_object_id_registrations(comp_config, module.name, module_id, comp_name)
+                    all_registrations.extend(registrations)
+
+        # Sort by module ID, component name, and object name for deterministic ordering
+        all_registrations.sort(key=lambda x: (x.module_id, x.component_name, x.name))
+
+        # Assign object IDs
+        current_id = self.next_object_id
+        for registration in all_registrations:
+            registration.obj_id = current_id
+            current_id += 1
+
+        self.object_id_registrations = all_registrations
+        print(f"Collected {len(all_registrations)} object ID registrations")
+
+    def generate_object_id_headers(self) -> None:
+        """Generate object ID headers for each module."""
+        if not self.object_id_registrations:
+            return
+
+        print("Generating object ID headers...")
+
+        # Group registrations by module ID
+        by_module = {}
+        for reg in self.object_id_registrations:
+            module_key = reg.module_id
+            if module_key not in by_module:
+                by_module[module_key] = []
+            by_module[module_key].append(reg)
+
+        # Generate per-module headers
+        objectids_dir = self.output_dir / 'include' / 'objectids'
+        objectids_dir.mkdir(parents=True, exist_ok=True)
+
+        for module_id, registrations in by_module.items():
+            header_content = f"""#pragma once
+
+#include <cstdint>
+
+// Generated object IDs for module ID: {module_id}
+// Do not edit this file directly
+
+namespace ObjectID::{module_id} {{
+
+"""
+
+            for reg in registrations:
+                header_content += f"    static constexpr std::uint16_t {reg.name} = 0x{reg.obj_id:X};\n"
+
+            header_content += """
+}
+"""
+
+            header_path = objectids_dir / f"{str.lower(module_id)}.hpp"
+            with header_path.open('w', encoding='utf-8') as f:
+                f.write(header_content)
+
+        # Generate main object registry header
+        registry_content = """#pragma once
+
+#include <cstdint>
+
+// Generated object registry
+// Do not edit this file directly
+
+"""
+
+        # Include all module headers
+        for module_id in by_module.keys():
+            registry_content += f'#include "objectids/{str.lower(module_id)}.hpp"\n'
+
+        registry_content += f"""
+namespace Game {{
+    static constexpr std::uint16_t ExtendedObjectsStart = 0x{self.next_object_id:X};
+    static constexpr std::uint16_t ExtendedObjectsCount = {len(self.object_id_registrations)};
+}}
+"""
+
+        registry_path = self.output_dir / 'include' / 'object_registry.hpp'
+        with registry_path.open('w', encoding='utf-8') as f:
+            f.write(registry_content)
+
+        # Generate profile table header for process.cpp
+        self.generate_profile_table_header()
+
+        print(f"Generated object ID headers in {objectids_dir}")
+
+    def generate_profile_table_header(self) -> None:
+        """Generate the profile table header that process.cpp should include."""
+        if not self.object_id_registrations:
+            return
+
+        profile_header_content = """#pragma once
+
+// Generated profile table for extended objects
+// Do not edit this file directly
+
+"""
+
+        # Include all required headers
+        included_headers = set()
+        for reg in self.object_id_registrations:
+            if reg.header_path and reg.header_path not in included_headers:
+                profile_header_content += f'#include "{reg.header_path}"\n'
+                included_headers.add(reg.header_path)
+
+        profile_header_content += """
+namespace Game {
+
+// Generated extended profile table
+const ObjectProfile* mainExtPT[] = {
+"""
+
+        # Add profile entries in order
+        for reg in self.object_id_registrations:
+            profile_header_content += f"    &{reg.name}::Profile,  // {reg.name} (0x{reg.obj_id:X})\n"
+
+        profile_header_content += """};
+
+constinit const ObjectProfile* const* currentExtPT = mainExtPT;
+
+}
+"""
+
+        profile_path = self.output_dir / 'include' / 'extended_profiles.hpp'
+        with profile_path.open('w', encoding='utf-8') as f:
+            f.write(profile_header_content)
+
+        print(f"Generated profile table header: {profile_path}")
+
+    def generate_scene_overlay_registry(self, modules: List[ProcessedModule]) -> None:
+        """Generate scene overlay registry header for process.cpp."""
+        print("Generating scene overlay registry...")
+
+        # Collect scene objects that have overlay targets
+        scene_overlays = {}  # scene_name -> overlay_number
+
+        for module in modules:
+            module_id = module.config.get('id')
+
+            for component_item in module.config.get('components', []):
+                if not isinstance(component_item, dict):
+                    continue
+
+                for comp_name, comp_config in component_item.items():
+                    if not isinstance(comp_config, dict):
+                        continue
+
+                    # Skip disabled components
+                    if comp_name in module.disabled_components:
+                        continue
+
+                    # Get target (with possible override) - same logic as process_module_components
+                    target = comp_config.get('target')
+                    original_target_locked = False
+
+                    # Check if original target is locked
+                    if target and target.startswith('!'):
+                        original_target_locked = True
+
+                    override = module.overrides.get(comp_name, ComponentOverride())
+                    # Only apply override if original target is not locked
+                    if override.target and not original_target_locked:
+                        target = override.target
+
+                    if target:
+                        base, overlay_num, is_locked = self.parse_target(target)
+
+                        # Only process if it has an overlay number
+                        if overlay_num is not None:
+                            # Check if this component has scene objects
+                            objects = comp_config.get('objects', [])
+                            for obj_config in self.ensure_list(objects):
+                                if not isinstance(obj_config, dict):
+                                    continue
+
+                                obj_type = obj_config.get('type', 'actor')
+                                obj_name = obj_config.get('name')
+
+                                if obj_type == 'scene' and obj_name:
+                                    scene_key = f"ObjectID::{module_id}::{obj_name}"
+                                    scene_overlays[scene_key] = overlay_num
+
+        # Generate the header content
+        header_content = """#pragma once
+
+#include <nsmb_nitro.hpp>
+
+// Generated scene overlay registry
+// Do not edit this file directly
+
+"""
+
+        # Include object ID headers if we have scenes with overlays
+        if scene_overlays:
+            module_ids = set()
+            for scene_key in scene_overlays.keys():
+                # Extract module ID from scene_key like "ObjectID::Coop::DesyncScene"
+                parts = scene_key.split("::")
+                if len(parts) >= 3:
+                    module_ids.add(parts[1])
+
+            for module_id in sorted(module_ids):
+                header_content += f'#include "objectids/{str.lower(module_id)}.hpp"\n'
+            header_content += "\n"
+
+        if scene_overlays:
+            # Generate the function
+            header_content += "NTR_INLINE u32 getSceneOverlayID(u16 sceneID, u32 defaultOverlayID) {\n"
+
+            header_content += "\n    switch (sceneID) {\n"
+
+            for scene_key, overlay_num in sorted(scene_overlays.items()):
+                header_content += f"        case {scene_key}: return {overlay_num};\n"
+
+            header_content += "        default: return defaultOverlayID;\n"
+            header_content += "    }\n"
+
+            header_content += "\n}\n"
+        else:
+            header_content += "#define PROCESS_NO_SCENE_IN_OVERLAY\n"
+
+        # Write the header file
+        registry_path = self.output_dir / 'include' / 'scene_overlay_registry.hpp'
+        registry_path.parent.mkdir(parents=True, exist_ok=True)
+        with registry_path.open('w', encoding='utf-8') as f:
+            f.write(header_content)
+
+        if scene_overlays:
+            print(f"Generated scene overlay registry with {len(scene_overlays)} scene(s): {registry_path}")
+        else:
+            print(f"Generated empty scene overlay registry: {registry_path}")
 
     def generate_nitrofs_file_map(self, modules: List[ProcessedModule]) -> None:
         """Generate nitrofs file mapping based on module order."""
@@ -837,6 +1212,9 @@ class ModuleProcessor:
         for module in modules:
             print(f"  Processing module: {module.name}")
 
+            # Process module ID and generate MODULE_<ID> define
+            self.process_module_id(module)
+
             # Process module-level defines
             self.process_module_defines(module)
 
@@ -865,6 +1243,13 @@ class ModuleProcessor:
         self.generate_nitrofs_file_map(modules)
         self.save_nitrofs_file_map()
 
+        # Collect and generate object ID registrations
+        self.collect_object_id_registrations(modules)
+        self.generate_object_id_headers()
+
+        # Generate scene overlay registry for process.cpp
+        self.generate_scene_overlay_registry(modules)
+
         # Generate VSCode configuration
         self.generate_vscode_config(arm7_config, arm9_config)
 
@@ -888,7 +1273,7 @@ Example usage:
         '--modules-dir',
         type=Path,
         default=Path('modules'),
-        help='Directory containing modules.yaml and module subdirectories'
+        help='Directory containing module subdirectories'
     )
 
     parser.add_argument(
@@ -918,9 +1303,17 @@ Example usage:
         print(f"Error: modules directory '{args.modules_dir}' does not exist")
         return 1
 
-    if not (args.modules_dir / 'modules.yaml').exists():
-        print(f"Error: modules.yaml not found in '{args.modules_dir}'")
+    # Check for module configuration in project.yaml
+    project_config = get_script_project_config()
+    has_project_modules = bool(project_config.modules)
+
+    if not has_project_modules:
+        print(f"Error: No module configuration found in project.yaml")
         return 1
+
+    # Show project information
+    print(f"Project: {project_config.project_name}")
+    print(f"Using module configuration from project.yaml")
 
     # Run the processor
     processor = ModuleProcessor(args.modules_dir, args.out_dir, args.compiler_path)

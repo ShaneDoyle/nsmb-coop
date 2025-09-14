@@ -649,9 +649,36 @@ void defaultOnLayoutUpdate()
 #endif
 }
 
+// Wifi uses DMA 1 as seen at 0x0204AB5C and 0x0204A710
+// Only the foreground DMA conflicts with it
+
+// Prevent the game from breaking parallax for absolutely no reason.
+// This variable is setup later correctly at ov0:0x020BC518
+ncp_repl(0x020BBDAC, 0, "NOP; NOP")
+
 // Disable background HDMA parallax
-ncp_repl(0x020AECAC, 0, "CMP R1, #1")
-ncp_repl(0x020AED90, 0, ".int _ZN4Game11playerCountE")
+// ncp_repl(0x020AECAC, 0, "CMP R1, #1")
+// ncp_repl(0x020AED90, 0, ".int _ZN4Game11playerCountE")
+
+ncp_asmfunc void parallaxDmaFix_ASM()
+{asm(R"(
+parallax_isSingleplayer:
+	LDR     R3, =_ZN4Game11playerCountE
+	LDR     R3, [R3]
+	CMP     R3, #1
+	BX      LR
+
+ncp_jump(0x020AECF0, 0)
+	BL      parallax_isSingleplayer
+	BLEQ    MI_StopDma
+	B       0x020AECF4
+
+ncp_jump(0x020AED40, 0)
+	BL      parallax_isSingleplayer
+	LDRNE   R2, =0xFFFF // disable top bg parallax
+	BL      0x020B1D6C // setup top bg parallax
+	B       0x020AED44
+)");}
 
 ncp_set_call(0x020BD820, 0, Game::getPlayerCount) // Bottom screen background draw
 ncp_set_call(0x020BDA90, 0, Game::getPlayerCount) // Bottom screen background execute

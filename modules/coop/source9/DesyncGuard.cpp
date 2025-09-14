@@ -9,6 +9,7 @@
 #include <nsmb/core/graphics/fader.hpp>
 
 #include "coop/CoopSave.hpp"
+#include "coop/scenes/DesyncScene.hpp"
 
 // Notes:
 // Some desync check marks are set in other sources
@@ -72,10 +73,10 @@ namespace DesyncGuard
 	{
 		if (Scene::currentSceneID == scast<u16>(SceneID::Stage))
 		{
-			Stage::switchScene(255, 0);
+			Stage::switchScene<DesyncScene>();
 			return;
 		}
-		Scene::switchScene(255, 0);
+		Scene::switchScene<DesyncScene>();
 	}
 
 	// Marks a desync checkpoint

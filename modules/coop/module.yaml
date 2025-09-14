@@ -1,3 +1,4 @@
+id: Coop
 name: NSMB Co-op
 description: Adds co-op multiplayer support to the game.
 
@@ -6,8 +7,6 @@ authors:
   - Shadey21
 
 repo: https://github.com/ShaneDoyle/nsmb-coop/
-
-defines: MODULE_COOP
 
 # a target can be: arm7, arm7(ov), arm9, arm9(ov)
 targets:
@@ -30,6 +29,13 @@ components:
       files:
         - "z_new/coop/SE_VOC_MA_SHOT.nwav"
         - "z_new/coop/SE_VOC_LU_SHOT.nwav"
+      objects:
+        - name: "CoopFlagActor"
+          type: "actor"
+          header: "coop/actors/CoopFlagActor.hpp"
+        - name: "CoopWorldUnlockSign"
+          type: "actor"
+          header: "coop/actors/CoopWorldUnlockSign.hpp"
 
   - DesyncGuard_Update_Hook:
       target: arm9
@@ -300,6 +306,14 @@ components:
       sources: "source9/fixes/bosses/PrincessPeach.cpp"
 
   # Stage Fixes
+
+  - DesyncScene:
+      target: arm9
+      sources: "source9/scenes/DesyncScene.cpp"
+      objects:
+        - name: "DesyncScene"
+          type: "scene"
+          header: "coop/scenes/DesyncScene.hpp"
 
   - PauseMenuFix:
       target: arm9

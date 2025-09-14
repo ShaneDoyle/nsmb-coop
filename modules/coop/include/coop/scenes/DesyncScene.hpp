@@ -4,7 +4,8 @@
 #include <nsmb/core/system/function.hpp>
 #include <nsmb/core/net.hpp>
 
-#include "coop/Packet.hpp"
+#include "objectids/coop.hpp"
+//#include "coop/Packet.hpp"
 
 class DesyncScene : public Scene
 {
@@ -18,7 +19,9 @@ public:
 	// Packet packet;
 	char textBuffer[128];
 
-	static ObjectProfile profile;
+	static ObjectProfile Profile;
+
+	constexpr static u32 ObjectID = ObjectID::Coop::DesyncScene;
 
 	static const char* levelNames[];
 

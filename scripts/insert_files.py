@@ -25,6 +25,9 @@ import ndspy.fnt
 import ndspy.narc
 import ndspy.rom
 
+# Import project configuration
+from project_config import get_script_project_config
+
 
 class FileMapLoader:
     """Handles loading and parsing of nitrofs file mapping files."""
@@ -64,11 +67,13 @@ class FileMapLoader:
 class LanguageFileResolver:
     """Resolves files with language overlay logic."""
 
-    SUPPORTED_LANGUAGES = ['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt', 'ko', 'ch']
-
     def __init__(self, language: str, nitrofs_dir: str = 'nitrofs'):
         self.language = language
         self.nitrofs_dir = nitrofs_dir
+
+        # Get supported languages from project configuration
+        project_config = get_script_project_config()
+        self.SUPPORTED_LANGUAGES = project_config.language_codes
 
     def resolve_files_from_map(self, file_map: Dict[str, str]) -> Tuple[Dict[str, str], Dict[str, Dict[str, str]], Optional[str]]:
         """
@@ -758,12 +763,16 @@ class RomFileInserter:
 
 def parse_arguments():
     """Parse command line arguments."""
+    # Get project configuration to determine available languages
+    project_config = get_script_project_config()
+    available_languages = project_config.language_codes
+
     parser = argparse.ArgumentParser(description='Insert files into Nintendo DS ROM')
     parser.add_argument('input_rom', help='Input ROM file path')
     parser.add_argument('output_rom', help='Output ROM file path')
     parser.add_argument('-l', '--language', default='en',
-                       choices=['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt', 'ko', 'ch'],
-                       help='Game language (default: en)')
+                       choices=available_languages,
+                       help=f'Game language (default: en) - Available: {", ".join(available_languages)}')
     parser.add_argument('--nitrofs-dir', default='nitrofs',
                        help='Directory containing files to insert (default: nitrofs)')
     parser.add_argument('--overrides-file', default='nitrofs_overrides.txt',
@@ -779,6 +788,10 @@ def parse_arguments():
 def main():
     """Main entry point."""
     args = parse_arguments()
+
+    # Show project information
+    project_config = get_script_project_config()
+    print(f"Project: {project_config.project_name}")
 
     inserter = RomFileInserter(
         input_rom=args.input_rom,

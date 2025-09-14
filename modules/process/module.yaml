@@ -1,7 +1,8 @@
-id: Debug
-name: Debug
+id: Process
+name: Process Extension Module
 
 authors:
+  - ItzTacos
   - TheGameratorT
 
 targets:

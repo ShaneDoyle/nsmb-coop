@@ -6,13 +6,20 @@ import subprocess
 import struct
 import ndspy.rom
 
+# Import project configuration
+from project_config import get_script_project_config
+
 def parse_arguments():
+    # Get project configuration to determine available languages
+    project_config = get_script_project_config()
+    available_languages = project_config.language_codes
+
     parser = argparse.ArgumentParser(description='Insert code into Nintendo DS ROM')
     parser.add_argument('input_rom', help='Input ROM file path')
     parser.add_argument('output_rom', help='Output ROM file path')
     parser.add_argument('-l', '--language', default='en',
-                       choices=['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt', 'ko', 'ch'],
-                       help='Game language (default: en)')
+                       choices=available_languages,
+                       help=f'Game language (default: en) - Available: {", ".join(available_languages)}')
     parser.add_argument('-v', '--verbose', action='store_true',
                        help='Enable verbose output')
     parser.add_argument('--temp-dir', default='__tmp',
@@ -28,7 +35,10 @@ verbose = args.verbose
 outputdir = args.temp_dir
 ov9dir = outputdir + "/overlay9"
 ov7dir = outputdir + "/overlay7"
-supported_languages = ['en', 'fr', 'ge', 'it', 'jp', 'sp', 'pt', 'ko', 'ch']
+
+# Get supported languages from project configuration
+project_config = get_script_project_config()
+supported_languages = project_config.language_codes
 
 def run_ncp():
     print("Running NCPatcher")
@@ -121,6 +131,7 @@ def pack():
     rom.saveToFile(output_rom_filename, updateDeviceCapacity=True)
 
 def main():
+    print(f"Project: {project_config.project_name}")
     print(f"Using language: {language}")
     if language not in supported_languages:
         print(f"Warning: '{language}' is not a supported language. Supported: {', '.join(supported_languages)}")

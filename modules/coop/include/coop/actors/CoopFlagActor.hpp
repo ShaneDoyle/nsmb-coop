@@ -4,10 +4,12 @@
 #include <nsmb/game/stage/layout/data/object.hpp>
 #include <nsmb/core/system/function.hpp>
 
+#include "objectids/coop.hpp"
+
 class CoopFlagActor : public StageEntity
 {
 public:
-	static ActorProfile profile;
+	static ActorProfile Profile;
 
 	constexpr static ObjectInfo objectInfo = {
 		0, 0, // position
@@ -18,7 +20,7 @@ public:
 		SpawnSettings::None // spawnSettings
 	};
 
-	constexpr static u32 ObjectID = 0;
+	constexpr static u32 ObjectID = ObjectID::Coop::CoopFlagActor;
 
 	enum class Action : u32
 	{
