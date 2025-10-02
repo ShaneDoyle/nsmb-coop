@@ -8,9 +8,6 @@
 
 #include "DesyncGuard.hpp"
 
-asm(R"(
-	Worldmap_onCreate = 0x020CF7C8
-)");
 extern "C"
 {
 	s32 Worldmap_onCreate(Scene* self);
@@ -56,13 +53,14 @@ ncp_repl(0x020CF880, 8, "NOP") // Prevent the worldmap from disconnecting multip
 
 // Replace get player powerup (now unused) with pre-load code
 ncp_call(0x020CEF1C, 8)
-static void Worldmap_beforeLevelLoad()
+void Worldmap_beforeLevelLoad()
 {
 	DesyncGuard::storeState();
 }
 
 // Replace world load level system
-asm(R"(
+ncp_asmfunc void Worldmap_worldLoadLevel_ASM()
+{asm(R"(
 ncp_jump(0x020CEF84, 8)
 	LDR     R0, =_ZN4Wifi25communicatingConsoleCountE
 	LDR     R0, [R0]
@@ -81,25 +79,19 @@ ncp_jump(0x020CEF84, 8)
 	MOV     R0, #0xD
 	BL      _ZN4Game9loadLevelEtmhhhhhhhhhhhhhhm
 	B       0x020CEF88
-)");
+)");}
 
 ncp_repl(0x02006A04, "B 0x02006A1C") // Do not change powerup when loading level
 
-// Disable pause menu on worldmap
-/*void repl_020CE944_ov_08()
-{
-	if (GetConsoleCount() == 1)
-		asm("BL 0x20C1F14");
-}*/
-
 // Disable options on pause menu
-asm(R"(
+ncp_asmfunc void Worldmap_disablePauseOptions_ASM()
+{asm(R"(
 ncp_jump(0x020CE944, 8)
 	BL      _ZN4Game14getPlayerCountEv
 	CMP     R0, #1
 	BLEQ    0x020C1F14
 	B       0x020CECA4
-)");
+)");}
 
 static u32 Worldmap_getLocalAid() { return Net::localAid; }
 

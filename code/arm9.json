@@ -1,6 +1,6 @@
 {
 	"$arm_flags": "-march=armv5te -mtune=arm946e-s $${arm_flags}",
-	"$c_flags": "${arm_flags} $${c_flags} -DSDK_ARM9 -Darm9_start=0x021901E0 -DNWAV_NO_EVENTS -DNWAV_NO_STEREO",
+	"$c_flags": "${arm_flags} $${c_flags} -mthumb-interwork -DSDK_ARM9 -Darm9_start=0x021901E0 -DNWAV_NO_EVENTS -DNWAV_NO_STEREO",
 	"$cpp_flags": "${c_flags} $${cpp_flags}",
 	"$asm_flags": "${arm_flags} $${asm_flags}",
 	"$ld_flags": "$${ld_flags}",
@@ -26,6 +26,9 @@
 			["source/nwav", false],
 			["source/debug", false],
 			["build/gen", false]
+		],
+		"overwrites": [
+			["0x02026CE0", "0x02039170"]
 		]
 	}, {
 		"dest": "ov8",

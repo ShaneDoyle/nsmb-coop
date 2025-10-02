@@ -9,7 +9,7 @@ ActorProfile BossMiniMushroomDemo::profile = {
 	BossMiniMushroomDemo::loadResources
 };
 
-s32 BossMiniMushroomDemo::onCreate()
+ncp_thumb s32 BossMiniMushroomDemo::onCreate()
 {
 	if (!prepareResourcesSafe(64, Memory::gameHeapPtr))
 		return 0;
@@ -26,25 +26,25 @@ s32 BossMiniMushroomDemo::onCreate()
 	return 1;
 }
 
-s32 BossMiniMushroomDemo::onUpdate()
+ncp_thumb s32 BossMiniMushroomDemo::onUpdate()
 {
 	destroyInactive(0);
 	return 1;
 }
 
-bool BossMiniMushroomDemo::onPrepareResources()
+ncp_thumb bool BossMiniMushroomDemo::onPrepareResources()
 {
 	void* bmd = FS::Cache::getFile(getModelFileID());
 	return model.create(bmd, 0, 0);
 }
 
-bool BossMiniMushroomDemo::loadResources()
+ncp_thumb bool BossMiniMushroomDemo::loadResources()
 {
 	FS::Cache::loadFile(getModelFileID(), false);
 	return true;
 }
 
-u32 BossMiniMushroomDemo::getModelFileID()
+ncp_thumb u32 BossMiniMushroomDemo::getModelFileID()
 {
 	return (Game::stageGroup == 1 ? 1653 : 1654) - 131;
 }

@@ -7,9 +7,6 @@
 #include <nsmb/core/math.hpp>
 #include <nsmb/core/graphics/fader.hpp>
 
-asm(R"(
-	_ZN5Stage4zoomE = 0x020CADB4
-)");
 namespace Stage {
 	extern fx32 zoom[2];
 }
@@ -36,13 +33,13 @@ void setTarget(u32 playerID, u32 targetPlayerID)
 		localTarget = targetPlayerID;
 }
 
-void setLerping(u32 playerID, bool lerping)
+ncp_thumb void setLerping(u32 playerID, bool lerping)
 {
 	playerLerping[playerID] = lerping;
 	playerLerpingZoom[playerID] = lerping;
 }
 
-void enableSharedCamera()
+ncp_thumb void enableSharedCamera()
 {
 	if (Game::getPlayerCount() > 1)
 		sharedCamera = true;
@@ -63,7 +60,7 @@ Player* getLocalTargetPlayer()
 	return Game::getPlayer(localTarget);
 }
 
-void clearSpectators()
+ncp_thumb void clearSpectators()
 {
 	for (u32 playerID = 0; playerID < NTR_ARRAY_SIZE(playerTarget); playerID++)
 	{
@@ -74,7 +71,7 @@ void clearSpectators()
 }
 
 // Attempt to switch the player to the target player's view
-void followTargetToNewView(u8 playerID, u8 transitPlayerID)
+ncp_thumb void followTargetToNewView(u8 playerID, u8 transitPlayerID)
 {
 	if (playerTarget[playerID] != transitPlayerID)
 		return;
@@ -84,6 +81,7 @@ void followTargetToNewView(u8 playerID, u8 transitPlayerID)
 	MI_CpuCopyFast(Entrance::spawnEntrance[transitPlayerID], respawnEntrance, sizeof(StageEntrance));
 	respawnEntrance->type = EntranceType::Normal;
 
+	Entrance::spawnEntrance[playerID] = respawnEntrance;
 	Entrance::spawnEntranceID[playerID] = -(playerID + 1); // This is how the game does it at Entrance::overrideEntrance
 
 	// It is not possible to just do
@@ -99,7 +97,7 @@ void followTargetToNewView(u8 playerID, u8 transitPlayerID)
 	player->switchTransitionState(&Player::viewTransitState);
 }
 
-void syncSpectatorsOnViewTransition(u8 transitPlayerID)
+ncp_thumb void syncSpectatorsOnViewTransition(u8 transitPlayerID)
 {
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
@@ -110,7 +108,7 @@ void syncSpectatorsOnViewTransition(u8 transitPlayerID)
 	}
 }
 
-void onStageLayoutCreate()
+ncp_thumb void onStageLayoutCreate()
 {
 	for (u32 playerID = 0; playerID < NTR_ARRAY_SIZE(playerTarget); playerID++)
 	{
@@ -243,12 +241,13 @@ ncp_repl(0x020CE424, 10, ".int _ZN14PlayerSpectate10playerZoomE")
 // Player ----------------
 
 // Fix the player rendering using this->linkedPlayerID instead of Game::localPlayerID
-asm(R"(
+ncp_asmfunc void PlayerSpectate_playerRendering_ASM()
+{asm(R"(
 ncp_jump(0x020FD0C4, 10)
 	LDR     R2, =_ZN4Game13localPlayerIDE
 	LDR     R2, [R2]
 	B       0x020FD0C8
-)");
+)");}
 
 ncp_repl(0x02118E18, 10, ".int _ZN14PlayerSpectate11localTargetE") // (0x0211870C) Player::viewTransitState
 

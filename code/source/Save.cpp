@@ -1,5 +1,6 @@
 #include "Save.hpp"
 
+#include <nsmb/game/game.hpp>
 #include <nsmb/game/stage/player/common.hpp>
 #include <nsmb/core/net/core.hpp>
 
@@ -7,7 +8,15 @@
 
 namespace SaveExt
 {
+	struct WorldmapPlayerBackup
+	{
+		u8 lives;
+		u8 powerup;
+		u8 inventoryPowerup;
+	};
+
 	bool reloadingSave = false;
+	WorldmapPlayerBackup wmP1Backup;
 
 	void transferMainSave(Packet& packet, u8 senderAid, Net::OnPacketTransferComplete completeFunc, void* completeArg)
 	{
@@ -33,6 +42,22 @@ namespace SaveExt
 	{
 		*rcast<u32*>(0x02085AD4) = scast<u32>(Save::optionSave.controls);
 		Widescreen::loadSaveOption();
+	}
+
+	void loadBackupParams()
+	{
+		Game::loadBackupParams();
+		Game::setPlayerLives(1, wmP1Backup.lives);
+		Game::setPlayerPowerup(1, wmP1Backup.powerup);
+		Game::setPlayerInventoryPowerup(1, wmP1Backup.inventoryPowerup);
+	}
+
+	void saveBackupParams()
+	{
+		Game::saveBackupParams();
+		wmP1Backup.lives = Game::getPlayerLives(1);
+		wmP1Backup.powerup = Game::getPlayerPowerup(1);
+		wmP1Backup.inventoryPowerup = Game::getPlayerInventoryPowerup(1);
 	}
 }
 
@@ -64,18 +89,24 @@ ncp_call(0x02012ECC) void call_02012ECC(u32, u8 data)
 }
 
 // Set lives for Luigi too when loading new save
-asm(R"(
+ncp_asmfunc void Save_setLivesLuigi_ASM()
+{asm(R"(
 ncp_jump(0x02012E6C)
 	ORRNE   R4, R4, R4, LSL#16
 	STRNE   R4, [R0, #0xC]
 	B       0x02012E70
-)");
+)");}
 
-asm(R"(
+ncp_asmfunc void Save_luigiLivesOnSaveClear_ASM()
+{asm(R"(
 ncp_jump(0x02012FB4)
 	LDR     R0, =0x50005
 	B       0x02012FB8
-)");
+)");}
+
+// Use the extended backup params
+ncp_set_call(0x020CFC9C, 8, SaveExt::loadBackupParams)
+ncp_set_call(0x020CEEE8, 8, SaveExt::saveBackupParams)
 
 // Fixes a bug in the original game where synced settings used player 0's settings after the connection is terminated
 ncp_call(0x0200F45C)

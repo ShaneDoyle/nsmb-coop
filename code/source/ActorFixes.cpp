@@ -12,7 +12,7 @@
 
 #include "ActorFixes.hpp"
 #include "Stage.hpp"
-//#include "PlayerSpectate.hpp"
+#include "PlayerSpectate.hpp"
 
 // Notes:
 //  - Any actor using `Model::getNodePosition` (0x020196DC) or `Model::getNodeMatrix` (0x0201972C) that does
@@ -20,11 +20,9 @@
 //  - Any actor using `Game::isOutsideCamera(..., Game::localPlayerID)` (0x0200AE9C)
 //    to make decisions beyond just rendering must use `ActorFixes_isOutsideCamera`.
 
-asm(R"(
-	SledgeBro_tryShakePlayer = 0x02174DE4
-)");
 extern "C" {
 	void SledgeBro_tryShakePlayer(StageEntity* self, s32 playerID);
+	void StageLayout_volcanoShake(StageLayout* self);
 }
 
 // Replacement for StageEntity::skipRender that updates the model but doesn't draw it
@@ -72,15 +70,11 @@ Player* ActorFixes_getClosestPlayerInZone(StageActor* self, u32 zoneID)
 	return player;
 }
 
-asm(R"(
-.type StageActor_getClosestPlayer_SUPER, %function
-StageActor_getClosestPlayer_SUPER:
+ncp_asmfunc Player* StageActor_getClosestPlayer_SUPER(StageActor* self, s32* distanceX, s32* distanceY)
+{asm(R"(
 	PUSH    {R4,LR}
 	B       0x020A06A0
-)");
-extern "C" {
-	Player* StageActor_getClosestPlayer_SUPER(StageActor* self, s32* distanceX, s32* distanceY);
-}
+)");}
 
 ncp_jump(0x020A069C, 0)
 Player* StageActor_getClosestPlayer_OVERRIDE(StageActor* self, s32* distanceX, s32* distanceY)
@@ -106,7 +100,7 @@ bool ActorFixes_isPlayerInShakeRange(StageActor* self, Player* player)
 // Use this function in update logic; keep the skipRender vtable entry unchanged
 // so the entity only renders locally.
 // References to skipRender in update should use this function instead.
-bool ActorFixes_isInRangeOfAllPlayers(StageEntity* self)
+ncp_thumb bool ActorFixes_isInRangeOfAllPlayers(StageEntity* self)
 {
 	FxRect boundingBox;
 
@@ -136,7 +130,7 @@ ncp_over(0x02175614, 56) const auto BoomerangBro_skipRender = ActorFixes_safeSki
 
 ncp_over(0x02175880, 56) const auto SledgeBro_skipRender = ActorFixes_safeSkipRender;
 
-NTR_USED static void SledgeBro_fixShakePlayer(StageEntity* self)
+ncp_thumb NTR_USED static void SledgeBro_fixShakePlayer(StageEntity* self)
 {
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
@@ -216,8 +210,9 @@ void RedRing_spawnItem(StageEntity* self)
 }
 */
 
-asm(R"(
 ncp_over(0x0215410C, 54) /* max over: 0xFC bytes, current: 0xF0 bytes */
+ncp_asmfunc void RedRing_spawnItem_ASM()
+{asm(R"(
 	push	{r4, r5, r6, r7, r8, lr}
 	mov	r4, #0
 	mov	r5, r0
@@ -284,14 +279,14 @@ ncp_over(0x0215410C, 54) /* max over: 0xFC bytes, current: 0xF0 bytes */
 	.word	-8192
 	.word	_ZN4Game13localPlayerIDE
 	.word	382
-ncp_endover()
-)");
+)");};
 
 // Lava (234) & Poisoned Water (259) ----------------------------------------------------
 
 ncp_repl(0x020BBE88, 0, "NOP") // Prevent liquid type change on respawn
 
-asm(R"(
+ncp_asmfunc void Liquid_localPlayerFix_ASM()
+{asm(R"(
 ncp_call(0x020FE2D8, 10)
 ncp_call(0x020FEB68, 10)
 ncp_call(0x021033EC, 10)
@@ -308,19 +303,20 @@ ncp_over(0x020A6E9C, 0)
 	NOP
 	NOP
 ncp_endover()
-)");
+)");};
 
 // Restore multiplayer lava rising logic
 ncp_repl(0x02165170, 54, "CMP R2, #1")
 ncp_repl(0x02165274, 54, ".int _ZN4Game11playerCountE")
 
 // Do not use Game::localPlayerID for lava rising
-asm(R"(
+ncp_asmfunc void Liquid_updateRising_localPlayerFix_ASM()
+{asm(R"(
 ncp_over(0x021651B4, 54)
 	LDRB    R2, [R2]
 	LDR     R3, [R3]
 ncp_endover()
-)");
+)");};
 
 // TODO: LIQUID POSITION AND LAST LIQUID POSITION
 
@@ -343,7 +339,8 @@ ncp_over(0x0218FF54, 118) const auto RotatingCarryThroughWallPlatform_skipRender
 
 ncp_over(0x021784B8, 69) const auto Blockhopper_skipRender = ActorFixes_safeSkipRender;
 
-asm(R"(
+ncp_asmfunc void Blockhopper_getClosestPlayerFix_ASM()
+{asm(R"(
 ncp_jump(0x02177260, 69)
 	MOV     R0, R4
 	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
@@ -354,7 +351,7 @@ ncp_over(0x021778A4, 69)
 	MOV     R0, R4
 	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 ncp_endover()
-)");
+)");};
 
 ncp_set_call(0x02177450, 69, ActorFixes_getClosestPlayer)
 
@@ -371,17 +368,19 @@ NTR_USED static u32 Blockhoppper_isTimeToJump(StageEntity* self)
 
 ncp_repl(0x02177384, 69, "MOV R0, R4")
 
-asm(R"(
+ncp_asmfunc void Blockhopper_timeToJump_ASM()
+{asm(R"(
 ncp_jump(0x02177388, 69)
 	PUSH    {R1}
 	BL      _ZL25Blockhoppper_isTimeToJumpP11StageEntity
 	POP     {R1}
 	B       0x0217738C
-)");
+)");};
 
 // Flying Red Block ---------------------------------------------------------------------
 
-asm(R"(
+ncp_asmfunc void FlyingRedBlock_getClosestPlayerFix_ASM()
+{asm(R"(
 ncp_over(0x0215BBE4, 54)
 	MOV     R4, R0
 	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
@@ -401,7 +400,7 @@ ncp_over(0x0215BCCC, 54)
 	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 	NOP
 ncp_endover()
-)");
+)");};
 
 // Warp Cannon ---------------------------------------------------------------------
 
@@ -413,20 +412,15 @@ struct WarpCannon_PTMF
 	u32 adj;
 };
 
-asm(R"(
-	WarpCannon_sAfterShoot = 0x0217FE60
-	WarpCannon_switchState = 0x0217F7D4
-)");
-
 extern "C"
 {
-	WarpCannon_PTMF WarpCannon_sAfterShoot;
 	bool WarpCannon_switchState(StageEntity* self, WarpCannon_PTMF* ptmf);
+	extern WarpCannon_PTMF WarpCannon_sAfterShoot;
 }
 
 ncp_repl(0x0217F6C8, 89, "MOV R2, #0") // Force player 0 to be shot
 
-bool WarpCannon_shootOtherPlayersState(StageEntity* self)
+ncp_thumb bool WarpCannon_shootOtherPlayersState(StageEntity* self)
 {
 	const u32 ShootInterval = 10;
 
@@ -440,9 +434,6 @@ bool WarpCannon_shootOtherPlayersState(StageEntity* self)
 		step++;
 		waitingInCannon = 0; // Stop updating player 0
 		playersShot = 1; // Player 0 already shot by the time it reaches here
-
-		//for (s32 playerID = 1; playerID < Game::getPlayerCount(); playerID++)
-		//	PlayerSpectate::setTarget(playerID, 0);
 
 		return true;
 	}
@@ -469,6 +460,7 @@ bool WarpCannon_shootOtherPlayersState(StageEntity* self)
 	step = 1;
 
 	Player* player = Game::getPlayer(playersShot);
+	player->visible = true;
 
 	s16 angleX = -rcast<s16*>(self)[0x6E4 / 2] - (0x200 * playersShot);
 	s16 angleY = rcast<s16*>(self)[0x6E0 / 2] + 0x4400;
@@ -490,7 +482,7 @@ bool WarpCannon_shootOtherPlayersState(StageEntity* self)
 static WarpCannon_PTMF WarpCannon_sShootOtherPlayers = { WarpCannon_shootOtherPlayersState, 0 };
 
 ncp_call(0x0217F218, 89)
-void WarpCannon_customSwitchStateAfterShoot(StageEntity* self, WarpCannon_PTMF* ptmf)
+ncp_thumb void WarpCannon_customSwitchStateAfterShoot(StageEntity* self, WarpCannon_PTMF* ptmf)
 {
 	if (Game::getPlayerCount() == 1)
 	{
@@ -498,10 +490,33 @@ void WarpCannon_customSwitchStateAfterShoot(StageEntity* self, WarpCannon_PTMF* 
 		return;
 	}
 
+	Game::getPlayer(0)->visible = true;
+
+	// Match player 0's camera
+	for (s32 playerID = 1; playerID < Game::getPlayerCount(); playerID++)
+		PlayerSpectate::setTarget(playerID, 0);
+
 	WarpCannon_switchState(self, &WarpCannon_sShootOtherPlayers);
 }
 
-asm(R"(
+ncp_call(0x0217F70C, 89)
+ncp_thumb void WarpCannon_customSwitchToRotatingState(StageEntity* self, WarpCannon_PTMF* ptmf)
+{
+	WarpCannon_switchState(self, ptmf);
+
+	if (Game::getPlayerCount() == 1)
+		return;
+
+	// Hide the players because they stack up for whatever reason
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	{
+		Player* player = Game::getPlayer(playerID);
+		player->visible = false;
+	}
+}
+
+ncp_asmfunc void WarpCannon_playerEntryFix_ASM()
+{asm(R"(
 // Allow more than 1 player to enter the cannon
 ncp_jump(0x0217F618, 89)
 	LDRH    R1, [R0,#0xE8]
@@ -514,7 +529,7 @@ ncp_jump(0x0217F5E0, 89)
 	CMP     R0, R1
 	BEQ     0x0217F6B4
 	B       0x0217F5E8
-)");
+)");};
 
 // Lakitu Spawner -----------------------------------------------------------------------
 
@@ -559,12 +574,13 @@ ncp_over(0x0216D27C, 54) const auto WarpEntrance_mainState = WarpEntrance_custom
 
 // Bullet Bill --------------------------------------------------------------------------
 
-asm(R"(
+ncp_asmfunc void BulletBill_getClosestPlayerFix_ASM()
+{asm(R"(
 ncp_jump(0x021470E8, 42)
 	MOV     R0, R5
 	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 	B       0x021470EC
-)");
+)");};
 
 // Sushi (Shark) ------------------------------------------------------------------------
 
@@ -572,16 +588,18 @@ ncp_set_call(0x02179E40, 78, ActorFixes_getClosestPlayer)
 
 // Random Cheep Cheep Generator ---------------------------------------------------------
 
-asm(R"(
+ncp_asmfunc void RandomCheepCheepGenerator_getClosestPlayerFix_ASM()
+{asm(R"(
 ncp_jump(0x0213CBC8, 25)
 	MOV     R0, R5
 	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 	B       0x0213CBCC
-)");
+)");};
 
 // Coin ---------------------------------------------------------------------------------
 
-asm(R"(
+ncp_asmfunc void Coin_getClosestPlayerFix_ASM()
+{asm(R"(
 ncp_jump(0x020D89A8, 10)
 	MOV     R0, R5
 	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
@@ -591,7 +609,7 @@ ncp_jump(0x020D9D48, 10)
 	MOV     R0, R4
 	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 	B       0x020D9D4C
-)");
+)");};
 
 ncp_repl(0x020D98DC, 10, "MOV R0, #1") // Allow coins to get killed by lava
 
@@ -602,32 +620,28 @@ ncp_set_call(0x020D8524, 10, ActorFixes_isInRangeOfAllPlayers) // Fix coin perma
 ncp_repl(0x0218A898, 108, "NOP") // Pass Broozer* instead of &Broozer*->position
 ncp_set_call(0x0218A8A4, 108, ActorFixes_isOutsideCamera)
 
+ncp_repl(0x0218AAA0, 108, "LDRB R0, [R5,#0x11E]") // Fix stomp hit
+
 // Horizontal Camera Stop ---------------------------------------------------------------
 
 u32 HorizontalCameraStop_playerID;
 
-asm(R"(
-.type HorizontalCameraStop_onCreate_SUPER, %function
-HorizontalCameraStop_onCreate_SUPER:
+ncp_asmfunc s32 HorizontalCameraStop_onCreate_SUPER(StageEntity* self)
+{asm(R"(
 	PUSH    {LR}
 	B       0x020D6604
-)");
-extern "C" {
-	s32 HorizontalCameraStop_onCreate_SUPER(StageEntity* self);
-}
+)");}
 
 ncp_jump(0x020D6600, 10)
 s32 HorizontalCameraStop_onCreate_OVERRIDE(StageEntity* self)
 {
-	// TODO: fix this actor for real
-
-	/*for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
+	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
 		HorizontalCameraStop_playerID = playerID;
 		HorizontalCameraStop_onCreate_SUPER(self);
-	}*/
+	}
 
-	return 0;
+	return 1;
 }
 
 ncp_repl(0x020D6784, 10, ".int HorizontalCameraStop_playerID")
@@ -660,20 +674,8 @@ ncp_repl(0x020B6D2C, 0, "NOP") // Disable original volcano eruption trigger
 ncp_repl(0x020B6D44, 0, "NOP") // Disable original volcano eruption trigger
 ncp_repl(0x020B6D6C, 0, "NOP") // Disable original screen shake
 
-asm(R"(
-StageLayout_volcanoShake = 0x020AD65C
-)");
-extern "C" {
-	void StageLayout_volcanoShake(StageLayout* self);
-}
-
 u16 ActorFixes_volcanoTimer = 60 * 8 - 1;
 u8 ActorFixes_volcanoTargetPlayer = 0;
-
-static inline u16 ActorFixes_getFgScreenID(u32 playerID)
-{
-	return *rcast<u16*>(&rcast<u8*>(Stage::stageLayout)[12 * playerID + 1196]);
-}
 
 struct bgScrollData
 {
@@ -683,13 +685,9 @@ struct bgScrollData
     fx32 topScrollF32;
 };
 
-void ActorFixes_updateVolcanoBackground()
+ncp_thumb void ActorFixes_updateVolcanoBackground()
 {
 	u32 playerID = Game::localPlayerID;
-
-	u32& levelEndBitmask = *rcast<u32*>(0x020CA8C0);
-	if ((levelEndBitmask & 3) != 0 || ActorFixes_getFgScreenID(playerID) != 15)
-		return;
 
 	ActorFixes_volcanoTimer++;
 	if (ActorFixes_volcanoTimer != ActorFixes_volcanoTimerInterval)
@@ -740,12 +738,45 @@ ncp_repl(0x02162F2C, 54, "MOV R0, #0")
 
 // Flame Chomp --------------------------------------------------------------------------
 
-asm(R"(
+ncp_asmfunc void FlameChomp_getClosestPlayerFix_ASM()
+{asm(R"(
 ncp_jump(0x02175B18, 70)
 	MOV     R0, R4
 	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 	B       0x02175B1C
-)");
+)");};
+
+// Item ---------------------------------------------------------------------------------
+
+ncp_repl(0x020D24EC, 10, "MOV R2, #0")
+
+// Give the item to both players
+ncp_asmfunc void Item_fixToadhouse_ASM()
+{asm(R"(
+ncp_jump(0x020D2520, 10)
+	MOV     R5, #0xFFFFFFFF
+item_loop_start:
+	ADD     R5, R5, #1
+	BL      _ZN4Game14getPlayerCountEv
+	CMP     R5, R0
+	MOVEQ   R0, R4 // Keep replaced instruction
+	BEQ     0x020D259C // Return to destroy
+	B       0x020D2524
+
+ncp_over(0x020D2598, 10)
+	B       item_loop_start
+ncp_endover()
+)");}
+
+// Money Bag ----------------------------------------------------------------------------
+
+void MoneyBag_getClosestPlayerFix_ASM()
+{asm(R"(
+ncp_jump(0x0217C400, 80)
+	MOV     R0, R4
+	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
+	B       0x0217C404
+)");}
 
 // Misc ---------------------------------------------------------------------------------
 

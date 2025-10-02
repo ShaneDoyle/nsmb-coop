@@ -1,4 +1,5 @@
-asm(R"(
+ncp_asmfunc void Console_detectEnvironment_ASM()
+{asm(R"(
 #define BASE_IOREG			0x04000000
 #define BASE_SHARED			0x027FF000
 #define SRAMCHECKER7		BASE_SHARED + 0xA7E
@@ -17,7 +18,7 @@ detectEnvironment:
 	strheq	r0, [r1]					@ }
 
 	bx		lr
-)");
+)");}
 
 extern "C"
 {

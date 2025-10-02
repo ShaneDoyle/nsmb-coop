@@ -9,11 +9,13 @@
 #include <nsmb/core/net.hpp>
 #include <nsmb/core/wifi.hpp>
 
+#include "fid.hpp"
 #include "Widescreen.hpp"
 #include "DesyncGuard.hpp"
 #include "Save.hpp"
+#include "util/ThumbBarrier.hpp"
 
-static void copyRegion(u32 srcX, u32 srcY, u32 dstX, u32 dstY, u32 width, u32 height)
+ncp_thumb static void copyRegion(u32 srcX, u32 srcY, u32 dstX, u32 dstY, u32 width, u32 height)
 {
 	u8* bg = rcast<u8*>(G2S_GetBG3ScrPtr());
 
@@ -23,7 +25,7 @@ static void copyRegion(u32 srcX, u32 srcY, u32 dstX, u32 dstY, u32 width, u32 he
 	}
 }
 
-static void writeChar(u32 x, u32 y, const char c)
+ncp_thumb static void writeChar(u32 x, u32 y, const char c)
 {
 	u32 xOff, yOff;
 
@@ -69,7 +71,7 @@ static void writeChar(u32 x, u32 y, const char c)
 	copyRegion(xOff * 8, yOff, x, y, 8, 16);
 }
 
-static void writeString(u32 x, u32 y, u32 spacing, const char* text)
+ncp_thumb static void writeString(u32 x, u32 y, u32 spacing, const char* text)
 {
 	u32 i = 0;
 	while (text[i] != '\0')
@@ -79,8 +81,8 @@ static void writeString(u32 x, u32 y, u32 spacing, const char* text)
 	}
 }
 
-constexpr u32 topScreenImgFileID = 2093 - 131;
-constexpr u32 subScreenImgFileID = 2094 - 131;
+constexpr u32 topScreenImgFileID = "coop/desyncwarn_top.enpg"fid;
+constexpr u32 subScreenImgFileID = "coop/desyncwarn_sub.enpg"fid;
 
 const char* DesyncScene::levelNames[] = {
 	"Mushroom House",
@@ -114,7 +116,7 @@ ObjectProfile DesyncScene::profile = {
 	0, 0
 };
 
-s32 DesyncScene::onCreate()
+ncp_thumb s32 DesyncScene::onCreate()
 {
 	GX_ResetBankForBG();
 	GX_ResetBankForOBJ();
@@ -151,18 +153,20 @@ s32 DesyncScene::onCreate()
 	return 1;
 }
 
-s32 DesyncScene::onUpdate()
+ncp_thumb s32 DesyncScene::onUpdate()
 {
 	this->updateFunc(this);
 	return 1;
 }
 
-s32 DesyncScene::onDestroy()
+ncp_thumb s32 DesyncScene::onDestroy()
 {
 	return 1;
 }
 
-void DesyncScene::switchState(void (*updateFunc)(DesyncScene*))
+THUMB_BARRIER_FUNCTION
+
+ncp_thumb void DesyncScene::switchState(void (*updateFunc)(DesyncScene*))
 {
 	if (this->updateFunc != updateFunc)
 	{
@@ -179,7 +183,7 @@ void DesyncScene::switchState(void (*updateFunc)(DesyncScene*))
 	}
 }
 
-void DesyncScene::mainState()
+ncp_thumb void DesyncScene::mainState()
 {
 	if (updateStep == Func::Init)
 	{
@@ -190,6 +194,9 @@ void DesyncScene::mainState()
 	{
 		return;
 	}
+
+	if (!Game::fader.fadedIn())
+		return;
 
 	u16 pressed = Input::consoleKeys[0].pressed;
 
@@ -202,7 +209,7 @@ void DesyncScene::mainState()
 	}
 }
 
-void DesyncScene::syncState()
+ncp_thumb void DesyncScene::syncState()
 {
 	if (updateStep == Func::Init)
 	{
@@ -234,7 +241,7 @@ void DesyncScene::syncState()
 	}
 }
 
-void DesyncScene::initTopGfx()
+ncp_thumb void DesyncScene::initTopGfx()
 {
 	GX_SetGraphicsMode(GX_DISPMODE_GRAPHICS, GX_BGMODE_5, GX_BG0_AS_2D);
 
@@ -256,7 +263,7 @@ void DesyncScene::initTopGfx()
 	Game::setVisiblePlane(GX_PLANEMASK_BG3);
 }
 
-void DesyncScene::initSubGfx()
+ncp_thumb void DesyncScene::initSubGfx()
 {
 	GXS_SetGraphicsMode(GX_BGMODE_5);
 

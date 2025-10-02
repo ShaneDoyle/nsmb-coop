@@ -7,6 +7,7 @@
 #include <nsmb/core/system/input.hpp>
 #include <nsmb/core/system/misc.hpp>
 
+#include "fid.hpp"
 #include "Widescreen.hpp"
 
 #define BASE_SHARED			0x027FF000
@@ -24,7 +25,7 @@ static inline bool isDSCpuMode()
 	return *rcast<vu32*>(0x01FFA780) == 0xE2500004;
 }
 
-void BootScene_goToTitlescreenHook(u32 sceneID, u32 settings)
+ncp_thumb void BootScene_goToTitlescreenHook(u32 sceneID, u32 settings)
 {
 	if (isDSiDevice() && isDSCpuMode())
 	{
@@ -37,14 +38,14 @@ void BootScene_goToTitlescreenHook(u32 sceneID, u32 settings)
 ncp_set_call(0x020CCAD0, 1, BootScene_goToTitlescreenHook)
 ncp_set_call(0x020CC720, 1, BootScene_goToTitlescreenHook)
 
-constexpr u32 topScreenImgFileID = 2091 - 131;
+constexpr u32 topScreenImgFileID = "coop/dsimode.enpg"fid;
 
 ObjectProfile DSiModeScene::profile = {
 	&constructObject<DSiModeScene>,
 	0, 0
 };
 
-s32 DSiModeScene::onCreate()
+ncp_thumb s32 DSiModeScene::onCreate()
 {
 	Game::fader.fadingTarget[0] = 1; // Top screen only
 
@@ -84,8 +85,11 @@ s32 DSiModeScene::onCreate()
 	return 1;
 }
 
-s32 DSiModeScene::onUpdate()
+ncp_thumb s32 DSiModeScene::onUpdate()
 {
+	if (!Game::fader.fadedIn())
+		return 1;
+
 	u16 pressed = Input::consoleKeys[0].pressed;
 
 	if (pressed & Keys::A)
@@ -97,7 +101,7 @@ s32 DSiModeScene::onUpdate()
 	return 1;
 }
 
-s32 DSiModeScene::onDestroy()
+ncp_thumb s32 DSiModeScene::onDestroy()
 {
 	Game::fader.fadingTarget[0] = 3; // Both screens
 	return 1;

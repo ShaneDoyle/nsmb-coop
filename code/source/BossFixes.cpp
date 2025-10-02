@@ -5,6 +5,7 @@
 #include <nsmb/game/stage/entity.hpp>
 #include <nsmb/game/stage/entity3danm.hpp>
 #include <nsmb/game/stage/misc.hpp>
+#include <nsmb/game/sound.hpp>
 #include <nsmb/core/entity/scene.hpp>
 #include <nsmb/core/filesystem/cache.hpp>
 #include <nsmb/core/graphics/fader.hpp>
@@ -16,10 +17,13 @@
 #include "ActorFixes.hpp"
 #include "Player.hpp"
 #include "Stage.hpp"
+#include "util/ThumbBarrier.hpp"
 
-asm(R"(
-	_ZN5Stage9exitLevelEm = 0x020A189C
-)");
+extern "C" {
+	void setupFSCacheToUseOverlay55();
+	void func20F4660();
+	void FinalBowser_loadResources();
+}
 namespace Stage {
 	void exitLevel(u32 flag);
 }
@@ -30,16 +34,14 @@ u32 BossFixes_setCameraBoundPlayerID = 0;
 
 // Allow camera to be pushed for all players
 
-asm(R"(
-BossFixes_setCameraBound:
+ncp_asmfunc void BossFixes_setCameraBound(StageLayout* self, s16 bound, u32 side)
+{asm(R"(
 	LDR     R12, =BossFixes_setCameraBoundPlayerID
 	B       0x020ACF54
-)");
-
-extern "C" void BossFixes_setCameraBound(StageLayout* self, s16 bound, u32 side);
+)");}
 
 ncp_jump(0x020ACF50, 0)
-void BossFixes_setCameraBoundAll(StageLayout* self, s16 bound, u32 side)
+ncp_thumb void BossFixes_setCameraBoundAll(StageLayout* self, s16 bound, u32 side)
 {
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
@@ -48,7 +50,7 @@ void BossFixes_setCameraBoundAll(StageLayout* self, s16 bound, u32 side)
 	}
 }
 
-void BossFixes_matchPlayerCameraBounds(s32 playerID, s32 matchPlayerID)
+ncp_thumb void BossFixes_matchPlayerCameraBounds(s32 playerID, s32 matchPlayerID)
 {
 	s16 boundX = Stage::cameraX[matchPlayerID] >> FX32_SHIFT;
 
@@ -72,7 +74,7 @@ struct BossControllerCommon_CoopTransitionStateInfo
 	void(*commonEnd)(StageEntity*);
 };
 
-bool BossControllerCommon_coopTransitionState(
+ncp_thumb bool BossControllerCommon_coopTransitionState(
 	StageEntity* self,
 	s32& step,
 	BossControllerCommon_CoopTransitionStateInfo* info
@@ -193,6 +195,8 @@ commonEnd:
 	return true;
 }
 
+THUMB_BARRIER_FUNCTION
+
 void BossControllerCommon_setupCoopTransitionState(Player* closestPlayer);
 
 //============================= Boss Controller =============================
@@ -208,19 +212,12 @@ static BossController_PTMF BossController_sCustomTransition = { nullptr, 0 };
 ncp_over(0x02143994, 40)
 const static BossController_PTMF* BossController_sCustomTransition_ptr = &BossController_sCustomTransition;
 
-asm(R"(
-	BossController_bindCameraToZone = 0x02142F14
-	BossController_transitionState = 0x02143550
-	BossController_switchState = 0x021439EC
-	BossController_sTransition = 0x02146C08
-)");
-
 extern "C"
 {
 	void BossController_bindCameraToZone(StageEntity3DAnm* self);
 	void BossController_switchState(StageEntity3DAnm* self, BossController_PTMF* ptmf);
 	bool BossController_transitionState(StageEntity3DAnm* self);
-	BossController_PTMF BossController_sTransition;
+	extern BossController_PTMF BossController_sTransition;
 }
 
 BossControllerCommon_CoopTransitionStateInfo BossController_coopTransitionStateInfo =
@@ -254,7 +251,7 @@ bool BossController_coopTransitionState(StageEntity3DAnm* self)
 ncp_set_call(0x021438AC, 40, BossControllerCommon_setupCoopTransitionState)
 
 ncp_call(0x0214393C, 40)
-void BossController_customSetCameraBoundAll(StageLayout* self, fx32 bound, u32 side)
+ncp_thumb void BossController_customSetCameraBoundAll(StageLayout* self, fx32 bound, u32 side)
 {
 	if (Game::getPlayerCount() == 1)
 		BossFixes_setCameraBoundAll(self, bound, side);
@@ -263,7 +260,7 @@ void BossController_customSetCameraBoundAll(StageLayout* self, fx32 bound, u32 s
 }
 
 ncp_call(0x02142A38, 40)
-void BossController_customBindCameraToZone(StageEntity3DAnm* self)
+ncp_thumb void BossController_customBindCameraToZone(StageEntity3DAnm* self)
 {
 	if (Game::getPlayerCount() == 1)
 		BossController_bindCameraToZone(self);
@@ -289,17 +286,11 @@ static FinalBossController_PTMF FinalBossController_sCustomTransition = { nullpt
 ncp_over(0x02148574, 43)
 const static FinalBossController_PTMF* FinalBossController_sCustomTransition_ptr = &FinalBossController_sCustomTransition;
 
-asm(R"(
-	FinalBossController_transitionState = 0x021480A0
-	FinalBossController_switchState = 0x02148580
-	FinalBossController_sTransition = 0x02148AF0
-)");
-
 extern "C"
 {
 	void FinalBossController_switchState(StageEntity* self, FinalBossController_PTMF ptmf);
 	bool FinalBossController_transitionState(StageEntity* self);
-	FinalBossController_PTMF FinalBossController_sTransition;
+	extern FinalBossController_PTMF FinalBossController_sTransition;
 }
 
 BossControllerCommon_CoopTransitionStateInfo FinalBossController_coopTransitionStateInfo =
@@ -335,19 +326,20 @@ bool FinalBossController_coopTransitionState(StageEntity* self)
 ncp_set_call(0x021482AC, 43, BossControllerCommon_setupCoopTransitionState)
 
 // For coop binding the camera bounds gets handled by FinalBossController_coopTransitionState
-asm(R"(
 ncp_jump(0x021482F0, 43)
+ncp_asmfunc void jump_021482F0_ov43()
+{asm(R"(
 	BL      _ZN9StageZone3getEhP9RectangleIlE // Keep replaced instruction
 	LDR     R0, =_ZN4Game11playerCountE
 	LDR     R0, [R0]
 	CMP     R0, #1
 	BNE     0x02148330
 	B       0x021482F4
-)");
+)");}
 
 //============================= Boss Controller Common =============================
 
-void BossControllerCommon_setupCoopTransitionState(Player* closestPlayer)
+ncp_thumb void BossControllerCommon_setupCoopTransitionState(Player* closestPlayer)
 {
 	s32 playerCount = Game::getPlayerCount();
 
@@ -370,10 +362,7 @@ void BossControllerCommon_setupCoopTransitionState(Player* closestPlayer)
 
 // ============================= Misc =============================
 
-asm("SetupFSCacheToUseOverlay55 = 0x021726C0");
-extern "C" void SetupFSCacheToUseOverlay55();
-
-void BossFixes_beginCutsceneAllPlayers()
+ncp_thumb void BossFixes_beginCutsceneAllPlayers()
 {
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
@@ -381,7 +370,7 @@ void BossFixes_beginCutsceneAllPlayers()
 	}
 }
 
-void BossFixes_endCutsceneAllPlayers()
+ncp_thumb void BossFixes_endCutsceneAllPlayers()
 {
 	s32 playerCount = Game::getPlayerCount();
 
@@ -413,14 +402,17 @@ ncp_set_call(0x0213CC84, 28, ActorFixes_isOutsideCamera)
 
 // Victory freeze on ground touch
 
-ncp_call(0x0213D0BC, 28)
-void call_0213D0BC_ov28()
+ncp_call(0x0213D0AC, 28)
+ncp_thumb void call_0213D0AC_ov28()
 {
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
 		Game::getPlayer(playerID)->actionFlag.bowserJrBeaten = true;
 	}
 }
+
+ncp_repl(0x0213D0B0, 28, "NOP")
+ncp_repl(0x0213D0B8, 28, "NOP; NOP")
 
 // ov28:021FF154 (dunno what it does, doesn't desync, might not need changing)
 
@@ -429,7 +421,7 @@ void call_0213D0BC_ov28()
 ncp_repl(0x0213F49C, 28, "NOP")
 
 ncp_call(0x0213F4A0, 28)
-void call_0213F4A0_ov28()
+ncp_thumb void call_0213F4A0_ov28()
 {
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
@@ -458,11 +450,12 @@ ncp_repl(0x0213FFC4, 28, "ADD R1, R0, #0x100")
 ncp_repl(0x0213FFCC, 28, "LDRSB R0, [R1,#0x1E]")
 
 // Bowser Jr. camera spawn fix
-asm(R"(
 ncp_jump(0x0213BFA8, 28)
+ncp_asmfunc void jump_0213BFA8_ov28()
+{asm(R"(
 	LDR     R1, =0x1000001
 	B       0x0213BFAC
-)");
+)");}
 
 // Stage clearer is always player 0
 ncp_repl(0x0213D1AC, 28, "MOV R2, #0")
@@ -472,7 +465,7 @@ ncp_repl(0x0213D1AC, 28, "MOV R2, #0")
 ncp_over(0x0213BB10, 13) const auto Bowser_skipRender = ActorFixes_safeSkipRender;
 
 ncp_call(0x0215E850, 54)
-void BossFixes_doNotLoadDoorModels()
+ncp_thumb void BossFixes_doNotLoadDoorModels()
 {
 	u32& areaNum = *rcast<u32*>(0x02085A94);
 	if (areaNum == 19 || areaNum == 175)
@@ -493,7 +486,7 @@ ncp_repl(0x021385BC, 13, R"(
 )");
 
 ncp_call(0x02133064, 13)
-void BossFixes_bowserW1_loadFix(ModelAnm* self, u32 animID, FrameCtrl::Type type, fx32 speed, u16 startFrame)
+ncp_thumb void BossFixes_bowserW1_loadFix(ModelAnm* self, u32 animID, FrameCtrl::Type type, fx32 speed, u16 startFrame)
 {
 	// -- Unload the model from RAM
 
@@ -502,7 +495,7 @@ void BossFixes_bowserW1_loadFix(ModelAnm* self, u32 animID, FrameCtrl::Type type
 
 	// -- Free all files in overlay 55
 
-	SetupFSCacheToUseOverlay55();
+	setupFSCacheToUseOverlay55();
 
 	// -- Load the Dry Bones Bowser model
 
@@ -518,15 +511,16 @@ ncp_set_call(0x0213695C, 13, BossFixes_endCutsceneAllPlayers)
 
 // Fix fireball tracking
 
-asm(R"(
 ncp_jump(0x02138D7C, 13)
+ncp_asmfunc void jump_02138D7C_ov13()
+{asm(R"(
 	PUSH    {R0,R2,LR}
 	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
 	ADD     R3, R0, #0x100
 	LDRSB   R3, [R3,#0x1E] // linkedPlayerID
 	POP     {R0,R2,LR}
 	B       0x02138D80
-)");
+)");}
 
 // Disables "StageZoom" for BowserBattleSwitch and applies "Victory" animation
 /*ncp_call(0x0213A7A4, 13)
@@ -544,11 +538,6 @@ struct BossBattleSwitch_PTMF
 	u32 adj;
 };
 
-asm(R"(
-	Bowser_getBattleState = 0x0213884C
-	BossBattleSwitch_switchState = 0x0213B1DC
-)");
-
 extern "C"
 {
 	s32 Bowser_getBattleState();
@@ -557,7 +546,7 @@ extern "C"
 
 fx32 BossBattleSwitch_linkedPlayerCameraX = 0;
 
-Player* BossBattleSwitch_onBowserDead(Player* linkedPlayer)
+ncp_thumb Player* BossBattleSwitch_onBowserDead(Player* linkedPlayer)
 {
 	if (Game::getPlayerCount() == 1)
 		return linkedPlayer;
@@ -566,14 +555,15 @@ Player* BossBattleSwitch_onBowserDead(Player* linkedPlayer)
 	return linkedPlayer;
 }
 
-void BossBattleSwitch_afterHitState_beforeUpdate(StageEntity3DAnm* self)
+ncp_thumb void BossBattleSwitch_afterHitState_beforeUpdate(StageEntity3DAnm* self)
 {
 	BossBattleSwitch_linkedPlayerCameraX = Stage::cameraX[self->linkedPlayerID];
 }
 
-asm(R"(
 // Store the player ID that hit the switch
 ncp_over(0x0213B2DC, 13) /* max over: 0x30 bytes, current: 0x2C bytes */
+ncp_asmfunc void BossBattleSwitch_storeTriggerPlayer()
+{asm(R"(
 	LDRB    R2, [R1,#0x11C]
 	CMP     R2, #1
 	BXNE    LR
@@ -585,21 +575,26 @@ ncp_over(0x0213B2DC, 13) /* max over: 0x30 bytes, current: 0x2C bytes */
 	MOVEQ   R1, #1
 	STRHEQ  R1, [R0,#0xAE]
 	BX      LR
-ncp_endover()
+)");}
 
 ncp_jump(0x0213A7AC, 13)
+ncp_asmfunc void jump_0213A7AC_ov13()
+{asm(R"(
 	BL      _ZN4Game9getPlayerEl
 	BL      _Z29BossBattleSwitch_onBowserDeadP6Player
 	B       0x0213A7B0
+)");}
 
 ncp_jump(0x0213A53C, 13)
+ncp_asmfunc void jump_0213A53C_ov13()
+{asm(R"(
 	PUSH    {R1}
 	MOV     R0, R5
 	BL      _Z43BossBattleSwitch_afterHitState_beforeUpdateP16StageEntity3DAnm
 	POP     {R1}
 	LDRSH   R0, [R1,#0xA2]
 	B       0x0213A540
-)");
+)");}
 
 // Use the stored player ID
 ncp_repl(0x0213A718, 13, "LDRB R0, [R5,#0x11E]")
@@ -676,9 +671,8 @@ ncp_set_call(0x02133120, 15, PeteyPiranha_getLinkedPlayer)
 
 // Save player ID on head hit
 
-asm(R"(
-.type PeteyPiranha_getPlayerOnPlatform, %function
-PeteyPiranha_getPlayerOnPlatform:
+ncp_asmfunc void PeteyPiranha_getPlayerOnPlatform()
+{asm(R"(
 	MOV     R5, R1
 	PUSH    {R0-R1}
 	LDR     R0, [R3,#4]
@@ -687,11 +681,11 @@ PeteyPiranha_getPlayerOnPlatform:
 	STRB    R0, [R1]
 	POP     {R0-R1}
 	BX      LR
-)");
+)");}
 
-ncp_repl(0x02132FD8, 15, "BLEQ PeteyPiranha_getPlayerOnPlatform")
-ncp_repl(0x0213301C, 15, "BLEQ PeteyPiranha_getPlayerOnPlatform")
-ncp_repl(0x02133060, 15, "BLEQ PeteyPiranha_getPlayerOnPlatform")
+ncp_repl(0x02132FD8, 15, "BLEQ _Z32PeteyPiranha_getPlayerOnPlatformv")
+ncp_repl(0x0213301C, 15, "BLEQ _Z32PeteyPiranha_getPlayerOnPlatformv")
+ncp_repl(0x02133060, 15, "BLEQ _Z32PeteyPiranha_getPlayerOnPlatformv")
 
 ncp_set_call(0x02132A58, 15, BossFixes_endCutsceneAllPlayers)
 ncp_set_call(0x02132BE8, 15, BossFixes_endCutsceneAllPlayers)
@@ -705,7 +699,7 @@ ncp_over(0x021374C0, 19) const auto MontyTankBoss_skipRender = ActorFixes_safeSk
 ncp_set_call(0x021361E4, 19, BossFixes_endCutsceneAllPlayers)
 
 ncp_call(0x0213624C, 19)
-void MontyTank_doPlayerBossBump(Player* r0, const Vec2& velocity)
+ncp_thumb void MontyTank_doPlayerBossBump(Player* r0, const Vec2& velocity)
 {
 	for (u32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
@@ -736,17 +730,8 @@ ncp_set_call(0x02131554, 17, BossFixes_endCutsceneAllPlayers)
 
 //============================= World 8: Final Bowser =============================
 
-asm(R"(
-	func20F4660 = 0x020F4660
-	FinalBowser_loadResources = 0x02138724
-)");
-extern "C" {
-	void func20F4660();
-	void FinalBowser_loadResources();
-}
-
 ncp_call(0x020AF2E4, 0)
-void BossFixes_doNotLoadCastleModel()
+ncp_thumb void BossFixes_doNotLoadCastleModel()
 {
 	u32& areaNum = *rcast<u32*>(0x02085A94);
 	if (areaNum == 19 || areaNum == 175)
@@ -760,7 +745,7 @@ ncp_set_call(0x021487EC, 43, FS::Cache::loadFile) // Load pot.nsbca to memory in
 ncp_repl(0x02148814, 43, "NOP") // Do not load Final Bowser resources yet
 
 ncp_call(0x0214793C, 43)
-void BossFixes_bowserFinal_loadFix(ModelAnm* self, u32 animID, FrameCtrl::Type type, fx32 speed, u16 startFrame)
+ncp_thumb void BossFixes_bowserFinal_loadFix(ModelAnm* self, u32 animID, FrameCtrl::Type type, fx32 speed, u16 startFrame)
 {
 	// -- Unload the model from RAM
 
@@ -772,7 +757,7 @@ void BossFixes_bowserFinal_loadFix(ModelAnm* self, u32 animID, FrameCtrl::Type t
 
 	// -- Free all files in overlay 55
 
-	SetupFSCacheToUseOverlay55();
+	setupFSCacheToUseOverlay55();
 
 	// -- Load the Final Bowser model
 
@@ -792,7 +777,7 @@ ncp_set_call(0x0213A03C, 13, FS::Cache::loadFileToOverlay) // koopa fire 2 nsbta
 //============================= Boss Key =============================
 
 ncp_call(0x0214617C, 40)
-Player* BossKey_getPlayerWhoWon(s32 winnerPlayerID)
+ncp_thumb Player* BossKey_getPlayerWhoWon(s32 winnerPlayerID)
 {
 	Player* winnerPlayer = Game::getPlayer(winnerPlayerID);
 
@@ -801,6 +786,31 @@ Player* BossKey_getPlayerWhoWon(s32 winnerPlayerID)
 	Stage::setEvent(50); // Trigger event 50 for World 7 boss
 
 	return winnerPlayer;
+}
+
+//============================= Princess Peach =============================
+
+ncp_repl(0x021443C8, 40, "MOV R0, R4")
+ncp_set_call(0x021443CC, 40, ActorFixes_getClosestPlayer)
+
+ncp_repl(0x021444CC, 40, "MOV R0, R4")
+ncp_set_call(0x021444D0, 40, ActorFixes_getClosestPlayer)
+
+ncp_repl(0x021447A4, 40, "MOV R0, R4")
+ncp_set_call(0x021447AC, 40, ActorFixes_getClosestPlayer)
+
+ncp_set_call(0x02144530, 40, BossFixes_setZoomAll)
+
+// If player 0 is not alive when we reach the cutscene
+// where Bowser Jr. runs away with Peach, the game soft locks.
+// I have no idea what the issue is, so I just force player 0 to spawn.
+ncp_call(0x02144A04, 40)
+void BossFixes_fixPeachKidnap(s32 sfxID, Vec3* pos)
+{
+	SND::playSFX(sfxID, pos); // Keep replaced instruction
+
+	if (Game::getPlayerDead(0))
+		Game::getPlayer(0)->spawnDefault();
 }
 
 //============================= Mini-mushroom Cutscene =============================
@@ -812,7 +822,7 @@ ncp_repl(0x02143D8C, 40, "B 0x02143E0C") // Do not render world signs
 ncp_repl(0x02144AF8, 40, "B 0x02144B84") // Skip world sign effects
 
 ncp_call(0x020A1D00, 0)
-void BossFixes_levelEnd_hook(u32 flag)
+ncp_thumb void BossFixes_levelEnd_hook(u32 flag)
 {
 	auto switchToCutsceneArea = [](u8 stage){
 		Entrance::targetAreaID = Stage::getAreaID(9, stage, 0);
@@ -843,7 +853,7 @@ ncp_repl(0x020CE300, 8, "CMP R0, #1")
 ncp_set_call(0x020CE2A8, 8, getGoToMiniWorld)
 
 ncp_call(0x02119684, 10)
-void BossFixes_finishLevelOnTransit_hook()
+ncp_thumb void BossFixes_finishLevelOnTransit_hook()
 {
 	u32& areaNum = *rcast<u32*>(0x02085A94);
 	if (areaNum == 180 || areaNum == 181)

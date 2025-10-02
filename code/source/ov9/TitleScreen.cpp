@@ -10,9 +10,6 @@
 
 #include "Widescreen.hpp"
 
-asm(R"(
-	fun020CD884 = 0x020CD884
-)");
 extern "C" {
 	void fun020CD884(void*);
 }

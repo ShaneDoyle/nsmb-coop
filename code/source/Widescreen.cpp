@@ -7,6 +7,7 @@
 #include <nsmb/core/entity/scene.hpp>
 #include <nsmb/core/net.hpp>
 #include <nsmb/core/wifi.hpp>
+#include <nsmb/core/graphics/2d/oam.hpp>
 
 namespace Widescreen
 {
@@ -51,9 +52,6 @@ namespace Widescreen
 	}
 }
 
-asm(R"(
-	fun0200738C = 0x0200738C
-)");
 extern "C"
 {
 	void fun0200738C();
@@ -69,9 +67,33 @@ void call_02006F74()
 	fun0200738C();
 }
 
-asm(R"(
-.text
+void StageFX_customOamDraw(GXOamAttr* oamAttrs, s32 x, s32 y, OAM::Flags flags, u8 palette, u8 affineSet, const Vec2* scale, s16 rot, const s16 rotCenter[2], OAM::Settings settings)
+{
+	if (!Widescreen::shouldApply[Game::localPlayerID])
+	{
+		OAM::draw(oamAttrs, x, y, flags, palette, affineSet, scale, rot, rotCenter, settings);
+		return;
+	}
 
+	// Apply horizontal scaling for widescreen:
+	// 0xD80 is approximately (256 / 306 * 0x1000), chosen to minimize gaps between objects when rendering in widescreen mode.
+	Vec2 newScale = *scale;
+	newScale.x = FX_Mul(newScale.x, 0xD80);
+
+	// Animation fix:
+	// If scale->x is not the default (0x1000), adjust the X position of the first OAM entry to prevent gaps during animation.
+	u32 fixX = scale->x != 0x1000;
+
+	oamAttrs[0].x += fixX;
+	OAM::draw(oamAttrs, x, y, flags, palette, affineSet, &newScale, rot, rotCenter, settings);
+	oamAttrs[0].x -= fixX;
+}
+
+ncp_set_call(0x020FC200, 10, StageFX_customOamDraw)
+ncp_set_call(0x020FBCE8, 10, StageFX_customOamDraw)
+
+ncp_asmfunc void Widescreen_ASM()
+{asm(R"(
 Widescreen_shouldApplyForLocalPlayer:
 	PUSH    {R0-R1,LR}
 	LDR     R1, =_ZN3Net8localAidE
@@ -188,4 +210,4 @@ ncp_jump(0x020D8AC4, 8)
 ncp_over(0x020D8AC8, 8)
 	MOV     R1, #0x190
 ncp_endover()
-)");
+)");}

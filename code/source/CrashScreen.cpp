@@ -10,12 +10,6 @@
 
 #define SCR_POS(scrn, x, y) (scrn + 32 * y + x)
 
-asm(R"(
-	debug_printf = 0x02006370
-	debug_clear = 0x02005E68
-	debug_drawTop = 0x02005EB0
-	debug_drawBottom = 0x020061E4
-)");
 extern "C"
 {
 	void debug_printf(const u16 colors[2], u16* dst, const char* str, ...);
@@ -71,14 +65,14 @@ void drawDebugScreen()
 	debug_drawBottom();
 }
 
-void create()
+ncp_thumb void create()
 {
 	// not sure if this actually helps
 	for (u32 i = 0; i < 4; i++)
 		MI_StopDma(i);
 }
 
-void update()
+ncp_thumb void update()
 {
 	if (CARD_IsPulledOut())
 	{
@@ -141,12 +135,13 @@ ncp_repl(0x02005BA8, "MOV R5, #5; B 0x02005C1C") // Auto-open debug screen on cr
 ncp_repl(0x02005C20, "NOP") // Do not run draw top twice
 ncp_repl(0x02005C2C, "BL _ZN11CrashScreen6updateEv; NOP") // Hook our updater
 
-asm(R"(
 ncp_jump(0x02005B24)
+ncp_asmfunc void CrashScreen_create_HOOK()
+{asm(R"(
 	STRH    R0, [R2]
 	BL      _ZN11CrashScreen6createEv
 	B       0x02005B28
-)");
+)");};
 
 /*ncp_hook(0x020CDB2C, 9)
 void forceCrash()

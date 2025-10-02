@@ -82,7 +82,7 @@ ncp_repl(0x02109A14, 10, "B 0x02109A68") // Luigi can not make Mario fall on hea
 ncp_repl(0x02109EB4, 10, "MOV R4, #1") // Mario doesn't bump with Luigi
 ncp_repl(0x02109C1C, 10, "MOV R4, #1") // Luigi doesn't bump with Mario
 
-static bool Player_customJumpOnPlayer(Player* self, fx32 force, u16 duration, bool playSFX, bool noConsecutive, s8 variation)
+ncp_thumb static bool Player_customJumpOnPlayer(Player* self, fx32 force, u16 duration, bool playSFX, bool noConsecutive, s8 variation)
 {
 	if (self->physicsFlag.swimming)
 		return false;
@@ -100,7 +100,7 @@ static bool Player_customJumpOnPlayer(Player* self, fx32 force, u16 duration, bo
 ncp_set_call(0x02109AB8, 10, Player_customJumpOnPlayer)
 ncp_set_call(0x02109BD4, 10, Player_customJumpOnPlayer)
 
-static void Player_customJumpOnPlayerSound(Player* self, s32 sfxID, const Vec3* pos)
+ncp_thumb static void Player_customJumpOnPlayerSound(Player* self, s32 sfxID, const Vec3* pos)
 {
 	u8 entryID = 7 + (Net::getRandom() & 1);
 	s32 otherID = self->linkedPlayerID ^ 1;
@@ -114,7 +114,7 @@ ncp_repl(0x0204ED14, "NOP") // Always load both players' sounds
 ncp_repl(0x0204ED50, "NOP") // Always load both players' sounds
 
 ncp_call(0x021098C8, 10)
-static bool Player_customSpecialPlayerBump(Player* self, Player* other, fx32& selfCollisionPointX)
+ncp_thumb bool Player_customSpecialPlayerBump(Player* self, Player* other, fx32& selfCollisionPointX)
 {
 	bool marioOffender = Player::bumpOffender == Player::BumpOffender::Mario;
 	Player* offender = marioOffender ? self : other;
@@ -122,6 +122,12 @@ static bool Player_customSpecialPlayerBump(Player* self, Player* other, fx32& se
 
 	if (offender->checkGroundpoundBump())
 	{
+		u32 timer = Game::getStarmanTimer(offender->linkedPlayerID);
+		if (timer)
+		{
+			victim->applyStarman(timer);
+		}
+
 		s32 direction = StageEntity::unitDirection[(selfCollisionPointX < 0) ^ marioOffender];
 		Vec2 velocity(0xD00 * direction, 0x3000);
 		victim->doPlayerBump(velocity, true);
@@ -142,7 +148,8 @@ NTR_USED static bool Player_ignoreCollision()
 	return false;
 }
 
-asm(R"(
+ncp_asmfunc void Player_ignoreCollisionPatch_ASM()
+{asm(R"(
 ncp_jump(0x021096EC, 10)
 	BNE     0x021096F0
 	MOV     R0, R9
@@ -151,13 +158,13 @@ ncp_jump(0x021096EC, 10)
 	CMP     R0, #0
 	BNE     0x021096F0
 	B       0x02109704
-)");
+)");}
 
 ncp_repl(0x020E3260, 10, "MOV R0, R4") // Fireballs pass through player
 //ncp_repl(0x020E32C4, 10, "ADD SP, SP, #0x10; POP {R4-R6,PC}") // Player immune to fireballs
 
 ncp_call(0x020FD56C, 10)
-static bool Player_updateHook(Player* self)
+bool Player_updateHook(Player* self)
 {
 	Player_updateJumpedOnAnimation(self);
 	return self->updateCarryPartialAnimation(); // Keep replaced instruction
@@ -168,13 +175,14 @@ NTR_USED static void Player_resetHook(Player* self)
 	Player_jumpedOnAnimState[self->playerID] = PLAYER_JUMPED_ON_ANIM_STATE_WAIT;
 }
 
-asm(R"(
+ncp_asmfunc void Player_resetHookPatch_ASM()
+{asm(R"(
 ncp_jump(0x0210024C, 10)
 	MOV     R0, R4
 	BL      _ZL16Player_resetHookP6Player
 	ADD     SP, SP, #8
 	POP     {R4-R6,PC}
-)");
+)");}
 
 // Look at bosses
 
@@ -210,12 +218,13 @@ bool Player_bossCutsceneTransitState_customIsPlayerFlinching(Player* player)
 	return sIsPlayerFlinching[player->linkedPlayerID];
 }
 
-asm(R"(
+ncp_asmfunc void Player_bossFlinchPatch_ASM()
+{asm(R"(
 ncp_jump(0x0211ACF4, 10)
 	MOV     R0, R4
 	BL      _Z55Player_bossCutsceneTransitState_customIsPlayerFlinchingP6Player
 	B       0x0211ACF8
-)");
+)");}
 
 ncp_repl(0x0211AD00, 10, "MOV R0, R4")
 
@@ -234,9 +243,6 @@ void Game_setPlayerFlinching_OVERRIDE(bool enable)
 
 // Boss defeat cutscene
 
-asm(R"(
-	Liquid_doWaves = 0x021646E0
-)");
 extern "C" {
 	void Liquid_doWaves(fx32 x, u32 one);
 }
@@ -247,7 +253,7 @@ u8 Player_victoryIsBattleSwitch = false;
 u8 Player_victoryFakePlayerDeathTimer[2];
 
 // For the players that didn't hit the switch
-bool Player_bossDefeatNotLinkedTransitState(Player* self, void* arg)
+ncp_thumb bool Player_bossDefeatNotLinkedTransitState(Player* self, void* arg)
 {
 	const u32 FakeDeathDuration = 120;
 
@@ -406,7 +412,7 @@ void Player_beginBossDefeatCutsceneNotLinked(Player* self)
 	self->switchTransitionState(ptmf_cast(Player_bossDefeatNotLinkedTransitState));
 }
 
-void Player_beginBossDefeatCutsceneCoop(Player* linkedPlayer, bool battleSwitch)
+ncp_thumb void Player_beginBossDefeatCutsceneCoop(Player* linkedPlayer, bool battleSwitch)
 {
 	Player_victoryLinkedPlayer = linkedPlayer;
 	Player_victoryCutsceneStartPos = linkedPlayer->position;
@@ -423,7 +429,7 @@ void Player_beginBossDefeatCutsceneCoop(Player* linkedPlayer, bool battleSwitch)
 }
 
 ncp_call(0x0211881C, 10)
-u32 Player_viewTransitState_beginFadeInHook(u8 transitPlayerID)
+ncp_thumb u32 Player_viewTransitState_beginFadeInHook(u8 transitPlayerID)
 {
 	if (Game::getPlayerDead(transitPlayerID))
 		goto commonEnd;
@@ -458,6 +464,55 @@ u32 Player_viewTransitState_beginFadeInHook(u8 transitPlayerID)
 commonEnd:
 	return Entrance::getSpawnMusic(transitPlayerID); // Keep replaced instruction
 }
+
+// The invincible flag is typically set only for the local player,
+// which should be fine since it seems to only control music playback.
+// However, to ensure compatibility with ROM hacks or any singleplayer
+// code that might rely on this flag, update it for all players.
+
+/*
+ncp_jump(0x0212B740, 11)
+void Player_fixInvincibleFlag(PlayerBase* self, s32 bgmID)
+{
+	self->subActionFlag.invincible = true;
+	self->invincibleMusicID = bgmID;
+
+	if (self->linkedPlayerID == Game::localPlayerID)
+	{
+		SND::requestSpecialBGM(bgmID);
+	}
+}
+*/
+
+ncp_over(0x0212B740, 11) /* max over: 0x7C bytes, current: 0x54 bytes */
+ncp_asmfunc void Player_fixInvincibleFlag_ASM()
+{asm(R"(
+	mov	r3, r0
+	ldrb	r2, [r3, #1918]
+	str	r1, [r3, #1944]
+	orr	r2, r2, #128
+	strb	r2, [r3, #1918]
+	add	r3, r3, #284
+	ldrsb	r2, [r3, #2]
+	ldr	r3, .fixinv_L147
+	mov	r0, r1
+	ldr	r3, [r3]
+	cmp	r2, r3
+	bxne	lr
+	b	_ZN3SND17requestSpecialBGMEl
+
+ncp_jump(0x0212B730, 11)
+	LDR     R3, .fixinv_L147
+	LDR     R3, [R3]
+	LDRB    R2, [R0,#0x11E]
+	CMP     R3, R2
+	LDREQ   R0, [R0,#0x798]
+	BLEQ    _ZN3SND16stopRequestedBGMEl
+	B       0x0212B738
+
+.fixinv_L147:
+	.word	_ZN4Game13localPlayerIDE
+)");}
 
 // asm(R"(
 // PlayerBase_freezeStage_SUPER:
