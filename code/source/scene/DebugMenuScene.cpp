@@ -9,6 +9,7 @@
 #include <nsmb/core/net.hpp>
 #include <nsmb/core/wifi.hpp>
 
+#include "fid.hpp"
 #include "Save.hpp"
 
 static void copyRegion(u32 srcX, u32 srcY, u32 dstX, u32 dstY, u32 width, u32 height)
@@ -77,7 +78,7 @@ static void writeString(u32 x, u32 y, u32 spacing, const char* text)
 	}
 }
 
-constexpr u32 fontImgID = 2095 - 131;
+constexpr u32 fontImgID = "coop/debugfont.enpg"fid;
 
 ObjectProfile DebugMenuScene::profile = {
 	&constructObject<DebugMenuScene>,
