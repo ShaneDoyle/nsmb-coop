@@ -125,6 +125,7 @@ extern struct MenuEntry *sMenu;
 #include <nsmb/game/vsconnect/scene.hpp>
 
 extern void *gVsConnectSubMenu;
+extern bool gForceLuigiMode;
 
 static void main_menu() {
 	Scene::switchScene(SceneID::TitleScreen);
@@ -166,6 +167,7 @@ static void host() {
 
 static void join() {
 	gVsConnectSubMenu = &VSConnectScene::searchSM;
+	gForceLuigiMode = true;
 	Scene::switchScene(SceneID::VSConnect);
 }
 
