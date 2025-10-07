@@ -116,7 +116,7 @@ s32 DebugMenuScene::onCreate()
 }
 
 struct MenuEntry {
-	char *text;
+	const char *text;
 	void (*callback)(void);
 };
 
