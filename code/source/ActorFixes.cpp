@@ -126,6 +126,14 @@ ncp_over(0x021754F8, 56) const auto HammerBro_skipRender = ActorFixes_safeSkipRe
 ncp_over(0x02175730, 56) const auto FireBro_skipRender = ActorFixes_safeSkipRender;
 ncp_over(0x02175614, 56) const auto BoomerangBro_skipRender = ActorFixes_safeSkipRender;
 
+void MapHammerBro_getClosestPlayerFix_ASM()
+{asm(R"(
+ncp_jump(0x0215DEBC, 54)
+	MOV     R0, R5
+	BL      _Z27ActorFixes_getClosestPlayerP10StageActor
+	B       0x0215DEC0
+)");}
+
 // Sledge Bro -----------------------------------------------------------
 
 ncp_over(0x02175880, 56) const auto SledgeBro_skipRender = ActorFixes_safeSkipRender;
