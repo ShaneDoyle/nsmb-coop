@@ -795,9 +795,6 @@ ncp_over(0x0218F450, 123) const auto Toadsworth_skipRender = ActorFixes_safeSkip
 //Remove delete range for UnusedSpikeBass (256).    PATCH ADDRESS IS INVALID
 //void repl_021728EC_ov_3A() {}
 
-// Fix Rotating Barrel (246) Desync.
-ncp_repl(0x02186F58, 96, "MOV LR, #0")
-
 // Fix horizontal movement mushroom. (DeleteIfOutOfRange) (PROBABLY DOESN'T WORK)
 //void repl_0217FDDC_ov_5A() {}
 
