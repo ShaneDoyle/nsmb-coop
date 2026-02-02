@@ -1235,3 +1235,5 @@ ncp_jump(0x020B286C, 0)
 	MLA     R1, R3, R1, R10 // Replace R7 with R3 (use localPlayerID instead of playerID)
 	B       0x020B2870
 )");}
+
+ncp_repl(0x020C0660, 0, "B 0x020C067C") // Do not skip local player check for empty inventory SFX
