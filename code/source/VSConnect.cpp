@@ -6,12 +6,19 @@
 
 #include "Widescreen.hpp"
 
+void *gVsConnectSubMenu = &VSConnectScene::charSelectSM;
+bool gForceLuigiMode = false;
+
 ncp_call(0x021592DC, 52)
 u32 VSConnect_skipFirstSubMenu()
 {
 	register VSConnectScene* self asm("r4");
 
-	rcast<u32*>(self)[0x15C / 4] = rcast<u32>(&VSConnectScene::charSelectSM); // Sub-menu updater
+	if (gForceLuigiMode)
+	{
+		rcast<u32*>(self)[0x168 / 4] = 2;
+	}
+	rcast<u32*>(self)[0x15C / 4] = rcast<u32>(gVsConnectSubMenu); // Sub-menu updater
 	rcast<u32*>(self)[0x160 / 4] = 1; // Sub-menu swap timer
 
 	return 1;
