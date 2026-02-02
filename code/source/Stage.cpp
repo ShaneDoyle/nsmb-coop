@@ -32,6 +32,7 @@ constexpr u32 spectateTextFileID = "coop/A_text_spectate_ncg.bin"fid;
 u8 Stage_isPlayerDead[2];
 u8 Stage_doorFromAreaChange;
 Player* Stage_flagpoleLinkedPlayer; // Player in the pole responsible for triggering events
+u8 Stage_playerInFlagpoleSentFlying[2];
 
 extern "C" {
 	void SpawnGrowingEntranceVine(Vec3*);
@@ -601,6 +602,8 @@ ncp_thumb void Stage_loadLevelHook(const void* pSrc, u32 offset, u32 szByte)
 	Stage_isPlayerDead[1] = false;
 
 	Stage_flagpoleLinkedPlayer = nullptr;
+	Stage_playerInFlagpoleSentFlying[0] = false;
+	Stage_playerInFlagpoleSentFlying[1] = false;
 }
 
 ncp_call(0x020BB7DC, 0)
@@ -898,8 +901,6 @@ ncp_repl(0x020FBF60, 10, "BX LR") // Fix end of level for player that "lost the 
 ncp_set_call(0x021624C8, 54, Stage_getLocalPlayerID) // Midway point draws from local player
 ncp_set_call(0x02162110, 54, Stage_getLocalPlayerID) // Midway point plays sound at local player position
 
-ncp_repl(0x0215ED54, 54, "NOP") // Disable mega mushroom destruction counter
-
 //ncp_set_call(0x02152944, 54, Stage_getLuigiMode) // Allow Luigi lives on stage intro scene
 //ncp_set_call(0x0215293C, 54, Stage_getLuigiMode) // Allow Luigi head on stage intro scene
 
@@ -1009,19 +1010,6 @@ ncp_thumb void Stage_fixTransitParticles()
 	if (Game::getPlayerCount() == 1)
 		Particle::Handler::disable();
 }
-
-// Do not know what this does yet
-/*asm(R"(
-ncp_jump(0x020BE184, 0)
-	LDR     R0, =_ZN4Game11playerCountE
-	B       0x020BE188
-
-ncp_over(0x020BE18C, 0)
-	CMP     R0, #1
-	MOVGT   R0, #1
-	MOVLE   R0, #0
-ncp_endover()
-)");*/
 
 // Fix stage zoom on view edges
 ncp_asmfunc void Stage_fixStageZoomOnViewEdges_ASM()

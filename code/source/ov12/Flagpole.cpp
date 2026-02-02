@@ -463,6 +463,7 @@ bool Player_sentFlyingWithPoleState(Player* self, void* arg)
 	{
 		step = 1;
 
+		Stage_playerInFlagpoleSentFlying[self->linkedPlayerID] = true;
 		PlayerSpectate::setTarget(self->linkedPlayerID, Stage_flagpoleLinkedPlayer->linkedPlayerID);
 
 		self->velocity.x = Player_sendFlyingVelocities[Flagpole_instance->direction];
