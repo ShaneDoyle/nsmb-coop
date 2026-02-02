@@ -796,23 +796,8 @@ ncp_over(0x0213F470, 24) const auto DryBones_skipRender = ActorFixes_safeSkipRen
 
 ncp_over(0x0218F450, 123) const auto Toadsworth_skipRender = ActorFixes_safeSkipRender;
 
-
-//Fix Volcano BG                                    MUST BE CHECKED LATER
-// void repl_020B6B6C() { asm("MOV R1, #2"); }
-
-//Remove delete range for UnusedSpikeBass (256).    PATCH ADDRESS IS INVALID
-//void repl_021728EC_ov_3A() {}
-
-// Fix horizontal movement mushroom. (DeleteIfOutOfRange) (PROBABLY DOESN'T WORK)
-//void repl_0217FDDC_ov_5A() {}
-
 // Fix pipe cannon desync.
 ncp_repl(0x020F8230, 10, "B 0x020F823C")
 
 // Tile God updates during stage freeze
 ncp_repl(0x0216D3E4, 54, ".int _ZN10StageActor9preUpdateEv");
-
-
-// TODO: check ov54:0215DEEC
-
-// TODO: CHECK WHAT 020D98DC IS
