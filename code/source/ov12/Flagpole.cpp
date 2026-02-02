@@ -578,13 +578,6 @@ ncp_over(0x0211B9B8, 10)
 ncp_endover()
 )");}
 
-ncp_call(0x0211BB84, 10)
-bool Player_customGoalUpdatePowerupState(Player* self)
-{
-	self->updatePowerupState();
-	return self->transitionFlag.megaShrink;
-}
-
 // Wait for all players to land
 
 ncp_call(0x0211BA18, 10)

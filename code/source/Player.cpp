@@ -514,6 +514,23 @@ ncp_jump(0x0212B730, 11)
 	.word	_ZN4Game13localPlayerIDE
 )");}
 
+// Allow the game to wait for the player to shrink without the freeze flag
+bool customUpdatePowerupStateMegaShrinking(::Player* self)
+{
+	bool ret = self->updatePowerupState();
+
+	if (Game::playerCount != 1)
+		ret = self->transitionFlag.megaShrink;
+
+	return ret;
+}
+
+ncp_set_call(0x0211989C, 10, customUpdatePowerupStateMegaShrinking)
+ncp_set_call(0x02119A10, 10, customUpdatePowerupStateMegaShrinking)
+ncp_set_call(0x0211A528, 10, customUpdatePowerupStateMegaShrinking)
+ncp_set_call(0x0211B0A0, 10, customUpdatePowerupStateMegaShrinking)
+ncp_set_call(0x0211BB84, 10, customUpdatePowerupStateMegaShrinking)
+
 // asm(R"(
 // PlayerBase_freezeStage_SUPER:
 // 	PUSH    {LR}
