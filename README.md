@@ -114,7 +114,7 @@ The build process will:
 - **[Arisotura](https://github.com/Arisotura)** - melonDS emulator development and DS system expertise
 
 ### Tools & Assets
-- **[Gota7](https://github.com/Gota7)** - [Nitro Studio 2](https://github.com/Gota7/NitroStudio2) for 3D model editing
+- **[Gota7](https://github.com/Gota7)** - [Nitro Studio 2](https://github.com/Gota7/NitroStudio2) for audio editing
 - **[Garhoogin](https://github.com/Garhoogin)** - [NitroPaint](https://github.com/Garhoogin/NitroPaint) for texture editing
 - **[TheGameratorT](https://github.com/TheGameratorT)** - [NDS Banner Editor](https://github.com/TheGameratorT/NDS_Banner_Editor)
 - **[Mamma Mia Team](https://github.com/MammaMiaTeam)** - [NSMB Editor](https://github.com/MammaMiaTeam/NSMB-Editor)
