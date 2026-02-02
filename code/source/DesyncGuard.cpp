@@ -29,6 +29,12 @@ ncp_asmfunc u32 Net_getRandom_SUPER()
 	B       0x0200E6F8
 )");}
 
+ncp_asmfunc void Game_gainPlayerLife_SUPER(s32 playerID)
+{asm(R"(
+	BICS    R1, R0, #1
+	B       0x02020548
+)");}
+
 namespace DesyncGuard
 {
 	constexpr u32 markerIndex = 2;
@@ -168,6 +174,13 @@ namespace DesyncGuard
 		return ret;
 	}
 
+	void Game_gainPlayerLife_OVERRIDE(s32 playerID)
+	{
+		markDesyncCheck();
+
+		Game_gainPlayerLife_SUPER(playerID); // Keep replaced instruction
+	}
+
 	u32 Net_getRandom_OVERRIDE()
 	{
 		markRngDesyncCheck();
@@ -180,4 +193,5 @@ ncp_set_call(0x02004F18, DesyncGuard::MainGame_loop_CALL)
 ncp_set_call(0x0201323C, DesyncGuard::Scene_switchScene_CALL)
 ncp_set_call(0x02104AB8, 10, DesyncGuard::Player_damage_CALL)
 ncp_set_jump(0x0212B9AC, 11, DesyncGuard::PlayerBase_requestPowerupSwitch_OVERRIDE)
+ncp_set_jump(0x02020544, DesyncGuard::Game_gainPlayerLife_OVERRIDE)
 ncp_set_jump(0x0200E6F4, DesyncGuard::Net_getRandom_OVERRIDE)
