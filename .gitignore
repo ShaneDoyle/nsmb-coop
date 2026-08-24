@@ -6,10 +6,12 @@
 /backup
 /build
 
-/modules/nitrosdk
+/modules/nitrosdk/include
 
 /.vscode
 /.venv
 
 *.lnk
 *.xdelta
+__pycache__/
+*.py[cod]

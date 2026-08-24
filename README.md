@@ -9,27 +9,30 @@ Play New Super Mario Bros. (DS) with a friend! This mod adds full cooperative mu
 - **Boss Battle Adaptations**: All bosses have been reworked for 2-player fights
 - **Desync Protection**: If things get out of sync, the game automatically fixes itself by rolling back to before you entered the level
 - **Widescreen Support**: Expands the game to fill the entire 3DS screen for a better view (toggle with L+R+X, requires nds-bootstrap)
-- **Multi-language Support**: Available in 7 languages (English, French, German, Italian, Japanese, Spanish, Portuguese)
+- **Multi-language Support**: Available in 9 languages (English, French, German, Italian, Spanish, Japanese, Korean, Chinese, Portuguese)
 
 ## Building
 
 ### Prerequisites
 - **Python 3.x** with the following packages:
   - `ndspy` - Nintendo DS ROM manipulation library
-  - Install with: `pip install ndspy`
+  - `PyYAML` - Build metadata reader
+  - Install with: `python3 -m pip install ndspy PyYAML`
 - **ARM cross-compilation toolchain**:
   - `arm-none-eabi-gcc` and related tools
   - On Ubuntu/Debian: `sudo apt install gcc-arm-none-eabi`
   - On Windows: Install via [GNU Arm Embedded Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm)
 - **Git** - For version control and build metadata
-- **NCPatcher** - Nintendo DS code patching tool
+- **NCPatcher 2.x** - Nintendo DS code patching tool with native module support
+- **NSMB Code Reference** - Set `NSMBREF_ROOT` to its checkout
+- **Converted Nitro SDK/Nitro System headers** - Place them under `modules/nitrosdk/include/`; only this private header directory is ignored
 - **xdelta3** (optional) - For generating binary patches
 
 ### Build Steps
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/ShaneDoyle/nsmb-coop.git
-   cd nsmb-coop
+   git clone --branch module https://github.com/ShaneDoyle/nsmb-coop.git nsmb-coop-module
+   cd nsmb-coop-module
    ```
 
 2. **Prepare the base ROM**:
@@ -40,29 +43,38 @@ Play New Super Mario Bros. (DS) with a friend! This mod adds full cooperative mu
 
    **Option A: Build all languages (recommended)**
    ```bash
-   python scripts/build_roms.py rom.nds
+   python3 scripts/build_roms.py rom.nds
    ```
 
    **Option B: Build specific languages**
    ```bash
-   python scripts/build_roms.py rom.nds -l en fr ge
+   python3 scripts/build_roms.py rom.nds -l en fr de
    ```
 
    **Option C: Manual build (single language)**
    ```bash
-   python scripts/insert_code.py rom.nds __tmp/rom_code.nds --language en
-   python scripts/insert_files.py __tmp/rom_code.nds nsmb-coop.nds --language en
+   ncpatcher modules dump -o build/generated/modules.json
+   python3 scripts/module_gen.py --graph build/generated/modules.json
+   python3 scripts/insert_files.py rom.nds __tmp/rom_files_en.nds --language en --nitrofs-map build/generated/nitrofs_file_map.txt --fid-output build/generated/include/fid.hpp
+   ncpatcher --rom __tmp/rom_files_en.nds --out nsmb-coop.nds build --variant en
    ```
+
+   The module generator now consumes NCPatcher's resolved graph. It generates
+   only the game-specific object headers and NitroFS map; NCPatcher owns source,
+   target, region, and define resolution. If Python is not named `python3`, set
+   `NCP_PYTHON` before invoking NCPatcher. `build_roms.py` does this automatically.
 
 ### Build Options
 The `build_roms.py` script supports several options:
-- `-l, --languages`: Specify which languages to build (en, fr, ge, it, jp, sp, pt)
+- `-l, --languages`: Specify which languages to build (en, fr, de, it, sp, ja, ko, zh, pt)
 - `-o, --output-dir`: Set custom output directory (default: `build`)
 - `-p, --prefix`: Custom name prefix for output files
 - `--no-patches`: Skip xdelta patch generation
 - `--temp-dir`: Custom temporary directory (default: `__tmp`)
 - `--clean-temp`: Clean temporary files after build
 - `-v, --verbose`: Enable verbose output
+- `--verbose-patcher`: Enable verbose NCPatcher output
+- `--skip-module-gen`: Reuse existing generated module assets
 
 ### Build Output
 The build process generates:
@@ -76,7 +88,7 @@ build/
 ├── nds/
 │   ├── rom_en.nds      # English version
 │   ├── rom_fr.nds      # French version
-│   ├── rom_ge.nds      # German version
+│   ├── rom_de.nds      # German version
 │   └── ...
 └── xdelta/
     ├── rom_en.xdelta   # English patch
@@ -87,8 +99,8 @@ build/
 The build process will:
 - Insert custom files and assets for the specified language(s)
 - Update the ROM with build metadata (commit hash and timestamp)
-- Generate object tables and compile C++ source code
-- Apply code patches using NCPatcher with language-specific definitions
+- Resolve native modules and generate object tables
+- Compile and patch the prepared `.nds` directly with a language variant
 - Generate xdelta patches for distribution (optional)
 
 ### Troubleshooting

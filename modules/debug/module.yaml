@@ -6,5 +6,4 @@ authors:
 
 targets:
   - arm9:
-      includes: "include"
       sources: "source9/*"

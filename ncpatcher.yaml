@@ -1,0 +1,108 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/TheGameratorT/NCPatcher/main/schema/ncpatcher.schema.json
+version: 2
+
+rom:
+  file: rom.nds
+  output: build/nds/rom.nds
+  backup: backup
+
+toolchain: arm-none-eabi-
+
+defines: [SDK_GCC, SDK_FINALROM]
+flags:
+  common: [-masm-syntax-unified, -mno-unaligned-access, -mfloat-abi=soft, -mabi=aapcs]
+  c: [-Os, -fomit-frame-pointer, -ffast-math, -fno-builtin, -nostdlib, -nodefaultlibs, -nostartfiles]
+  cpp: [-Os, -fomit-frame-pointer, -ffast-math, -fno-builtin, -nostdlib, -nodefaultlibs, -nostartfiles, -fno-rtti, -fno-exceptions, -Wno-literal-suffix, -std=c++23]
+  asm: [-Os, -x, assembler-with-cpp, -fomit-frame-pointer]
+  ld: [-lgcc, -lc, -lstdc++, --use-blx]
+
+modules:
+  dir: modules
+  dump: build/generated/modules.json
+  enabled:
+    - coop
+    - mini-hacks
+    - debug
+    - dsimodewarn
+    - nwav
+    - widescreen
+    - process
+    - message
+    - nitrosdk
+
+hooks:
+  - name: Generate module assets
+    run: '"${env.NCP_PYTHON:-python3}" scripts/module_gen.py --graph "${ncp.moduleDump}"'
+    when: pre-build
+
+variants:
+  en:
+    defines: GAME_LANGUAGE_EN
+  fr:
+    defines: GAME_LANGUAGE_FR
+  de:
+    defines: GAME_LANGUAGE_GE
+  it:
+    defines: GAME_LANGUAGE_IT
+  sp:
+    defines: GAME_LANGUAGE_SP
+  ja:
+    defines: GAME_LANGUAGE_JP
+  ko:
+    defines: GAME_LANGUAGE_KO
+  zh:
+    defines: GAME_LANGUAGE_CH
+  pt:
+    defines: GAME_LANGUAGE_PT
+
+targets:
+  arm7:
+    build: build/arm7
+    arena-lo: 0x037FCF78
+    defines: [SDK_ARM7]
+    flags:
+      common: [-march=armv4t, -mtune=arm7tdmi]
+    regions:
+      - dest: main
+        sources: "${env.NSMBREF_ROOT}/source7/symbols.c"
+
+  arm9:
+    build: build/arm9
+    arena-lo: 0x02065F10
+    includes: ["${env.NSMBREF_ROOT}/include", build/generated/include]
+    defines: [SDK_ARM9, arm9_start=0x021901E0, NTR_DEBUG]
+    flags:
+      common: [-march=armv5te, -mtune=arm946e-s]
+      c: [-mthumb-interwork]
+      cpp: [-mthumb-interwork]
+    regions:
+      - dest: main
+        sources: "${env.NSMBREF_ROOT}/source9/symbols.c"
+        overwrites:
+          - [0x02026CE0, 0x02039170]
+      - dest: ov8
+        maxsize: 0x56400
+      - dest: ov9
+        maxsize: 0x56400
+      - dest: ov12
+        maxsize: 0xC600
+      - dest: ov15
+        maxsize: 0xC600
+      - dest: ov19
+        maxsize: 0xC600
+      - dest: ov24
+        maxsize: 0x5F80
+      - dest: ov28
+        maxsize: 0x5F80
+      - dest: ov34
+        maxsize: 0x4DE0
+      - dest: ov43
+        maxsize: 0xBBE0
+      - dest: ov50
+        maxsize: 0xBBE0
+      - dest: ov58
+        maxsize: 0x32E0
+      - dest: ov79
+        maxsize: 0x41A0
+      - dest: ov123
+        maxsize: 0x3A20

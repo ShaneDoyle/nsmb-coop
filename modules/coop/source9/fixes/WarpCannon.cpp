@@ -1,5 +1,7 @@
 #include <nsmb/game/game.hpp>
+#include <nsmb/game/sound.hpp>
 #include <nsmb/game/stage.hpp>
+#include <nsmb/core/system/function.hpp>
 
 #include "coop/CoopActor.hpp"
 #include "coop/CoopCamera.hpp"

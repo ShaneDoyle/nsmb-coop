@@ -119,7 +119,7 @@ components:
       target: arm9(123)
       sources: "source9/fixes/Toadsworth.cpp"
 
-  - ToadsworthFix:
+  - MushroomHouseBlockFix:
       target: arm9(123)
       sources: "source9/fixes/MushroomHouseBlock.cpp"
 

@@ -1,1327 +1,244 @@
 #!/usr/bin/env python3
-"""
-Module generator for NSMB projects.
-
-This script processes module configuration files and generates build configurations
-for ARM7 and ARM9 processors, along with VSCode IntelliSense configuration.
-"""
+"""Generate NSMB Co-op assets from NCPatcher's resolved module graph."""
 
 import argparse
-import glob
 import json
-import os
-import re
-import yaml
-from dataclasses import dataclass, field
+import sys
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Union
 
-# Import project configuration
 from project_config import get_script_project_config
 
 
 @dataclass
 class ObjectRegistration:
-    """Registration for a custom object."""
     name: str
-    obj_type: str  # "actor" or "scene"
-    module_name: str = ""
-    module_id: str = ""  # Module ID from config
-    component_name: str = ""
-    obj_id: int = 0  # Assigned during allocation
-    header_path: str = ""  # Include path for the class header
+    obj_type: str
+    module_id: str
+    component_name: str
+    header_path: str
+    overlay: int | None
+    obj_id: int = 0
 
 
-@dataclass
-class ComponentOverride:
-    """Override settings for a module component."""
-    enabled: Optional[bool] = None
-    target: Optional[str] = None
-    defines: Optional[Dict[str, Union[str, int, bool]]] = None
+class ModuleAssetGenerator:
+    def __init__(self, graph: dict, output_dir: Path, map_filename: str):
+        if graph.get('schema') != 'ncpatcher.modules/1':
+            raise ValueError('unsupported or missing NCPatcher module graph schema')
 
-
-@dataclass
-class ProcessedModule:
-    """Container for processed module data."""
-    name: str
-    path: Path
-    config: dict
-    enabled_components: Set[str] = field(default_factory=set)
-    disabled_components: Set[str] = field(default_factory=set)
-    overrides: Dict[str, ComponentOverride] = field(default_factory=dict)
-
-
-class ModuleProcessor:
-    """Processes module configurations and generates build files."""
-
-    def __init__(self, modules_dir: Path, output_dir: Path, compiler_path: Path):
-        self.modules_dir = modules_dir
+        self.graph = graph
         self.output_dir = output_dir
-        self.compiler_path = compiler_path
-        self.root_dir = Path.cwd()
-        self.nitrofs_map_filename = 'nitrofs_file_map.txt'  # Default filename
+        self.map_filename = map_filename
+        self.project_root = Path(graph['dir']).parent
+        self.languages = set(get_script_project_config().language_codes)
+        self.registrations: list[ObjectRegistration] = []
 
-        # Get project configuration for languages
-        self.project_config = get_script_project_config()
-
-        # Collections for build configuration
-        self.arm7_defines: Dict[str, Union[str, int, bool, None]] = {}
-        self.arm9_defines: Dict[str, Union[str, int, bool, None]] = {}
-        self.component_sources: Dict[tuple, bool] = {}  # (file, base, region) -> enabled
-
-        # Collections for nitrofs file mapping
-        self.nitrofs_file_map: Dict[str, str] = {}  # final_path -> source_path
-
-        # Collections for object ID registration
-        self.object_id_registrations: List[ObjectRegistration] = []
-        self.next_object_id: int = 0x182  # Starting ID for extended objects
-
-    def load_yaml(self, path: Path) -> dict:
-        """Load and parse a YAML file."""
-        with path.open('r', encoding='utf-8') as f:
-            return yaml.safe_load(f) or {}
-
-    def load_json(self, path: Path) -> dict:
-        """Load and parse a JSON file."""
-        with path.open('r', encoding='utf-8') as f:
-            return json.load(f)
-
-    def save_json(self, data: dict, path: Path) -> None:
-        """Save data as formatted JSON."""
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open('w', encoding='utf-8') as f:
-            json.dump(data, f, indent=4, sort_keys=False)
-
-    def ensure_list(self, value) -> List:
-        """Convert value to list if it isn't already."""
+    @staticmethod
+    def _as_list(value):
         if value is None:
             return []
         return value if isinstance(value, list) else [value]
 
-    def resolve_source_paths(self, module_dir: Path, source_pattern: str) -> List[str]:
-        """
-        Resolve source patterns to actual file paths.
-        Supports glob patterns and returns paths relative to working directory.
-        """
-        if isinstance(source_pattern, list):
-            source_pattern = source_pattern[0]
+    def _enabled_modules(self):
+        return (module for module in self.graph.get('modules', []) if module.get('enabled'))
 
-        pattern_str = str(source_pattern)
-        has_glob = any(char in pattern_str for char in '*?[')
+    def _is_excluded(self, relative: Path, excluded: set[str]) -> bool:
+        text = relative.as_posix()
+        without_language = '/'.join(relative.parts[1:]) if relative.parts and relative.parts[0] in self.languages else text
+        return any(text == pattern or without_language == pattern or text.endswith('/' + pattern)
+                   for pattern in excluded)
 
-        if has_glob:
-            # Expand glob pattern
-            full_pattern = str((module_dir / pattern_str).resolve())
-            matches = glob.glob(full_pattern, recursive=True)
-            matches.sort()  # Deterministic order
+    def generate_nitrofs_map(self):
+        file_map: dict[str, str] = {}
 
-            resolved_paths = []
-            for match in matches:
-                match_path = Path(match)
-                # Skip directories - we only want files
-                if match_path.is_file():
-                    rel_path = os.path.relpath(match, self.root_dir)
-                    resolved_paths.append(Path(rel_path).as_posix())
+        for module in self._enabled_modules():
+            module_dir = Path(module['dir'])
+            nitrofs_dir = module_dir / 'nitrofs'
+            if not nitrofs_dir.is_dir():
+                continue
 
-            if not resolved_paths:
-                print(f"Warning: glob pattern '{full_pattern}' matched no files")
-                # Fallback to literal path
-                fallback_path = module_dir / pattern_str
-                rel_path = os.path.relpath(fallback_path, self.root_dir)
-                resolved_paths.append(Path(rel_path).as_posix())
+            excluded = {
+                str(pattern)
+                for component in module.get('components', [])
+                if not component.get('enabled', True)
+                for pattern in self._as_list(component.get('files'))
+            }
 
-            return resolved_paths
-        else:
-            # Single file path
-            file_path = module_dir / pattern_str
-            if file_path.exists() and file_path.is_dir():
-                print(f"Error: '{file_path}' is a directory. Only files or globs allowed.")
-                return []
+            for source in sorted(path for path in nitrofs_dir.rglob('*') if path.is_file()):
+                destination = source.relative_to(nitrofs_dir)
+                if self._is_excluded(destination, excluded):
+                    continue
 
-            rel_path = os.path.relpath(file_path, self.root_dir)
-            return [Path(rel_path).as_posix()]
-
-    def parse_target(self, target_str: str) -> tuple[str, Optional[int], bool]:
-        """Parse target string like 'arm9' or 'arm9(12)' into base, overlay number, and locked flag.
-
-        Supports locked targets with '!' prefix, e.g. '!arm9' or '!arm9(12)'.
-        """
-        is_locked = False
-        if target_str.startswith('!'):
-            is_locked = True
-            target_str = target_str[1:]  # Remove the '!' prefix
-
-        if '(' not in target_str:
-            return target_str, None, is_locked
-
-        base, overlay_part = target_str.split('(', 1)
-        try:
-            overlay_num = int(overlay_part.rstrip(')'))
-            return base, overlay_num, is_locked
-        except ValueError:
-            return base, None, is_locked
-
-    def get_region_dest(self, overlay_num: Optional[int]) -> str:
-        """Convert overlay number to region destination string."""
-        return "main" if overlay_num is None else f"ov{overlay_num}"
-
-    def parse_define(self, define_input: Union[str, dict]) -> tuple[str, Union[str, int, bool, None]]:
-        """
-        Parse a define input into name and value.
-
-        Args:
-            define_input: Can be:
-                - String: "DEFINE_NAME" -> (DEFINE_NAME, None)
-                - String: "DEFINE_NAME=value" -> (DEFINE_NAME, value)
-                - Dict: {"DEFINE_NAME": value} -> (DEFINE_NAME, value)
-
-        Returns:
-            Tuple of (define_name, define_value)
-        """
-        if isinstance(define_input, str):
-            if '=' in define_input:
-                name, value = define_input.split('=', 1)
-                # Try to convert value to appropriate type
                 try:
-                    # Try integer first
-                    if value.startswith('0x') or value.startswith('0X'):
-                        return name.strip(), int(value, 16)
-                    elif value.isdigit() or (value.startswith('-') and value[1:].isdigit()):
-                        return name.strip(), int(value)
-                    elif value.lower() in ('true', 'false'):
-                        return name.strip(), value.lower() == 'true'
-                    else:
-                        return name.strip(), value
+                    source_text = source.relative_to(self.project_root).as_posix()
                 except ValueError:
-                    return name.strip(), value
-            else:
-                return define_input.strip(), None
-        elif isinstance(define_input, dict):
-            if len(define_input) == 1:
-                name, value = next(iter(define_input.items()))
-                return str(name), value
-            else:
-                raise ValueError(f"Define dict must have exactly one key-value pair: {define_input}")
-        else:
-            raise ValueError(f"Invalid define format: {define_input}")
-
-    def add_define(self, target_defines: Dict[str, Union[str, int, bool, None]],
-                   define_name: str, define_value: Union[str, int, bool, None],
-                   overrides: Optional[Dict[str, Union[str, int, bool]]] = None) -> None:
-        """Add a define to the target dictionary, applying overrides if provided."""
-        # Apply override if available
-        if overrides and define_name in overrides:
-            define_value = overrides[define_name]
-
-        target_defines[define_name] = define_value
-
-    def validate_module_id(self, module_id: str, module_name: str) -> bool:
-        """Validate that module ID only contains a-z and A-Z characters."""
-        if not module_id:
-            print(f"Error: Module '{module_name}' is missing required 'id' field")
-            return False
-
-        if not module_id.replace('_', '').replace('-', '').replace(' ', '').isalpha():
-            print(f"Error: Module '{module_name}' has invalid id '{module_id}'. ID must only contain a-z and A-Z characters.")
-            return False
-
-        # Check for invalid characters
-        if any(c in module_id for c in '_- '):
-            print(f"Error: Module '{module_name}' has invalid id '{module_id}'. ID must not contain spaces, underscores, or hyphens.")
-            return False
-
-        return True
-
-    def process_module_id(self, module: ProcessedModule) -> None:
-        """Process module ID and generate MODULE_<ID> define."""
-        module_id = module.config.get('id')
-        if not self.validate_module_id(module_id, module.name):
-            return
-
-        # Generate MODULE_<UPPERCASE_ID> define
-        module_define = f"MODULE_{module_id.upper()}"
-
-        # Determine which ARM processors this module targets (similar to process_module_defines)
-        targets = module.config.get('targets', {})
-        arm_targets = set()
-
-        # Handle both dict and list format for targets
-        target_items = targets.items() if isinstance(targets, dict) else []
-        if isinstance(targets, list):
-            for target_item in targets:
-                if isinstance(target_item, dict):
-                    target_items.extend(target_item.items())
-
-        for target_name, _ in target_items:
-            base, _, _ = self.parse_target(target_name)
-            if base in ('arm7', 'arm9'):
-                arm_targets.add(base)
-
-        # Default to arm9 if no specific targets
-        if not arm_targets:
-            arm_targets.add('arm9')
-
-        # Add MODULE_<ID> define to appropriate ARM configurations
-        if 'arm7' in arm_targets:
-            self.add_define(self.arm7_defines, module_define, None)
-        if 'arm9' in arm_targets:
-            self.add_define(self.arm9_defines, module_define, None)
-
-    def parse_component_overrides(self, components_config: List) -> Dict[str, ComponentOverride]:
-        """Parse component override configuration from project.yaml."""
-        overrides = {}
-
-        for component_item in self.ensure_list(components_config):
-            if not isinstance(component_item, dict):
-                continue
-
-            for comp_name, comp_value in component_item.items():
-                override = ComponentOverride()
-
-                if isinstance(comp_value, bool):
-                    override.enabled = comp_value
-                elif isinstance(comp_value, dict):
-                    override.enabled = comp_value.get('enabled')
-                    override.target = comp_value.get('target')
-                    # Handle define overrides
-                    if 'defines' in comp_value:
-                        override.defines = comp_value['defines']
-                elif isinstance(comp_value, list):
-                    # Handle list of override dicts
-                    for item in comp_value:
-                        if isinstance(item, dict):
-                            if 'enabled' in item:
-                                override.enabled = bool(item['enabled'])
-                            if 'target' in item:
-                                override.target = item['target']
-                            if 'defines' in item:
-                                if override.defines is None:
-                                    override.defines = {}
-                                override.defines.update(item['defines'])
-
-                overrides[str(comp_name)] = override
-
-        return overrides
-
-    def load_enabled_modules(self) -> List[ProcessedModule]:
-        """Load and process all enabled modules from project.yaml."""
-        # First try to load from project.yaml
-        modules_config_from_project = self.project_config.modules
-        processed_modules = []
-
-        if modules_config_from_project:
-            print("Loading module configuration from project.yaml")
-
-            for module_item in modules_config_from_project:
-                if not isinstance(module_item, dict):
-                    continue
-
-                for module_name, module_config in module_item.items():
-                    if not module_config or not module_config.get('enabled', False):
-                        continue
-
-                    module_path = self.modules_dir / module_name
-                    module_yaml_path = module_path / "module.yaml"
-
-                    if not module_yaml_path.exists():
-                        print(f"Warning: module.yaml not found for '{module_name}' at {module_yaml_path}")
-                        continue
-
-                    module_data = self.load_yaml(module_yaml_path)
-
-                    # Validate module ID early - abort if invalid
-                    module_id = module_data.get('id')
-                    if not self.validate_module_id(module_id, module_name):
-                        print(f"Error: Module '{module_name}' has invalid or missing ID. Aborting.")
-                        exit(1)
-
-                    overrides = self.parse_component_overrides(module_config.get('components', []))
-
-                    processed_module = ProcessedModule(
-                        name=module_name,
-                        path=module_path,
-                        config=module_data,
-                        overrides=overrides
-                    )
-
-                    # Determine enabled/disabled components
-                    for component_item in module_data.get('components', []):
-                        if isinstance(component_item, dict):
-                            for comp_name in component_item.keys():
-                                override = overrides.get(comp_name, ComponentOverride())
-                                if override.enabled is False:
-                                    processed_module.disabled_components.add(comp_name)
-                                else:
-                                    processed_module.enabled_components.add(comp_name)
-
-                    processed_modules.append(processed_module)
-
-        if not processed_modules:
-            print("Error: No modules found in project.yaml")
-            return []
-
-        return processed_modules
-
-    def validate_component_requirements(self, modules: List[ProcessedModule]) -> bool:
-        """Validate that component requirements are satisfied."""
-        has_errors = False
-
-        for module in modules:
-            for component_item in module.config.get('components', []):
-                if not isinstance(component_item, dict):
-                    continue
-
-                for comp_name, comp_config in component_item.items():
-                    # Skip disabled components
-                    if comp_name in module.disabled_components:
-                        continue
-
-                    if not isinstance(comp_config, dict):
-                        continue
-
-                    # Check if this component has requirements
-                    requires = comp_config.get('requires')
-                    if requires:
-                        required_components = self.ensure_list(requires)
-
-                        for required_comp in required_components:
-                            required_comp = str(required_comp).strip()
-
-                            # Check if the required component is disabled
-                            if required_comp in module.disabled_components:
-                                print(f"Error: Component '{comp_name}' in module '{module.name}' requires '{required_comp}', but '{required_comp}' is disabled.")
-                                print(f"  To fix this, either:")
-                                print(f"    1. Enable '{required_comp}' by removing it from the disabled components list")
-                                print(f"    2. Disable '{comp_name}' by adding it to the disabled components list")
-                                has_errors = True
-                            # Check if the required component exists in the module
-                            elif not self._component_exists_in_module(module, required_comp):
-                                print(f"Error: Component '{comp_name}' in module '{module.name}' requires '{required_comp}', but '{required_comp}' does not exist in the module.")
-                                has_errors = True
-
-        return not has_errors
-
-    def _component_exists_in_module(self, module: ProcessedModule, comp_name: str) -> bool:
-        """Check if a component exists in the module configuration."""
-        for component_item in module.config.get('components', []):
-            if isinstance(component_item, dict):
-                if comp_name in component_item:
-                    return True
-        return False
-
-    def collect_component_sources(self, modules: List[ProcessedModule]) -> None:
-        """Pre-collect all component source assignments to avoid conflicts."""
-        for module in modules:
-            for component_item in module.config.get('components', []):
-                if not isinstance(component_item, dict):
-                    continue
-
-                for comp_name, comp_config in component_item.items():
-                    if comp_name in module.disabled_components:
-                        continue
-
-                    if not isinstance(comp_config, dict):
-                        continue
-
-                    # Get target (with possible override)
-                    target = comp_config.get('target')
-                    original_target_locked = False
-
-                    # Check if original target is locked
-                    if target and target.startswith('!'):
-                        original_target_locked = True
-
-                    override = module.overrides.get(comp_name, ComponentOverride())
-                    # Only apply override if original target is not locked
-                    if override.target and not original_target_locked:
-                        target = override.target
-
-                    if not target:
-                        continue
-
-                    base, overlay_num, target_locked = self.parse_target(target)
-                    if base not in ('arm7', 'arm9'):
-                        continue
-
-                    region = self.get_region_dest(overlay_num)
-
-                    # Process component sources
-                    sources = comp_config.get('sources', [])
-                    for source_pattern in self.ensure_list(sources):
-                        resolved_paths = self.resolve_source_paths(module.path, source_pattern)
-                        for source_path in resolved_paths:
-                            self.component_sources[(source_path, base, region)] = True
-
-    def add_sources_to_region(self, build_config: dict, region_dest: str, new_sources: List[str]) -> None:
-        """Add source files to a specific region in the build configuration."""
-        regions = build_config.setdefault('regions', [])
-
-        # Find the target region
-        target_region = None
-        for region in regions:
-            if region.get('dest') == region_dest:
-                target_region = region
-                break
-
-        if not target_region:
-            raise RuntimeError(f"Error: region '{region_dest}' not found in build configuration")
-
-        # Add sources, avoiding duplicates
-        region_sources = target_region.setdefault('sources', [])
-        existing_sources = set(region_sources)
-
-        for source in new_sources:
-            if source not in existing_sources:
-                region_sources.append(source)
-                existing_sources.add(source)
-
-    def add_include_path(self, build_config: dict, module_path: Path, include_path: str) -> None:
-        """Add an include path to the build configuration."""
-        full_path = module_path / include_path
-        rel_path = os.path.relpath(full_path, self.root_dir)
-        posix_path = Path(rel_path).as_posix()
-
-        includes = build_config.setdefault('includes', [])
-        if posix_path not in includes:
-            includes.append(posix_path)
-
-    def process_module_defines(self, module: ProcessedModule) -> None:
-        """Process module-level defines and add them to appropriate ARM configurations."""
-        module_defines = self.ensure_list(module.config.get('defines', []))
-        if not module_defines:
-            return
-
-        # Determine which ARM processors this module targets
-        targets = module.config.get('targets', {})
-        arm_targets = set()
-
-        # Handle both dict and list format for targets
-        target_items = targets.items() if isinstance(targets, dict) else []
-        if isinstance(targets, list):
-            for target_item in targets:
-                if isinstance(target_item, dict):
-                    target_items.extend(target_item.items())
-
-        for target_name, _ in target_items:
-            base, _, _ = self.parse_target(target_name)
-            if base in ('arm7', 'arm9'):
-                arm_targets.add(base)
-
-        # Add defines to appropriate ARM configurations
-        # Default to arm9 if no specific targets
-        if not arm_targets:
-            arm_targets.add('arm9')
-
-        for define in module_defines:
-            define_name, define_value = self.parse_define(define)
-            if 'arm7' in arm_targets:
-                self.add_define(self.arm7_defines, define_name, define_value)
-            if 'arm9' in arm_targets:
-                self.add_define(self.arm9_defines, define_name, define_value)
-
-    def process_module_targets(self, module: ProcessedModule, arm7_config: dict, arm9_config: dict) -> None:
-        """Process module target configurations."""
-        targets = module.config.get('targets', {})
-
-        # Handle both dict and list formats
-        target_items = []
-        if isinstance(targets, dict):
-            target_items = list(targets.items())
-        elif isinstance(targets, list):
-            for item in targets:
-                if isinstance(item, dict):
-                    target_items.extend(item.items())
-
-        for target_name, target_config in target_items:
-            base, overlay_num, _ = self.parse_target(target_name)
-            if base not in ('arm7', 'arm9'):
-                continue
-
-            build_config = arm9_config if base == 'arm9' else arm7_config
-            region_dest = self.get_region_dest(overlay_num)
-
-            # Handle both dict and list formats for target_config
-            config_items = [target_config] if isinstance(target_config, dict) else self.ensure_list(target_config)
-
-            for config_item in config_items:
-                if not isinstance(config_item, dict):
-                    continue
-
-                # Process includes
-                includes = config_item.get('includes', [])
-                for include_path in self.ensure_list(includes):
-                    self.add_include_path(build_config, module.path, include_path)
-
-                # Process sources
-                sources = config_item.get('sources', [])
-                if sources:
-                    resolved_sources = []
-                    for source_pattern in self.ensure_list(sources):
-                        resolved_paths = self.resolve_source_paths(module.path, source_pattern)
-                        resolved_sources.extend(resolved_paths)
-
-                    # Filter out disabled component sources
-                    filtered_sources = self.filter_disabled_sources(module, resolved_sources)
-
-                    # Filter out sources assigned to different regions via components
-                    final_sources = self.filter_component_region_conflicts(
-                        filtered_sources, base, region_dest
-                    )
-
-                    if final_sources:
-                        self.add_sources_to_region(build_config, region_dest, final_sources)
-
-    def filter_disabled_sources(self, module: ProcessedModule, sources: List[str]) -> List[str]:
-        """Filter out sources belonging to disabled components."""
-        if not module.disabled_components:
-            return sources
-
-        # Get all sources from disabled components
-        disabled_sources = set()
-        for component_item in module.config.get('components', []):
-            if not isinstance(component_item, dict):
-                continue
-
-            for comp_name, comp_config in component_item.items():
-                if comp_name not in module.disabled_components:
-                    continue
-
-                if isinstance(comp_config, dict):
-                    # Add component sources to disabled set
-                    comp_sources = comp_config.get('sources', [])
-                    for source_pattern in self.ensure_list(comp_sources):
-                        resolved_paths = self.resolve_source_paths(module.path, source_pattern)
-                        disabled_sources.update(resolved_paths)
-
-        # Filter out disabled sources
-        return [src for src in sources if src not in disabled_sources]
-
-    def filter_component_region_conflicts(self, sources: List[str], base: str, region: str) -> List[str]:
-        """Filter out sources assigned to components targeting different regions."""
-        filtered = []
-        for source in sources:
-            # Check if this source is assigned to a component for a different region
-            assigned_elsewhere = any(
-                src == source and src_base == base and src_region != region
-                for (src, src_base, src_region) in self.component_sources
-            )
-            if not assigned_elsewhere:
-                filtered.append(source)
-
-        return filtered
-
-    def process_module_components(self, module: ProcessedModule, arm7_config: dict, arm9_config: dict) -> None:
-        """Process module component configurations."""
-        for component_item in module.config.get('components', []):
-            if not isinstance(component_item, dict):
-                continue
-
-            for comp_name, comp_config in component_item.items():
-                if comp_name in module.disabled_components:
-                    continue
-
-                if not isinstance(comp_config, dict):
-                    continue
-
-                # Get target (with possible override)
-                target = comp_config.get('target')
-                original_target_locked = False
-
-                # Check if original target is locked
-                if target and target.startswith('!'):
-                    original_target_locked = True
-
-                override = module.overrides.get(comp_name, ComponentOverride())
-                # Only apply override if original target is not locked
-                if override.target and not original_target_locked:
-                    target = override.target
-
-                if not target:
-                    continue
-
-                base, overlay_num, target_locked = self.parse_target(target)
-                if base not in ('arm7', 'arm9'):
-                    continue
-
-                build_config = arm9_config if base == 'arm9' else arm7_config
-                region_dest = self.get_region_dest(overlay_num)
-
-                # Process component defines
-                comp_defines = self.ensure_list(comp_config.get('defines', []))
-                for define in comp_defines:
-                    define_name, define_value = self.parse_define(define)
-                    target_defines = self.arm9_defines if base == 'arm9' else self.arm7_defines
-                    self.add_define(target_defines, define_name, define_value, override.defines)
-
-                # Process component includes
-                includes = self.ensure_list(comp_config.get('includes', []))
-                for include_path in includes:
-                    self.add_include_path(build_config, module.path, include_path)
-
-                # Process component sources
-                sources = self.ensure_list(comp_config.get('sources', []))
-                if sources:
-                    resolved_sources = []
-                    for source_pattern in sources:
-                        resolved_paths = self.resolve_source_paths(module.path, source_pattern)
-                        resolved_sources.extend(resolved_paths)
-
-                    if resolved_sources:
-                        self.add_sources_to_region(build_config, region_dest, resolved_sources)
-
-    def inject_defines_into_flags(self, build_config: dict, defines: Dict[str, Union[str, int, bool, None]]) -> None:
-        """Inject preprocessor defines into ARM flags."""
-        if not defines or '$arm_flags' not in build_config:
-            return
-
-        define_flags = []
-        for define_name, define_value in sorted(defines.items()):
-            if define_value is None:
-                # Simple define without value
-                define_flag = f'-D{define_name}'
-            elif isinstance(define_value, bool):
-                # Boolean define
-                define_flag = f'-D{define_name}={1 if define_value else 0}'
-            elif isinstance(define_value, int):
-                # Integer define (including hex)
-                if define_value >= 0 and define_value <= 15:
-                    # Small integers as decimal
-                    define_flag = f'-D{define_name}={define_value}'
-                else:
-                    # Larger integers as hex
-                    define_flag = f'-D{define_name}=0x{define_value:X}'
-            else:
-                # String define
-                define_flag = f'-D{define_name}={define_value}'
-
-            define_flags.append(define_flag)
-
-        if define_flags:
-            current_flags = build_config['$arm_flags']
-            build_config['$arm_flags'] = current_flags + ' ' + ' '.join(define_flags)
-
-    def remove_empty_regions(self, build_config: dict) -> None:
-        """Remove regions with no sources from build configuration."""
-        regions = build_config.get('regions', [])
-        filtered_regions = [
-            region for region in regions
-            if region.get('sources') and len(region['sources']) > 0
-        ]
-        build_config['regions'] = filtered_regions
-
-    def generate_vscode_config(self, arm7_config: dict, arm9_config: dict) -> None:
-        """Generate VSCode C++ IntelliSense configuration."""
-        # Skip generating VSCode config if compiler path is not specified or doesn't exist
-        if not self.compiler_path or not self.compiler_path.exists():
-            if not self.compiler_path:
-                print("Skipping VSCode configuration generation: no compiler path specified")
-            else:
-                print(f"Skipping VSCode configuration generation: compiler path does not exist: {self.compiler_path}")
-            return
-
-        vscode_dir = Path('.vscode')
-        vscode_dir.mkdir(exist_ok=True)
-
-        # Collect include paths
-        includes = set()
-        includes.update(arm7_config.get('includes', []))
-        includes.update(arm9_config.get('includes', []))
-
-        # Extract defines from ARM flags and our define dictionaries
-        defines = set()
-
-        # Get defines from ARM flags (for backward compatibility)
-        for config in [arm7_config, arm9_config]:
-            flag_string = config.get('$arm_flags', '')
-            found_defines = re.findall(r'-D([A-Za-z0-9_]+(?:=[^\\s]*)?)', flag_string)
-            defines.update(found_defines)
-
-        # Add defines from our dictionaries (arm9 takes precedence)
-        for define_name, define_value in self.arm7_defines.items():
-            if define_value is None:
-                defines.add(define_name)
-            else:
-                if isinstance(define_value, bool):
-                    defines.add(f'{define_name}={1 if define_value else 0}')
-                elif isinstance(define_value, int):
-                    if define_value >= 0 and define_value <= 15:
-                        defines.add(f'{define_name}={define_value}')
-                    else:
-                        defines.add(f'{define_name}=0x{define_value:X}')
-                else:
-                    defines.add(f'{define_name}={define_value}')
-
-        for define_name, define_value in self.arm9_defines.items():
-            # Remove any existing define with the same name
-            defines = {d for d in defines if not d.startswith(f'{define_name}=')}
-            defines.discard(define_name)  # Remove simple define without value
-
-            if define_value is None:
-                defines.add(define_name)
-            else:
-                if isinstance(define_value, bool):
-                    defines.add(f'{define_name}={1 if define_value else 0}')
-                elif isinstance(define_value, int):
-                    if define_value >= 0 and define_value <= 15:
-                        defines.add(f'{define_name}={define_value}')
-                    else:
-                        defines.add(f'{define_name}=0x{define_value:X}')
-                else:
-                    defines.add(f'{define_name}={define_value}')
-
-        # Add common defines
-        common_defines = ['SDK_GCC', 'SDK_ARM9', 'SDK_FINALROM', 'IDE', 'NTR_DEBUG']
-        defines.update(common_defines)
-
-        cpp_config = {
-            'configurations': [{
-                'name': 'DS-ARM9',
-                'includePath': sorted(list(includes)),
-                'forcedInclude': ['${env:NCPATCHER_ROOT}/ncp_ide.h'],
-                'defines': sorted(list(defines)),
-                'compilerPath': str(self.compiler_path),
-                'cStandard': 'c11',
-                'cppStandard': 'c++23',
-                'intelliSenseMode': 'gcc-arm'
-            }],
-            'version': 4
-        }
-
-        config_path = vscode_dir / 'c_cpp_properties.json'
-        with config_path.open('w', encoding='utf-8') as f:
-            json.dump(cpp_config, f, indent=2)
-
-        print(f"VSCode C++ configuration written to {config_path}")
-
-    def collect_module_nitrofs_files(self, module: ProcessedModule) -> Dict[str, str]:
-        """Collect all nitrofs files from a module, respecting component excludes."""
-        module_files = {}
-        nitrofs_dir = module.path / "nitrofs"
-
-        if not nitrofs_dir.exists():
-            return module_files
-
-        # Collect files that should be excluded based on disabled components
-        excluded_files = set()
-        for component_item in module.config.get('components', []):
-            if not isinstance(component_item, dict):
-                continue
-
-            for comp_name, comp_config in component_item.items():
-                if comp_name in module.disabled_components:
-                    # This component is disabled, exclude its files
-                    component_files = comp_config.get('files', []) if isinstance(comp_config, dict) else []
-                    for file_pattern in self.ensure_list(component_files):
-                        excluded_files.add(file_pattern)
-
-        # Define supported language prefixes from project configuration
-        supported_languages = self.project_config.language_codes
-
-        # Collect all files from nitrofs directory
-        for file_path in nitrofs_dir.rglob('*'):
-            if file_path.is_file():
-                # Get relative path from nitrofs root
-                rel_path = file_path.relative_to(nitrofs_dir)
-                rel_path_str = rel_path.as_posix()
-
-                # Check if this file should be excluded
-                should_exclude = False
-                for excluded_pattern in excluded_files:
-                    # Check for exact match
-                    if rel_path_str == excluded_pattern:
-                        should_exclude = True
-                        break
-
-                    # Check if file matches pattern when accounting for language prefixes
-                    # If the file is under a language directory (e.g., en/enemy/w3_sign.nsbmd)
-                    # and the excluded pattern is enemy/w3_sign.nsbmd, it should be excluded
-                    path_parts = rel_path.parts
-                    if len(path_parts) > 1 and path_parts[0] in supported_languages:
-                        # Remove language prefix and check if it matches the excluded pattern
-                        file_without_lang = '/'.join(path_parts[1:])
-                        if file_without_lang == excluded_pattern:
-                            should_exclude = True
-                            break
-
-                    # Also check if the excluded pattern ends the path (legacy behavior)
-                    if rel_path_str.endswith('/' + excluded_pattern):
-                        should_exclude = True
-                        break
-
-                if not should_exclude:
-                    module_files[rel_path_str] = str(file_path)
-
-        return module_files
-
-    def parse_object_id_registrations(self, component_config: dict, module_name: str, module_id: str, component_name: str) -> List[ObjectRegistration]:
-        """Parse objects from component configuration."""
-        objects = component_config.get('objects', [])
+                    source_text = source.as_posix()
+                file_map.setdefault(destination.as_posix(), source_text)
+
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        output = self.output_dir / self.map_filename
+        with output.open('w', encoding='utf-8') as stream:
+            stream.write('# Nitrofs file mapping generated by module_gen.py\n')
+            stream.write('# Format: relative_path=absolute_source_path\n')
+            stream.write(f'# Generated from {len(file_map)} files\n\n')
+            for destination, source in sorted(file_map.items()):
+                stream.write(f'{destination}={source}\n')
+
+        print(f'Generated NitroFS map with {len(file_map)} files: {output}')
+
+    def collect_objects(self):
         registrations = []
 
-        for obj_config in self.ensure_list(objects):
-            if not isinstance(obj_config, dict):
-                continue
+        for module in self._enabled_modules():
+            module_id = module.get('id')
+            if not module_id:
+                raise ValueError(f"enabled module {module.get('key', '<unknown>')} has no id")
 
-            name = obj_config.get('name')
-            obj_type = obj_config.get('type', 'actor')
-            header_path = obj_config.get('header', '')
-
-            if not name:
-                print(f"Warning: object missing 'name' in component '{component_name}' of module '{module_name}'")
-                continue
-
-            if obj_type not in ('actor', 'scene'):
-                print(f"Warning: object '{name}' has invalid type '{obj_type}' (must be 'actor' or 'scene')")
-                continue
-
-            if not header_path:
-                print(f"Warning: object '{name}' missing required 'header' field in component '{component_name}' of module '{module_name}'")
-                continue
-
-            registrations.append(ObjectRegistration(
-                name=name,
-                obj_type=obj_type,
-                module_name=module_name,
-                module_id=module_id,
-                component_name=component_name,
-                header_path=header_path
-            ))
-
-        return registrations
-
-    def collect_object_id_registrations(self, modules: List[ProcessedModule]) -> None:
-        """Collect all object ID registrations from enabled modules."""
-        print("Collecting object ID registrations...")
-
-        all_registrations = []
-
-        for module in modules:
-            # Get the module ID from config
-            module_id = module.config.get('id')
-
-            for component_item in module.config.get('components', []):
-                if not isinstance(component_item, dict):
+            for component in module.get('components', []):
+                if not component.get('enabled', True):
                     continue
 
-                for comp_name, comp_config in component_item.items():
-                    if not isinstance(comp_config, dict):
-                        continue
+                target = component.get('target') or {}
+                overlay = target.get('overlay')
+                for obj in self._as_list(component.get('extra', {}).get('objects')):
+                    if not isinstance(obj, dict) or not obj.get('name') or not obj.get('header'):
+                        raise ValueError(f"invalid object in {module_id}.{component.get('name', '<unknown>')}")
+                    obj_type = obj.get('type', 'actor')
+                    if obj_type not in ('actor', 'scene'):
+                        raise ValueError(f"object {obj['name']} has invalid type {obj_type}")
 
-                    # Skip disabled components
-                    if comp_name in module.disabled_components:
-                        continue
+                    registrations.append(ObjectRegistration(
+                        name=obj['name'],
+                        obj_type=obj_type,
+                        module_id=module_id,
+                        component_name=component['name'],
+                        header_path=obj['header'],
+                        overlay=overlay,
+                    ))
 
-                    registrations = self.parse_object_id_registrations(comp_config, module.name, module_id, comp_name)
-                    all_registrations.extend(registrations)
+        registrations.sort(key=lambda item: (item.module_id, item.component_name, item.name))
+        seen = set()
+        for index, registration in enumerate(registrations, start=0x182):
+            identity = (registration.module_id, registration.name)
+            if identity in seen:
+                raise ValueError(f'duplicate object {registration.module_id}.{registration.name}')
+            seen.add(identity)
+            registration.obj_id = index
 
-        # Sort by module ID, component name, and object name for deterministic ordering
-        all_registrations.sort(key=lambda x: (x.module_id, x.component_name, x.name))
+        self.registrations = registrations
+        print(f'Collected {len(registrations)} object registrations')
 
-        # Assign object IDs
-        current_id = self.next_object_id
-        for registration in all_registrations:
-            registration.obj_id = current_id
-            current_id += 1
+    def generate_object_headers(self):
+        include_dir = self.output_dir / 'include'
+        object_dir = include_dir / 'objectids'
+        object_dir.mkdir(parents=True, exist_ok=True)
 
-        self.object_id_registrations = all_registrations
-        print(f"Collected {len(all_registrations)} object ID registrations")
-
-    def generate_object_id_headers(self) -> None:
-        """Generate object ID headers for each module."""
-        if not self.object_id_registrations:
-            return
-
-        print("Generating object ID headers...")
-
-        # Group registrations by module ID
-        by_module = {}
-        for reg in self.object_id_registrations:
-            module_key = reg.module_id
-            if module_key not in by_module:
-                by_module[module_key] = []
-            by_module[module_key].append(reg)
-
-        # Generate per-module headers
-        objectids_dir = self.output_dir / 'include' / 'objectids'
-        objectids_dir.mkdir(parents=True, exist_ok=True)
+        by_module: dict[str, list[ObjectRegistration]] = {}
+        for registration in self.registrations:
+            by_module.setdefault(registration.module_id, []).append(registration)
 
         for module_id, registrations in by_module.items():
-            header_content = f"""#pragma once
+            lines = [
+                '#pragma once', '', '#include <cstdint>', '',
+                f'// Generated object IDs for module ID: {module_id}',
+                '// Do not edit this file directly', '',
+                f'namespace ObjectID::{module_id} {{', '',
+            ]
+            lines.extend(f'    static constexpr std::uint16_t {item.name} = 0x{item.obj_id:X};'
+                         for item in registrations)
+            lines.extend(['', '}', ''])
+            (object_dir / f'{module_id.lower()}.hpp').write_text('\n'.join(lines), encoding='utf-8')
 
-#include <cstdint>
+        registry = [
+            '#pragma once', '', '#include <cstdint>', '',
+            '// Generated object registry', '// Do not edit this file directly', '',
+        ]
+        registry.extend(f'#include "objectids/{module_id.lower()}.hpp"' for module_id in by_module)
+        registry.extend([
+            '', 'namespace Game {',
+            '    static constexpr std::uint16_t ExtendedObjectsStart = 0x182;',
+            f'    static constexpr std::uint16_t ExtendedObjectsCount = {len(self.registrations)};',
+            '}', '',
+        ])
+        (include_dir / 'object_registry.hpp').write_text('\n'.join(registry), encoding='utf-8')
 
-// Generated object IDs for module ID: {module_id}
-// Do not edit this file directly
+        profile = [
+            '#pragma once', '',
+            '// Generated profile table for extended objects',
+            '// Do not edit this file directly', '',
+        ]
+        headers = dict.fromkeys(item.header_path for item in self.registrations)
+        profile.extend(f'#include "{header}"' for header in headers)
+        profile.extend([
+            '', 'namespace Game {', '', '// Generated extended profile table',
+            'const ObjectProfile* mainExtPT[] = {',
+        ])
+        profile.extend(f'    &{item.name}::Profile,  // {item.name} (0x{item.obj_id:X})'
+                       for item in self.registrations)
+        profile.extend([
+            '};', '', 'constinit const ObjectProfile* const* currentExtPT = mainExtPT;', '', '}', '',
+        ])
+        (include_dir / 'extended_profiles.hpp').write_text('\n'.join(profile), encoding='utf-8')
 
-namespace ObjectID::{module_id} {{
+        print(f'Generated object headers: {include_dir}')
 
-"""
+    def generate_scene_registry(self):
+        scenes = [item for item in self.registrations
+                  if item.obj_type == 'scene' and item.overlay is not None]
+        module_ids = sorted({item.module_id for item in scenes})
+        lines = [
+            '#pragma once', '', '#include <nsmb_nitro.hpp>', '',
+            '// Generated scene overlay registry',
+            '// Do not edit this file directly', '',
+        ]
+        lines.extend(f'#include "objectids/{module_id.lower()}.hpp"' for module_id in module_ids)
+        if module_ids:
+            lines.append('')
 
-            for reg in registrations:
-                header_content += f"    static constexpr std::uint16_t {reg.name} = 0x{reg.obj_id:X};\n"
-
-            header_content += """
-}
-"""
-
-            header_path = objectids_dir / f"{str.lower(module_id)}.hpp"
-            with header_path.open('w', encoding='utf-8') as f:
-                f.write(header_content)
-
-        # Generate main object registry header
-        registry_content = """#pragma once
-
-#include <cstdint>
-
-// Generated object registry
-// Do not edit this file directly
-
-"""
-
-        # Include all module headers
-        for module_id in by_module.keys():
-            registry_content += f'#include "objectids/{str.lower(module_id)}.hpp"\n'
-
-        registry_content += f"""
-namespace Game {{
-    static constexpr std::uint16_t ExtendedObjectsStart = 0x{self.next_object_id:X};
-    static constexpr std::uint16_t ExtendedObjectsCount = {len(self.object_id_registrations)};
-}}
-"""
-
-        registry_path = self.output_dir / 'include' / 'object_registry.hpp'
-        with registry_path.open('w', encoding='utf-8') as f:
-            f.write(registry_content)
-
-        # Generate profile table header for process.cpp
-        self.generate_profile_table_header()
-
-        print(f"Generated object ID headers in {objectids_dir}")
-
-    def generate_profile_table_header(self) -> None:
-        """Generate the profile table header that process.cpp should include."""
-        if not self.object_id_registrations:
-            return
-
-        profile_header_content = """#pragma once
-
-// Generated profile table for extended objects
-// Do not edit this file directly
-
-"""
-
-        # Include all required headers
-        included_headers = set()
-        for reg in self.object_id_registrations:
-            if reg.header_path and reg.header_path not in included_headers:
-                profile_header_content += f'#include "{reg.header_path}"\n'
-                included_headers.add(reg.header_path)
-
-        profile_header_content += """
-namespace Game {
-
-// Generated extended profile table
-const ObjectProfile* mainExtPT[] = {
-"""
-
-        # Add profile entries in order
-        for reg in self.object_id_registrations:
-            profile_header_content += f"    &{reg.name}::Profile,  // {reg.name} (0x{reg.obj_id:X})\n"
-
-        profile_header_content += """};
-
-constinit const ObjectProfile* const* currentExtPT = mainExtPT;
-
-}
-"""
-
-        profile_path = self.output_dir / 'include' / 'extended_profiles.hpp'
-        with profile_path.open('w', encoding='utf-8') as f:
-            f.write(profile_header_content)
-
-        print(f"Generated profile table header: {profile_path}")
-
-    def generate_scene_overlay_registry(self, modules: List[ProcessedModule]) -> None:
-        """Generate scene overlay registry header for process.cpp."""
-        print("Generating scene overlay registry...")
-
-        # Collect scene objects that have overlay targets
-        scene_overlays = {}  # scene_name -> overlay_number
-
-        for module in modules:
-            module_id = module.config.get('id')
-
-            for component_item in module.config.get('components', []):
-                if not isinstance(component_item, dict):
-                    continue
-
-                for comp_name, comp_config in component_item.items():
-                    if not isinstance(comp_config, dict):
-                        continue
-
-                    # Skip disabled components
-                    if comp_name in module.disabled_components:
-                        continue
-
-                    # Get target (with possible override) - same logic as process_module_components
-                    target = comp_config.get('target')
-                    original_target_locked = False
-
-                    # Check if original target is locked
-                    if target and target.startswith('!'):
-                        original_target_locked = True
-
-                    override = module.overrides.get(comp_name, ComponentOverride())
-                    # Only apply override if original target is not locked
-                    if override.target and not original_target_locked:
-                        target = override.target
-
-                    if target:
-                        base, overlay_num, is_locked = self.parse_target(target)
-
-                        # Only process if it has an overlay number
-                        if overlay_num is not None:
-                            # Check if this component has scene objects
-                            objects = comp_config.get('objects', [])
-                            for obj_config in self.ensure_list(objects):
-                                if not isinstance(obj_config, dict):
-                                    continue
-
-                                obj_type = obj_config.get('type', 'actor')
-                                obj_name = obj_config.get('name')
-
-                                if obj_type == 'scene' and obj_name:
-                                    scene_key = f"ObjectID::{module_id}::{obj_name}"
-                                    scene_overlays[scene_key] = overlay_num
-
-        # Generate the header content
-        header_content = """#pragma once
-
-#include <nsmb_nitro.hpp>
-
-// Generated scene overlay registry
-// Do not edit this file directly
-
-"""
-
-        # Include object ID headers if we have scenes with overlays
-        if scene_overlays:
-            module_ids = set()
-            for scene_key in scene_overlays.keys():
-                # Extract module ID from scene_key like "ObjectID::Coop::DesyncScene"
-                parts = scene_key.split("::")
-                if len(parts) >= 3:
-                    module_ids.add(parts[1])
-
-            for module_id in sorted(module_ids):
-                header_content += f'#include "objectids/{str.lower(module_id)}.hpp"\n'
-            header_content += "\n"
-
-        if scene_overlays:
-            # Generate the function
-            header_content += "NTR_INLINE u32 getSceneOverlayID(u16 sceneID, u32 defaultOverlayID) {\n"
-
-            header_content += "\n    switch (sceneID) {\n"
-
-            for scene_key, overlay_num in sorted(scene_overlays.items()):
-                header_content += f"        case {scene_key}: return {overlay_num};\n"
-
-            header_content += "        default: return defaultOverlayID;\n"
-            header_content += "    }\n"
-
-            header_content += "\n}\n"
+        if scenes:
+            lines.extend([
+                'NTR_INLINE u32 getSceneOverlayID(u16 sceneID, u32 defaultOverlayID) {', '',
+                '    switch (sceneID) {',
+            ])
+            lines.extend(
+                f'        case ObjectID::{item.module_id}::{item.name}: return {item.overlay};'
+                for item in sorted(scenes, key=lambda item: (item.module_id, item.name))
+            )
+            lines.extend([
+                '        default: return defaultOverlayID;', '    }', '', '}',
+            ])
         else:
-            header_content += "#define PROCESS_NO_SCENE_IN_OVERLAY\n"
+            lines.append('#define PROCESS_NO_SCENE_IN_OVERLAY')
+        lines.append('')
 
-        # Write the header file
-        registry_path = self.output_dir / 'include' / 'scene_overlay_registry.hpp'
-        registry_path.parent.mkdir(parents=True, exist_ok=True)
-        with registry_path.open('w', encoding='utf-8') as f:
-            f.write(header_content)
+        output = self.output_dir / 'include' / 'scene_overlay_registry.hpp'
+        output.write_text('\n'.join(lines), encoding='utf-8')
+        print(f'Generated scene overlay registry: {output}')
 
-        if scene_overlays:
-            print(f"Generated scene overlay registry with {len(scene_overlays)} scene(s): {registry_path}")
-        else:
-            print(f"Generated empty scene overlay registry: {registry_path}")
-
-    def generate_nitrofs_file_map(self, modules: List[ProcessedModule]) -> None:
-        """Generate nitrofs file mapping based on module order."""
-        print("Generating nitrofs file mapping...")
-
-        # Process modules in order (earlier modules take precedence over later ones)
-        for module in modules:
-            print(f"  Collecting files from module: {module.name}")
-            module_files = self.collect_module_nitrofs_files(module)
-
-            # Add files to the final mapping, preserving earlier modules' files
-            for rel_path, source_path in module_files.items():
-                if rel_path in self.nitrofs_file_map:
-                    print(f"    Skipping {rel_path} (already provided by earlier module)")
-                else:
-                    print(f"    Adding {rel_path}")
-                    self.nitrofs_file_map[rel_path] = source_path
-
-        print(f"Total nitrofs files collected: {len(self.nitrofs_file_map)}")
-
-    def save_nitrofs_file_map(self) -> None:
-        """Save the nitrofs file mapping to a text file for insert_files.py."""
-        if not self.nitrofs_file_map:
-            print("No nitrofs files to save")
-            return
-
-        map_file_path = self.output_dir / self.nitrofs_map_filename
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-
-        with map_file_path.open('w', encoding='utf-8') as f:
-            f.write("# Nitrofs file mapping generated by module_gen.py\n")
-            f.write("# Format: relative_path=absolute_source_path\n")
-            f.write(f"# Generated from {len(self.nitrofs_file_map)} files\n\n")
-
-            # Sort by relative path for consistent output
-            for rel_path in sorted(self.nitrofs_file_map.keys()):
-                source_path = self.nitrofs_file_map[rel_path]
-                f.write(f"{rel_path}={source_path}\n")
-
-        print(f"Nitrofs file mapping written to {map_file_path}")
-
-    def generate_build_configs(self) -> None:
-        """Main method to generate build configurations."""
-        print("Loading enabled modules...")
-        modules = self.load_enabled_modules()
-
-        if not modules:
-            print("No enabled modules found.")
-            return
-
-        print(f"Processing {len(modules)} enabled modules...")
-
-        # Validate component requirements
-        print("Validating component requirements...")
-        if not self.validate_component_requirements(modules):
-            print("Error: Component requirement validation failed. Please fix the errors above before continuing.")
-            return
-
-        # Load base configurations
-        arm7_config = self.load_json(self.root_dir / 'arm7.json')
-        arm9_config = self.load_json(self.root_dir / 'arm9.json')
-
-        # Pre-collect component sources to handle conflicts
-        self.collect_component_sources(modules)
-
-        # Process each module
-        for module in modules:
-            print(f"  Processing module: {module.name}")
-
-            # Process module ID and generate MODULE_<ID> define
-            self.process_module_id(module)
-
-            # Process module-level defines
-            self.process_module_defines(module)
-
-            # Process targets
-            self.process_module_targets(module, arm7_config, arm9_config)
-
-            # Process components
-            self.process_module_components(module, arm7_config, arm9_config)
-
-        # Inject defines into ARM flags
-        self.inject_defines_into_flags(arm7_config, self.arm7_defines)
-        self.inject_defines_into_flags(arm9_config, self.arm9_defines)
-
-        # Clean up empty regions
-        self.remove_empty_regions(arm7_config)
-        self.remove_empty_regions(arm9_config)
-
-        # Save output files
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.save_json(arm7_config, self.output_dir / 'arm7.json')
-        self.save_json(arm9_config, self.output_dir / 'arm9.json')
-
-        print(f"Build configurations written to {self.output_dir}")
-
-        # Generate nitrofs file mapping
-        self.generate_nitrofs_file_map(modules)
-        self.save_nitrofs_file_map()
-
-        # Collect and generate object ID registrations
-        self.collect_object_id_registrations(modules)
-        self.generate_object_id_headers()
-
-        # Generate scene overlay registry for process.cpp
-        self.generate_scene_overlay_registry(modules)
-
-        # Generate VSCode configuration
-        self.generate_vscode_config(arm7_config, arm9_config)
+    def run(self):
+        self.generate_nitrofs_map()
+        self.collect_objects()
+        self.generate_object_headers()
+        self.generate_scene_registry()
 
 
 def main():
-    """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description='Generate build configurations from module definitions',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-This script processes module YAML files and generates ARM7/ARM9 build configurations
-for NSMB projects. It also creates VSCode IntelliSense configuration.
-
-Example usage:
-  python module_gen.py
-  python module_gen.py --modules-dir modules --out-dir build/generated
-        """
-    )
-
-    parser.add_argument(
-        '--modules-dir',
-        type=Path,
-        default=Path('modules'),
-        help='Directory containing module subdirectories'
-    )
-
-    parser.add_argument(
-        '--out-dir',
-        type=Path,
-        default=Path('build/generated'),
-        help='Output directory for generated build configurations'
-    )
-
-    parser.add_argument(
-        '--compiler-path',
-        type=Path,
-        help='Path to ARM GCC compiler for VSCode configuration'
-    )
-
-    parser.add_argument(
-        '--nitrofs-map-file',
-        type=str,
-        default='nitrofs_file_map.txt',
-        help='Name of the nitrofs file mapping output file (default: nitrofs_file_map.txt)'
-    )
-
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--graph', type=Path, required=True,
+                        help='NCPatcher ncpatcher.modules/1 graph JSON')
+    parser.add_argument('--out-dir', type=Path, default=Path('build/generated'))
+    parser.add_argument('--nitrofs-map-file', default='nitrofs_file_map.txt')
     args = parser.parse_args()
 
-    # Validate inputs
-    if not args.modules_dir.exists():
-        print(f"Error: modules directory '{args.modules_dir}' does not exist")
+    try:
+        with args.graph.open(encoding='utf-8') as stream:
+            graph = json.load(stream)
+        ModuleAssetGenerator(graph, args.out_dir, args.nitrofs_map_file).run()
+    except (OSError, ValueError, KeyError, json.JSONDecodeError) as error:
+        print(f'error: {error}', file=sys.stderr)
         return 1
-
-    # Check for module configuration in project.yaml
-    project_config = get_script_project_config()
-    has_project_modules = bool(project_config.modules)
-
-    if not has_project_modules:
-        print(f"Error: No module configuration found in project.yaml")
-        return 1
-
-    # Show project information
-    print(f"Project: {project_config.project_name}")
-    print(f"Using module configuration from project.yaml")
-
-    # Run the processor
-    processor = ModuleProcessor(args.modules_dir, args.out_dir, args.compiler_path)
-    processor.nitrofs_map_filename = args.nitrofs_map_file
-    processor.generate_build_configs()
-
     return 0
 
 
 if __name__ == '__main__':
-    exit(main())
+    raise SystemExit(main())

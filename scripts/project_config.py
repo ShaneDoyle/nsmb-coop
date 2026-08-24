@@ -2,8 +2,8 @@
 """
 Project configuration utility for NSMB projects.
 
-This module provides a centralized way to read project configuration from project.yaml,
-ensuring all scripts use the same language mappings and module configurations.
+This module provides the project name and language mappings used by the Python
+ROM preparation scripts. NCPatcher owns module configuration.
 """
 
 import yaml
@@ -86,43 +86,6 @@ class ProjectConfig:
         """
         return self.languages.get(code)
 
-    @property
-    def modules(self) -> List[dict]:
-        """Get module configuration from project.yaml.
-
-        Returns:
-            List of module configurations
-        """
-        config = self._load_config()
-        return config.get('modules', [])
-
-    @property
-    def enabled_modules(self) -> List[str]:
-        """Get list of enabled module names in order.
-
-        Returns:
-            List of module names that are enabled, preserving order
-        """
-        enabled = []
-        for module_item in self.modules:
-            if isinstance(module_item, dict):
-                for module_name, module_config in module_item.items():
-                    if isinstance(module_config, dict) and module_config.get('enabled', False):
-                        enabled.append(module_name)
-        return enabled
-
-    def is_module_enabled(self, module_name: str) -> bool:
-        """Check if a specific module is enabled.
-
-        Args:
-            module_name: Name of the module to check
-
-        Returns:
-            True if the module is enabled
-        """
-        return module_name in self.enabled_modules
-
-
 def get_project_config(project_root: Optional[Path] = None) -> ProjectConfig:
     """Get project configuration instance.
 
@@ -179,9 +142,3 @@ if __name__ == '__main__':
     print("Languages:")
     for code, name in config.languages.items():
         print(f"  {code}: {name}")
-    print()
-
-    print("Enabled modules:")
-    for module in config.enabled_modules:
-        print(f"  - {module}")
-    print()
