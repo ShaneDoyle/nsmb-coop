@@ -63,7 +63,7 @@ targets:
       common: [-march=armv4t, -mtune=arm7tdmi]
     regions:
       - dest: main
-        sources: "${env.NSMBREF_ROOT}/source7/symbols.c"
+        sources: "${env.NSMBREF_ROOT}/symbols7.c"
 
   arm9:
     build: build/arm9
@@ -77,6 +77,6 @@ targets:
       cpp: [-mthumb-interwork]
     regions:
       - dest: main
-        sources: "${env.NSMBREF_ROOT}/source9/symbols.c"
+        sources: "${env.NSMBREF_ROOT}/symbols9.c"
         overwrites:
           - [0x02026CE0, 0x02039170]
