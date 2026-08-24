@@ -1,8 +1,0 @@
-id: NitroSDK
-name: Nitro SDK
-
-targets:
-  - arm7:
-      includes: include
-  - arm9:
-      includes: include
