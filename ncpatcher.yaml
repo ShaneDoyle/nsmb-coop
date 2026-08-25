@@ -6,6 +6,12 @@ rom:
   output: build/nds/rom.nds
   backup: backup
 
+  # Not a NitroFS file: the banner is its own region that the header points at,
+  # so no ROM path names it. One serves every variant -- it carries a title in
+  # all six console languages at once, and the game's own language is not the
+  # one this project's variants select.
+  banner: modules/coop/banner.bin
+
 toolchain: arm-none-eabi-
 
 defines: [SDK_GCC, SDK_FINALROM]
@@ -29,10 +35,37 @@ modules:
     - glue
     - message
 
+# BUILDTIME is a file the retail ROM already has; the game reads it as a string
+# and prints it on the crash screen, so a report says which build crashed.
+files:
+  BUILDTIME: build/generated/BUILDTIME
+
+files-dump: build/generated/files.json
+
+# The game holds arrays of file ids terminated by the id one past the last file
+# retail shipped -- which is the id the first added file would otherwise take.
+# This placeholder takes it instead, and stays empty.
+files-reserve: z_new/reserved
+
 hooks:
-  - name: Generate module assets
-    run: '"${env.NCP_PYTHON:-python3}" scripts/module_gen.py --graph "${ncp.moduleDump}"'
+  - name: Stamp the build
+    run: nsmbtool stamp --out build/generated/BUILDTIME
     when: pre-build
+
+  # post-files, because these headers turn this build's file ids into constants:
+  # it is the one phase that runs after insertion has assigned them and before
+  # anything that includes them is compiled.
+  - name: Generate the module assets
+    run: nsmbtool glue --graph "${ncp.moduleDump}" --manifest "${ncp.fileDump}" --out build/generated
+    when: post-files
+
+  # The mkdir is POSIX: hooks go through the system shell, and on Windows that
+  # is cmd, where the switch does not exist. Nothing else here is shell-specific,
+  # so a Windows build only has to change this one line -- or drop the hook, as
+  # the patches are for distribution rather than for the ROM.
+  - name: Write the xdelta patch
+    run: mkdir -p build/xdelta && xdelta3 -e -f -s rom.nds "${rom.output}" build/xdelta/rom_${variant.name}.xdelta
+    when: post-build
 
 variants:
   en:

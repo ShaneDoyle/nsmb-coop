@@ -16,6 +16,15 @@ targets:
       - sources:
           - "source9/**"
 
+
+# The assets this module puts in the ROM, laid out one directory per language.
+# `en` underneath every build, so the eight other layers only have to carry what
+# they actually translate.
+nitrofs:
+  dir: nitrofs
+  layered: true
+  base-variant: en
+
 # TODO: Add many components and maybe organize better
 
 # each component can be disabled by the parent modules.yaml file

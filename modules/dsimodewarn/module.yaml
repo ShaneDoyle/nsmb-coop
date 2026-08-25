@@ -12,6 +12,15 @@ targets:
       includes: "include"
       sources: "source9/*"
 
+
+# One image, and so far only an English one, but the layout is the layered one
+# every other module here uses so that translating it later is adding a
+# directory rather than changing this file.
+nitrofs:
+  dir: nitrofs
+  layered: true
+  base-variant: en
+
 components:
   - DSiModeScene:
       target: arm9

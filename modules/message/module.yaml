@@ -12,3 +12,11 @@ targets:
       sources: "source9/ov8/*"
   - arm9(9):
       sources: "source9/ov9/*"
+
+# The assets this module puts in the ROM, laid out one directory per language.
+# `en` underneath every build, so the eight other layers only have to carry what
+# they actually translate.
+nitrofs:
+  dir: nitrofs
+  layered: true
+  base-variant: en

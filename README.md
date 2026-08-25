@@ -14,19 +14,38 @@ Play New Super Mario Bros. (DS) with a friend! This mod adds full cooperative mu
 ## Building
 
 ### Prerequisites
-- **Python 3.x** with the following packages:
-  - `ndspy` - Nintendo DS ROM manipulation library
-  - `PyYAML` - Build metadata reader
-  - Install with: `python3 -m pip install ndspy PyYAML`
 - **ARM cross-compilation toolchain**:
   - `arm-none-eabi-gcc` and related tools
   - On Ubuntu/Debian: `sudo apt install gcc-arm-none-eabi`
   - On Windows: Install via [GNU Arm Embedded Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm)
-- **Git** - For version control and build metadata
+- **Git** - to fetch the code reference and to stamp the build
 - **NCPatcher 2.x** - Nintendo DS code patching tool with native module support
-- **NSMB Code Reference** - Set `NSMBREF_ROOT` to its checkout
-- **Converted Nitro SDK/Nitro System headers** - Place them under `modules/nitrosdk/include/`; only this private header directory is ignored
-- **xdelta3** (optional) - For generating binary patches
+- **nsmbtool** - fetches the pinned code reference and generates the object,
+  scene and file-id headers. Both it and NCPatcher must be on your `PATH`.
+- **Converted Nitro SDK/Nitro System headers** - set `NSMB_NITRO_ROOT` to their
+  root. These are private, cannot be fetched, and are the one build input that
+  is a property of your machine rather than of this repository, which is why
+  they are the only thing you have to place by hand.
+- **xdelta3** (optional) - for generating binary patches
+
+There is no Python and no ndspy. Everything the scripts used to do is either a
+key in `ncpatcher.yaml` or a `nsmbtool` subcommand.
+
+### The code reference is pinned
+`nsmbref.lock` names the exact commit of
+[NSMB Code Reference](https://github.com/MammaMiaTeam/NSMB-Code-Reference) this
+project builds against. `nsmbtool reference sync` materialises that commit into a
+shared store and writes `.ncpatcher.env`, which NCPatcher reads for
+`NSMBREF_ROOT`.
+
+That file overrides whatever `NSMBREF_ROOT` your shell profile exports, on
+purpose: two projects pinning different revisions have to build correctly in the
+same shell, and a stale global must not silently decide what this one compiles
+against. `.ncpatcher.env` is generated, machine-specific and gitignored; the lock
+is what gets committed.
+
+To move to a newer reference, `nsmbtool reference use <branch|tag|commit>` and
+commit the lock it rewrites.
 
 ### Build Steps
 1. **Clone the repository**:
@@ -41,75 +60,67 @@ Play New Super Mario Bros. (DS) with a friend! This mod adds full cooperative mu
 
 3. **Build the modification**:
 
-   **Option A: Build all languages (recommended)**
+   **All languages**
    ```bash
-   python3 scripts/build_roms.py rom.nds
+   nsmbtool reference sync
+   ncpatcher build --all-variants
    ```
 
-   **Option B: Build specific languages**
+   **One language**
    ```bash
-   python3 scripts/build_roms.py rom.nds -l en fr de
+   ncpatcher build --variant en
    ```
 
-   **Option C: Manual build (single language)**
-   ```bash
-   ncpatcher modules dump -o build/generated/modules.json
-   python3 scripts/module_gen.py --graph build/generated/modules.json
-   python3 scripts/insert_files.py rom.nds __tmp/rom_files_en.nds --language en --nitrofs-map build/generated/nitrofs_file_map.txt --fid-output build/generated/include/fid.hpp
-   ncpatcher --rom __tmp/rom_files_en.nds --out nsmb-coop.nds build --variant en
-   ```
+   `sync` is idempotent and offline once the revision is in the store, so it is
+   cheap to leave in a build script; only a first checkout needs the network.
 
-   The module generator now consumes NCPatcher's resolved graph. It generates
-   only the game-specific object headers and NitroFS map; NCPatcher owns source,
-   target, region, and define resolution. If Python is not named `python3`, set
-   `NCP_PYTHON` before invoking NCPatcher. `build_roms.py` does this automatically.
+### What the build does
+NCPatcher sweeps each module's `nitrofs/` tree into the ROM, choosing the layer
+that matches the variant and falling back to `en`, then compiles and patches.
+Three hooks hang off it:
 
-### Build Options
-The `build_roms.py` script supports several options:
-- `-l, --languages`: Specify which languages to build (en, fr, de, it, sp, ja, ko, zh, pt)
-- `-o, --output-dir`: Set custom output directory (default: `build`)
-- `-p, --prefix`: Custom name prefix for output files
-- `--no-patches`: Skip xdelta patch generation
-- `--temp-dir`: Custom temporary directory (default: `__tmp`)
-- `--clean-temp`: Clean temporary files after build
-- `-v, --verbose`: Enable verbose output
-- `--verbose-patcher`: Enable verbose NCPatcher output
-- `--skip-module-gen`: Reuse existing generated module assets
+| Hook | Phase | Does |
+|---|---|---|
+| `nsmbtool stamp` | pre-build | writes `BUILDTIME`, the commit and date the crash screen shows |
+| `nsmbtool glue` | post-files | object ids, profile tables, the scene registry, `fid.hpp`, the level-data getters, and the editor contracts |
+| `xdelta3` | post-build | the distributable patch |
+
+`glue` runs at `post-files` rather than `pre-build` because `fid.hpp` turns this
+build's NitroFS file ids into constants: that is the one phase which runs after
+insertion has assigned them and before anything including them is compiled.
+
+The `mkdir -p` in the xdelta hook is POSIX. Hooks go through the system shell, so
+on Windows either change that line or drop the hook - the patches are for
+distribution and nothing in the ROM depends on them.
 
 ### Build Output
-The build process generates:
-- **ROMs**: Built ROMs for each language in `build/nds/` directory
-- **Patches**: xdelta binary patches in `build/xdelta/` directory (optional)
-- **Multi-language support**: Separate ROM files for different game languages
-
-Example output structure:
 ```
 build/
 ├── nds/
 │   ├── rom_en.nds      # English version
 │   ├── rom_fr.nds      # French version
-│   ├── rom_de.nds      # German version
 │   └── ...
-└── xdelta/
-    ├── rom_en.xdelta   # English patch
-    ├── rom_fr.xdelta   # French patch
-    └── ...
+├── xdelta/
+│   ├── rom_en.xdelta   # English patch
+│   └── ...
+└── generated/
+    ├── files.json          # the ROM file table, per variant
+    ├── modules.json        # the resolved module graph
+    ├── level_data.json     # editor contract: level-data keys and hashes
+    ├── stageobjects.json   # editor contract: placeable objects
+    └── include/            # fid.hpp, object ids, registries
 ```
 
-The build process will:
-- Insert custom files and assets for the specified language(s)
-- Update the ROM with build metadata (commit hash and timestamp)
-- Resolve native modules and generate object tables
-- Compile and patch the prepared `.nds` directly with a language variant
-- Generate xdelta patches for distribution (optional)
+A single-variant build writes `build/nds/rom.nds`; `--all-variants` appends the
+variant name to each.
 
 ### Troubleshooting
-- Ensure all prerequisites are installed and in your system PATH
+- Ensure NCPatcher, `nsmbtool` and the ARM toolchain are on your `PATH`
 - Verify the ROM matches the expected checksums listed in [Notes](#notes)
-- Check that the ARM toolchain is properly configured for cross-compilation
-- If xdelta3 is not found, patch generation will be automatically skipped
-- Use `--verbose` flag with build scripts for detailed debugging output
-- For build issues, try cleaning the temporary directory with `--clean-temp`
+- `nsmbtool reference list` shows which revisions are in the store and which one
+  this project names; `nsmbtool reference gc` removes the rest
+- If a header seems stale, delete `build/generated` - everything in it is
+  regenerated, and `glue` only rewrites files whose contents actually changed
 
 ## Credits
 
