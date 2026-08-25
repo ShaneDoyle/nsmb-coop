@@ -26,7 +26,7 @@ modules:
     - dsimodewarn
     - nwav
     - widescreen
-    - process
+    - glue
     - message
 
 hooks:

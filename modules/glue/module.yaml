@@ -1,0 +1,21 @@
+id: Glue
+name: Interoperability Module
+description: Lets modules extend the game's object, scene and level data tables.
+
+authors:
+  - ItzTacos
+  - TheGameratorT
+
+# The custom stage objects a level places, written by the editor into the glue
+# block. It is declared here rather than in a game module because the reader is
+# glue's own: this array is what makes a placed module object exist at all.
+#
+# Any type named in level-data has to be complete where the generated getters
+# are included, which is why include/glue/level.hpp includes stageobject.hpp.
+level-data:
+  stageObjects: Glue::StageObject::ModuleStageObject[?]
+
+targets:
+  - arm9:
+      includes: "include"
+      sources: "source9/*"

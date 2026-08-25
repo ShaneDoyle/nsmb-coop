@@ -4,8 +4,11 @@
 #include <nsmb/core/entity/actor.hpp>
 
 
-namespace Game {
+namespace Glue::Object {
 
+	// The first object ID past the game's own table. nsmbtool allocates custom
+	// objects upward from here and emits the same literal into the generated
+	// headers, so both sides keep seeing one number.
 	static constexpr u32 ObjectsExtStart = 0x182;
 
 
