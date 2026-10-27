@@ -1,0 +1,65 @@
+id: NWAV
+name: Nitro WAV
+description: Streams WAV files (PCM8, PCM16, IMA-ADPCM) with seamless loops, and can replace the game's BGM with them.
+
+authors: TheGameratorT
+
+# The core under source9/core only depends on the SDK. Everything that hooks
+# New Super Mario Bros. is a component below. A project can switch Hooks off and
+# call NWAV::init and NWAV::Hooks::update from its own hooks instead; the other
+# components and NWAV::Hooks::playExtFile keep working.
+targets:
+  - arm9:
+      includes: "include"
+      sources: "source9/**"
+
+components:
+  # Player limits. See include/nwav/config.hpp for what each one means.
+  - Config:
+      defines:
+        NWAV_MAX_STREAMS: 2
+        NWAV_PAGE_FRAMES: 512
+        NWAV_PAGES: 4
+        NWAV_READ_SIZE: 1024
+        NWAV_MAX_EVENTS: 16
+        NWAV_THREAD_PRIORITY: 12
+
+  # Starts the player after NNS_SndInit and steps it (NWAV::Hooks::update) before NNS_SndMain.
+  - Hooks:
+      target: arm9
+      sources: "source9/hooks/sound.cpp"
+
+  # Makes the game's FS_Init read the card with the CPU instead of DMA channel 2,
+  # which the background HDMA interferes with while streaming.
+  - FSInit:
+      target: arm9
+      sources: "source9/hooks/fsinit.cpp"
+
+  # Plays a stream in place of each sequence listed by NWAV::Hooks::getBGMTable,
+  # following its volume, fades, pauses and stops, and switching to the entry's
+  # hurry track (if it has one) on hurry up.
+  - BGMReplace:
+      target: arm9
+      defines: NWAV_HOOK_BGM
+      sources: "source9/hooks/bgm.cpp"
+
+  # Also follows the hurry-up tempo on streams without a hurry track, which
+  # changes their pitch.
+  - BGMFollowTempo:
+      target: arm9
+      requires: BGMReplace
+      defines: NWAV_BGM_FOLLOW_TEMPO
+
+  # Raises the game's "bahp" flag (the enemies' dance beat) in single player on
+  # each cue point named "bahp" of a BGM stream, as the sequences used to.
+  - BGMBahp:
+      target: arm9
+      requires: BGMReplace
+      defines: NWAV_BGM_BAHP
+
+  # Pauses streams with the game's sound, and stops the streams played as sound
+  # effects (NWAV::Hooks::SFXTag) whenever the game stops its own sound effects.
+  - SoundIntegration:
+      target: arm9
+      defines: NWAV_HOOK_SOUND
+      sources: "source9/hooks/sfx.cpp"

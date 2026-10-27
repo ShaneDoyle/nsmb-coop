@@ -1,35 +1,25 @@
-## Stuff added for by/for mariomadproductions
-
-# ROM related files
 *.nds
 *.sav
 *.sav.*
 
-# Original ROM data
-/code/backup/
+/__tmp
+/backup
+/build
 
-# Built code
-/code/build/
-/code/build7/
+# Written by `nsmbtool reference sync` from nsmbref.lock, and holding an
+# absolute path into this machine's store. The lock is what gets committed.
+/.ncpatcher.env
 
-# Exclude Nitro SDK headers
-/code/include/nitro/
-/code/include/nitro_wl/
-/code/include/nnsys/
-/code/include/nitro.h
-/code/include/nnsys.h
-/code/include/nitro_sp.h
-/code/include/nitro_win32.h
+# Big Star Editor's choices for this checkout, including where this machine
+# keeps the clean ROM.
+/.big-star-workspace.json
 
-# VS Code
-/code/.vscode
+/.vscode
+/.venv
 
-# Operating system files
 *.lnk
-
-# Release files
 *.xdelta
 
-# Temporary code files
-/__tmp
-code/include/fid.hpp
+# Big Star Editor's crash recovery and the level backups it takes before a save.
+/.big-star-autosave
+/.big-star-backups

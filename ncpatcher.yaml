@@ -1,0 +1,114 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/TheGameratorT/NCPatcher/main/schema/ncpatcher.schema.json
+version: 2
+
+rom:
+  output: build/nds/rom.nds
+  backup: backup
+  trim: true
+
+  # Not a NitroFS file: the banner is its own region that the header points at,
+  # so no ROM path names it. One serves every variant -- it carries a title in
+  # all six console languages at once, and the game's own language is not the
+  # one this project's variants select.
+  banner: modules/coop/banner.bin
+
+toolchain: arm-none-eabi-
+
+defines: [SDK_GCC, SDK_FINALROM]
+flags:
+  common: [-masm-syntax-unified, -mno-unaligned-access, -mfloat-abi=soft, -mabi=aapcs, -fno-short-enums]
+  c: [-Os, -fomit-frame-pointer, -ffast-math, -fno-builtin, -nostdlib, -nodefaultlibs, -nostartfiles]
+  cpp: [-Os, -fomit-frame-pointer, -ffast-math, -fno-builtin, -nostdlib, -nodefaultlibs, -nostartfiles, -fno-rtti, -fno-exceptions, -Wno-literal-suffix, -std=c++23]
+  asm: [-Os, -x, assembler-with-cpp, -fomit-frame-pointer]
+  ld: [-lgcc, -lc, -lstdc++, --use-blx]
+
+modules:
+  dir: modules
+  dump: build/generated/modules.json
+  enabled:
+    - coop
+    - mini-hacks
+    - debug
+    - dsimodewarn
+    - nwav
+    - widescreen
+    - glue
+    - message
+
+# BUILDTIME is a file the retail ROM already has; the game reads it as a string
+# and prints it on the crash screen, so a report says which build crashed.
+files:
+  BUILDTIME: build/generated/BUILDTIME
+
+files-dump: build/generated/files.json
+
+# The game holds arrays of file ids terminated by the id one past the last file
+# retail shipped -- which is the id the first added file would otherwise take.
+# This placeholder takes it instead, and stays empty.
+files-reserve: z_new/01DUMMY
+
+hooks:
+  - name: Stamp the build
+    run: nsmbtool stamp --out build/generated/BUILDTIME
+    when: pre-build
+
+  # post-files, because these headers turn this build's file ids into constants:
+  # it is the one phase that runs after insertion has assigned them and before
+  # anything that includes them is compiled.
+  - name: Generate the module assets
+    run: nsmbtool glue --graph "${ncp.moduleDump}" --manifest "${ncp.fileDump}" --out build/generated
+    when: post-files
+
+  # The patches are for distribution rather than for the ROM, so a build that
+  # has no xdelta3 can drop this hook. nsmbtool makes the directory and runs the
+  # encoder itself, so the hook is the same on every platform.
+  - name: Write the xdelta patch
+    run: nsmbtool xdelta --source "${rom.file}" --target "${rom.output}" --out build/xdelta/rom_${variant.name}.xdelta
+    when: post-build
+
+variants:
+  en:
+    defines: GAME_LANGUAGE_EN
+  fr:
+    defines: GAME_LANGUAGE_FR
+  de:
+    defines: GAME_LANGUAGE_GE
+  it:
+    defines: GAME_LANGUAGE_IT
+  sp:
+    defines: GAME_LANGUAGE_SP
+  ja:
+    defines: GAME_LANGUAGE_JP
+  ko:
+    defines: GAME_LANGUAGE_KO
+  zh:
+    defines: GAME_LANGUAGE_CH
+  pt:
+    defines: GAME_LANGUAGE_PT
+
+targets:
+  arm7:
+    build: build/arm7
+    arena-lo: 0x037FCF78
+    defines: [SDK_ARM7]
+    flags:
+      common: [-march=armv4t, -mtune=arm7tdmi]
+    regions:
+      - dest: main
+        sources: "${env.NSMBREF_ROOT}/symbols7.c"
+
+  arm9:
+    build: build/arm9
+    arena-lo: 0x02065F10
+    region-catalog: ${env.NSMBREF_ROOT}/overlays9.yaml
+    includes: ["${env.NSMB_NITRO_ROOT}/include", "${env.NSMBREF_ROOT}/include", build/generated/include]
+    defines: [SDK_ARM9, arm9_start=0x021901E0, NTR_DEBUG]
+    flags:
+      common: [-march=armv5te, -mtune=arm946e-s]
+      c: [-mthumb-interwork]
+      cpp: [-mthumb-interwork]
+    regions:
+      - dest: main
+        sources: "${env.NSMBREF_ROOT}/symbols9.c"
+        overwrites:
+          - [0x02026CE0, 0x02039170]

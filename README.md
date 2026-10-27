@@ -9,95 +9,121 @@ Play New Super Mario Bros. (DS) with a friend! This mod adds full cooperative mu
 - **Boss Battle Adaptations**: All bosses have been reworked for 2-player fights
 - **Desync Protection**: If things get out of sync, the game automatically fixes itself by rolling back to before you entered the level
 - **Widescreen Support**: Expands the game to fill the entire 3DS screen for a better view (toggle with L+R+X, requires nds-bootstrap)
-- **Multi-language Support**: Available in 7 languages (English, French, German, Italian, Japanese, Spanish, Portuguese)
+- **Multi-language Support**: Available in 9 languages (English, French, German, Italian, Spanish, Japanese, Korean, Chinese, Portuguese)
 
 ## Building
 
 ### Prerequisites
-- **Python 3.x** with the following packages:
-  - `ndspy` - Nintendo DS ROM manipulation library
-  - Install with: `pip install ndspy`
 - **ARM cross-compilation toolchain**:
   - `arm-none-eabi-gcc` and related tools
   - On Ubuntu/Debian: `sudo apt install gcc-arm-none-eabi`
   - On Windows: Install via [GNU Arm Embedded Toolchain](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm)
-- **Git** - For version control and build metadata
-- **NCPatcher** - Nintendo DS code patching tool
-- **xdelta3** (optional) - For generating binary patches
+- **Git** - to fetch the code reference and to stamp the build
+- **NCPatcher 2.x** - Nintendo DS code patching tool with native module support
+- **nsmbtool** - fetches the pinned code reference and generates the object,
+  scene and file-id headers. Both it and NCPatcher must be on your `PATH`.
+- **Converted Nitro SDK/Nitro System headers** - set `NSMB_NITRO_ROOT` to their
+  root. These are private, cannot be fetched, and are the one build input that
+  is a property of your machine rather than of this repository, which is why
+  they are the only thing you have to place by hand.
+- **xdelta3** (optional) - for generating binary patches
+
+There is no Python and no ndspy. Everything the scripts used to do is either a
+key in `ncpatcher.yaml` or a `nsmbtool` subcommand.
+
+### The code reference is pinned
+`nsmbref.lock` names the exact commit of
+[NSMB Code Reference](https://github.com/MammaMiaTeam/NSMB-Code-Reference) this
+project builds against. `nsmbtool reference sync` materialises that commit into a
+shared store and writes `.ncpatcher.env`, which NCPatcher reads for
+`NSMBREF_ROOT`.
+
+That file overrides whatever `NSMBREF_ROOT` your shell profile exports, on
+purpose: two projects pinning different revisions have to build correctly in the
+same shell, and a stale global must not silently decide what this one compiles
+against. `.ncpatcher.env` is generated, machine-specific and gitignored; the lock
+is what gets committed.
+
+To move to a newer reference, `nsmbtool reference use <branch|tag|commit>` and
+commit the lock it rewrites.
 
 ### Build Steps
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/ShaneDoyle/nsmb-coop.git
-   cd nsmb-coop
+   git clone --branch module https://github.com/ShaneDoyle/nsmb-coop.git nsmb-coop-module
+   cd nsmb-coop-module
    ```
 
 2. **Prepare the base ROM**:
    - Obtain a clean New Super Mario Bros. (USA) ROM[<sup>1</sup>](#notes)
-   - Place it as `rom.nds` in the repository root
+   - Keep it wherever you like: `ncpatcher.yaml` does not name it, so each build
+     is given it with `--rom`. Big Star Editor asks for it the first time it
+     opens the project, and remembers it in `.big-star-workspace.json`.
 
 3. **Build the modification**:
 
-   **Option A: Build all languages (recommended)**
+   **All languages**
    ```bash
-   python scripts/build_roms.py rom.nds
+   nsmbtool reference sync
+   ncpatcher build --all-variants --rom path/to/clean.nds
    ```
 
-   **Option B: Build specific languages**
+   **One language**
    ```bash
-   python scripts/build_roms.py rom.nds -l en fr ge
+   ncpatcher build --variant en --rom path/to/clean.nds
    ```
 
-   **Option C: Manual build (single language)**
-   ```bash
-   python scripts/insert_code.py rom.nds __tmp/rom_code.nds --language en
-   python scripts/insert_files.py __tmp/rom_code.nds nsmb-coop.nds --language en
-   ```
+   `sync` is idempotent and offline once the revision is in the store, so it is
+   cheap to leave in a build script; only a first checkout needs the network.
 
-### Build Options
-The `build_roms.py` script supports several options:
-- `-l, --languages`: Specify which languages to build (en, fr, ge, it, jp, sp, pt)
-- `-o, --output-dir`: Set custom output directory (default: `build`)
-- `-p, --prefix`: Custom name prefix for output files
-- `--no-patches`: Skip xdelta patch generation
-- `--temp-dir`: Custom temporary directory (default: `__tmp`)
-- `--clean-temp`: Clean temporary files after build
-- `-v, --verbose`: Enable verbose output
+### What the build does
+NCPatcher sweeps each module's `nitrofs/` tree into the ROM, choosing the layer
+that matches the variant and falling back to `en`, then compiles and patches.
+Three hooks hang off it:
+
+| Hook | Phase | Does |
+|---|---|---|
+| `nsmbtool stamp` | pre-build | writes `BUILDTIME`, the commit and date the crash screen shows |
+| `nsmbtool glue` | post-files | object ids, profile tables, the scene registry, `fid.hpp`, the level-data getters, and the editor contracts |
+| `xdelta3` | post-build | the distributable patch |
+
+`glue` runs at `post-files` rather than `pre-build` because `fid.hpp` turns this
+build's NitroFS file ids into constants: that is the one phase which runs after
+insertion has assigned them and before anything including them is compiled.
+
+The `mkdir -p` in the xdelta hook is POSIX. Hooks go through the system shell, so
+on Windows either change that line or drop the hook - the patches are for
+distribution and nothing in the ROM depends on them.
 
 ### Build Output
-The build process generates:
-- **ROMs**: Built ROMs for each language in `build/nds/` directory
-- **Patches**: xdelta binary patches in `build/xdelta/` directory (optional)
-- **Multi-language support**: Separate ROM files for different game languages
-
-Example output structure:
 ```
 build/
 ├── nds/
 │   ├── rom_en.nds      # English version
 │   ├── rom_fr.nds      # French version
-│   ├── rom_ge.nds      # German version
 │   └── ...
-└── xdelta/
-    ├── rom_en.xdelta   # English patch
-    ├── rom_fr.xdelta   # French patch
-    └── ...
+├── xdelta/
+│   ├── rom_en.xdelta   # English patch
+│   └── ...
+└── generated/
+    ├── files.json          # the ROM file table, per variant
+    ├── modules.json        # the resolved module graph
+    ├── level_data.json     # editor contract: level-data keys and hashes
+    ├── stageobjects.json   # editor contract: placeable objects
+    └── include/            # fid.hpp, object ids, registries
 ```
 
-The build process will:
-- Insert custom files and assets for the specified language(s)
-- Update the ROM with build metadata (commit hash and timestamp)
-- Generate object tables and compile C++ source code
-- Apply code patches using NCPatcher with language-specific definitions
-- Generate xdelta patches for distribution (optional)
+Each language is written to `build/nds/rom_<variant>.nds` (`rom_en.nds`, ...),
+whether it is built alone or with `--all-variants`, with its xdelta patch beside
+it in `build/xdelta/`.
 
 ### Troubleshooting
-- Ensure all prerequisites are installed and in your system PATH
+- Ensure NCPatcher, `nsmbtool` and the ARM toolchain are on your `PATH`
 - Verify the ROM matches the expected checksums listed in [Notes](#notes)
-- Check that the ARM toolchain is properly configured for cross-compilation
-- If xdelta3 is not found, patch generation will be automatically skipped
-- Use `--verbose` flag with build scripts for detailed debugging output
-- For build issues, try cleaning the temporary directory with `--clean-temp`
+- `nsmbtool reference list` shows which revisions are in the store and which one
+  this project names; `nsmbtool reference gc` removes the rest
+- If a header seems stale, delete `build/generated` - everything in it is
+  regenerated, and `glue` only rewrites files whose contents actually changed
 
 ## Credits
 
