@@ -1,4 +1,3 @@
-#include <nsmb/game/game.hpp>
 #include <nsmb/core/entity/scene.hpp>
 #include <nsmb/game/vsconnect/scene.hpp>
 // The fields of the VSConnectScene class are not yet documented, raw access to fields is required.
@@ -8,34 +7,6 @@
 #ifdef MODULE_WIDESCREEN
 #include "widescreen/widescreen.hpp"
 #endif
-
-#include "coop/Coop.hpp"
-
-extern "C" {
-	void CoopSym_MvsL_loadFiles();
-}
-
-ncp_call(0x02159354, 52)
-void VSConnect_customLoadVsFiles()
-{
-	if (!Coop::isActive)
-		CoopSym_MvsL_loadFiles();
-}
-
-ncp_call(0x02157A44, 52)
-void VSConnect_customSwitchToMenu(SceneID sceneID, u32 sceneSettings)
-{
-	if (Coop::isActive)
-	{
-		Game::vsMode = 0; // Unset VS mode
-		Game::luigiMode = Net::localAid; // Enable Luigi graphics in world map for Luigi console
-		Scene::switchScene(SceneID::Worldmap, Save::mainSave.currentWorld);
-		return;
-	}
-
-	Scene::switchScene(SceneID::VSMenu, 1);
-	return;
-}
 
 ncp_call(0x021592DC, 52)
 u32 VSConnect_skipFirstSubMenu()

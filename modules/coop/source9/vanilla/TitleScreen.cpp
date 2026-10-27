@@ -66,14 +66,6 @@ GXOamAttr coopButtonTextAttrs[] = {
 ncp_repl(0x020DAA38, 9, ".int _ZN4Coop7Vanilla11TitleScreen19coopButtonTextAttrsE")
 ncp_repl(0x020DAA3C, 9, ".int 0x020DB56C")
 
-ncp_call(0x020D272C, 9)
-u32 getSceneIDAfterFileSelect()
-{
-	return scast<u32>(Coop::isActive ?
-		SceneID::VSConnect :
-		SceneID::Worldmap);
-}
-
 ncp_asmfunc void modifyButtons()
 {asm(R"(
 // Button 1
@@ -83,12 +75,7 @@ ncp_jump(0x020D2F60, 9)
 	STRB    R2, [R1]
 	B       0x020D2F70 // Open file select
 
-// Button 2
-ncp_jump(0x020D2F64, 9)
-	LDR     R1, =_ZN4Coop8isActiveE
-	MOV     R2, #1
-	STRB    R2, [R1]
-	B       0x020D2F70 // Open file select
+// Button 2 opens the co-op connection menu, see TitleCoopMenu.cpp
 
 // Button 3
 ncp_jump(0x020D2F68, 9)

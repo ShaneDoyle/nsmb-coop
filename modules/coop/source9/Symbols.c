@@ -17,6 +17,7 @@ This is a workaround by forcing the linker to resolve the symbol.
 // All symbols prefixed with CoopSym_ to avoid clashing with other modules
 
 #define s(n,v) asm(".globl CoopSym_" #n ";.type CoopSym_" #n ",%function;CoopSym_" #n "=" #v);
+#define d(n,v) asm(".globl CoopSym_" #n ";.type CoopSym_" #n ",%object;CoopSym_" #n "=" #v);
 
 s(SledgeBro_tryShakePlayer, 0x02174DE4)
 s(StageLayout_volcanoShake, 0x020AD65C)
@@ -53,6 +54,27 @@ s(StageLayout_setupView, 0x020BBBDC)
 s(WarpCannon_sAfterShoot, 0x0217FE60)
 s(WarpCannon_switchState, 0x0217F7D4)
 s(setSecretExitFromSpriteData, 0x020068F0)
-s(MvsL_loadFiles, 0x021535A0)
 s(MegaDestructionCounter_spawnReward, 0x0215F5FC)
 s(MegaDestructionCounter_fun0215FA0C, 0x0215FA0C)
+
+// Title screen co-op menu
+s(TitleScreen_loadFileSelectGraphics, 0x020D2D74)
+s(TitleScreen_loadMainMenuGraphics, 0x020D34A0)
+s(CommonMenu_loadSubButtonGraphics, 0x020BD604)
+s(TextLabel_loadScript, 0x020180C0)
+s(TextLabel_unloadScript, 0x020180A4)
+s(TextLabel_render, 0x02018060)
+s(TextLabel_setMessage, 0x02017FF8)
+s(TextLabel_loadFireballIcon, 0x02017B94)
+s(TextLabel_updateFireballIcon, 0x02017A90)
+s(TextLabel_hideFireballIcon, 0x02017A80)
+s(Fader_enableMainScreenFading, 0x02007C44)
+s(Fader_startSceneFade, 0x02007BFC)
+s(Wifi_loadIconPalette, 0x0200E944)
+d(nicknameCache, 0x0208ADCC)
+d(vsConsoleCharacters, 0x0208AE54)
+d(vsConnectCancelled, 0x02088F30)
+d(touchX, 0x0208B4E8)
+d(touchValid, 0x0208B4EC)
+d(touchPressed, 0x0208B4F0)
+d(touchY, 0x0208B4F4)
