@@ -66,6 +66,15 @@ void saveBackupParams()
 
 ncp_set_call(0x02012E1C, readMainSavePatch)
 
+// Only the console that holds the save (the host) writes it, the other one plays on a synced copy
+ncp_call(0x02012F4C) Save::ReturnCode writeMainSave_writeBackup(void* data, u32 size, u32 slot)
+{
+	if (Net::isConnected() && Net::localAid != 0)
+		return Save::ReturnCode::Success;
+
+	return Save::writeBackup(data, size, slot);
+}
+
 // Allow Luigi's lives to be saved and loaded
 ncp_call(0x02012DB0) u32 call_02012DB0() { return (Game::getPlayerLives(1) << 16) | Game::getPlayerLives(0); }
 ncp_call(0x02012E84) void call_02012E84(u32, u32 data)
