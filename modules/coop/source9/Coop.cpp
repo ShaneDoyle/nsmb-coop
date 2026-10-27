@@ -15,6 +15,10 @@ bool isLuigiMode() { return Game::luigiMode; }
 bool isMultiplayer() { return Game::getPlayerCount() > 1; }
 bool isNotVS() { return Game::vsMode == 0; }
 
+// The vanilla StageScene::onCreate already waits for all consoles before gameplay starts,
+// but the stage intro switches scenes on a real-time timer (OS_GetTick), so each console
+// calls Scene::switchScene on a different frame. That trips the DesyncGuard switch scene
+// check, so the switch itself must happen on the same frame on all consoles.
 ncp_thumb void syncSwitchScene(u32 r0, u32 r1)
 {
 	if (!Net::isConnected())

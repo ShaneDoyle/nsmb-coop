@@ -16,6 +16,7 @@
 #include <nsmb/core/graphics/fader.hpp>
 #include <nsmb/core/entity/scene.hpp>
 #include <nsmb/core/wifi/wifi.hpp>
+#include <nsmb/core/net.hpp>
 #include <nsmb/core/filesystem.hpp>
 
 #include "fid.hpp"
@@ -32,6 +33,7 @@ namespace CoopFixes::Stage {
 extern "C" {
 	void CoopSym_StageLayout_looperScrollBack(void* stageLayout, s32 playerID);
 	void CoopSym_SetupGraphicsForBottomScreenInStage(int);
+	void CoopSym_InitSubEngineVBlankStates();
 }
 
 // ======================================= PAUSE =======================================
@@ -120,6 +122,20 @@ static bool StageScene_preCreate(Scene* self)
 }
 
 ncp_over(0x020C6E68, 0) const auto StageScene_preCreate_vtbl = StageScene_preCreate;
+
+// Reset the stage timers after the load sync, like MvsL does (Fixes desync on level entry)
+// These count since boot otherwise, so consoles diverge from time spent in the title screen demo, solo play, etc.
+ncp_call(0x020A347C, 0)
+void StageScene_onCreate_resetTimers()
+{
+	if (Net::isConnected())
+	{
+		Game::sceneTimer = 0;
+		Game::actorTimer = 0;
+	}
+
+	CoopSym_InitSubEngineVBlankStates(); // Keep replaced instruction
+}
 
 // No idea what these do
 // ncp_repl(0x0209B254, 0, "MOV R0, #1")
