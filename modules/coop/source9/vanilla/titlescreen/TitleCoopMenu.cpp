@@ -1159,6 +1159,8 @@ ncp_repl(0x020CE060, 9, "MOV R0, #2") // MI_IsDmaBusy
 ncp_repl(0x020CE070, 9, "MOV R0, #2") // MI_StopDma
 ncp_repl(0x020CE07C, 9, "MOV R0, #2") // MI_StopDma
 ncp_repl(0x020CE094, 9, "MOV R0, #2") // MI_HBlankDmaCopy16
+ncp_repl(0x020CE1F4, 9, "MOV R0, #2") // MI_IsDmaBusy (clouds teardown)
+ncp_repl(0x020CE204, 9, "MOV R0, #2") // MI_StopDma (clouds teardown)
 
 // TitleScreenScene::initializeMainMenu
 ncp_call(0x020D326C, 9)

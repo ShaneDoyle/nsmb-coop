@@ -644,7 +644,8 @@ void defaultOnLayoutUpdate()
 // Only the foreground DMA conflicts with it
 
 // Prevent the game from breaking parallax for absolutely no reason.
-// This variable is setup later correctly at ov0:0x020BC518
+// These variable are not protected by the local player check,
+// and are setup later correctly at ov0:0x020BC518 anyway
 ncp_repl(0x020BBDAC, 0, "NOP; NOP")
 
 // Disable background HDMA parallax
