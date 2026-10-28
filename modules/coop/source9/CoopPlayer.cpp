@@ -7,6 +7,7 @@
 #include <nsmb/core/system/function.hpp>
 #include <nsmb/core/net.hpp>
 
+#include "coop/Coop.hpp"
 #include "coop/CoopStage.hpp"
 #include "coop/CoopCamera.hpp"
 
@@ -14,6 +15,7 @@
 
 extern "C" {
 	void CoopSym_Liquid_doWaves(fx32 x, u32 one);
+	bool CoopSym_Player_doSpecialPlayerBump(Player* self, Player* other, fx32& selfCollisionPointX);
 }
 
 namespace CoopPlayer {
@@ -78,11 +80,53 @@ void beginJumpedOnAnimation(Player* self)
 	updateJumpedOnAnimation(self);
 }
 
-ncp_repl(0x02109B30, 10, "B 0x02109B84") // Mario can not make Luigi fall on head jump
-ncp_repl(0x02109A14, 10, "B 0x02109A68") // Luigi can not make Mario fall on head jump
+ncp_asmfunc void noFallOnHeadJump_ASM()
+{asm(R"(
+// Mario can not make Luigi fall on head jump (except in VS mode)
+ncp_jump(0x02109B30, 10)
+	LDR     R0, =_ZN4Game6vsModeE
+	LDRB    R0, [R0]
+	CMP     R0, #0
+	BEQ     0x02109B84
+	ADD     R0, R8, #0x700 // Keep replaced instruction
+	B       0x02109B34
 
-ncp_repl(0x02109EB4, 10, "MOV R4, #1") // Mario doesn't bump with Luigi
-ncp_repl(0x02109C1C, 10, "MOV R4, #1") // Luigi doesn't bump with Mario
+// Luigi can not make Mario fall on head jump (except in VS mode)
+ncp_jump(0x02109A14, 10)
+	LDR     R0, =_ZN4Game6vsModeE
+	LDRB    R0, [R0]
+	CMP     R0, #0
+	BEQ     0x02109A68
+	ADD     R0, R9, #0x700 // Keep replaced instruction
+	B       0x02109A18
+)");}
+
+ncp_asmfunc void noPlayerBump_ASM()
+{asm(R"(
+// Pretend the player has a star so players don't bump (except in VS mode)
+
+// Mario doesn't bump with Luigi
+ncp_jump(0x02109EB4, 10)
+	PUSH    {R0}
+	LDR     R0, =_ZN4Game6vsModeE
+	LDRB    R0, [R0]
+	CMP     R0, #0
+	POP     {R0}
+	MOVEQ   R4, #1
+	LDRSHNE R4, [R4,R5] // Keep replaced instruction
+	B       0x02109EB8
+
+// Luigi doesn't bump with Mario
+ncp_jump(0x02109C1C, 10)
+	PUSH    {R0}
+	LDR     R0, =_ZN4Game6vsModeE
+	LDRB    R0, [R0]
+	CMP     R0, #0
+	POP     {R0}
+	MOVEQ   R4, #1
+	LDRSHNE R4, [R4,R5] // Keep replaced instruction
+	B       0x02109C20
+)");}
 
 ncp_thumb bool customJumpOnPlayer(Player* self, fx32 force, u16 duration, bool playSFX, bool noConsecutive, s8 variation)
 {
@@ -118,6 +162,10 @@ ncp_repl(0x0204ED50, "NOP") // Always load both players' sounds
 ncp_call(0x021098C8, 10)
 ncp_thumb bool customSpecialPlayerBump(Player* self, Player* other, fx32& selfCollisionPointX)
 {
+	// Players can damage each other in VS mode
+	if (!Coop::isNotVS())
+		return CoopSym_Player_doSpecialPlayerBump(self, other, selfCollisionPointX);
+
 	bool marioOffender = Player::bumpOffender == Player::BumpOffender::Mario;
 	Player* offender = marioOffender ? self : other;
 	Player* victim = marioOffender ? other : self;
@@ -144,7 +192,9 @@ bool ignoreCollision()
 	for (s32 playerID = 0; playerID < Game::getPlayerCount(); playerID++)
 	{
 		Player* player = Game::getPlayer(playerID);
-		if (isOnFlagpole(player) || player->currentPowerup == PowerupState::Mega || CoopStage::hasLevelFinished())
+		if (isOnFlagpole(player) || CoopStage::hasLevelFinished())
+			return true;
+		if (player->currentPowerup == PowerupState::Mega && Coop::isNotVS()) // Mega players can crush each other in VS mode
 			return true;
 	}
 	return false;
@@ -163,7 +213,17 @@ ncp_jump(0x021096EC, 10)
 )");}
 
 // TODO: turn this into CoopPlayer::fireballPassthrough
-ncp_repl(0x020E3260, 10, "MOV R0, R4") // Fireballs pass through player
+ncp_asmfunc void fireballPassthrough_ASM()
+{asm(R"(
+// Fireballs pass through player (except in VS mode)
+ncp_jump(0x020E3260, 10)
+	LDR     R1, =_ZN4Game6vsModeE
+	LDRB    R1, [R1]
+	CMP     R1, #0
+	MOVEQ   R0, R4
+	LDRSBNE R0, [R0,#0x1E] // Keep replaced instruction
+	B       0x020E3264
+)");}
 //ncp_repl(0x020E32C4, 10, "ADD SP, SP, #0x10; POP {R4-R6,PC}") // Player immune to fireballs
 
 ncp_call(0x020FD56C, 10)
