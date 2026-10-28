@@ -10,7 +10,7 @@ class CoopWorldUnlockSign : public StageEntity3D
 public:
 	static ActorProfile Profile;
 
-	constexpr static ObjectInfo objectInfo = {
+	constexpr static ObjectInfo ObjectInfo_Default = {
 		0, 0, // position
 		4, 4, // size
 		0, 0, // spawnOffset
