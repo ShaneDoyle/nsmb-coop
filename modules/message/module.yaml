@@ -8,8 +8,6 @@ authors:
 targets:
   - arm9:
       sources: "source9/*"
-  - arm9(8):
-      sources: "source9/ov8/*"
   - arm9(9):
       sources: "source9/ov9/*"
 
