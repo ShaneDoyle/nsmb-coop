@@ -1152,6 +1152,11 @@ ncp_jump(0x020D2704, 9)
 	B       0x020D2708
 )");}
 
+// The main menu stops the music when picking buttons 2 and 3, keep it playing for the co-op menu
+ncp_repl(0x020D30E0, 9, "B 0x020D30F4") // Touch, button 2
+ncp_repl(0x020D3124, 9, "SUB R0, R4, #2") // Keys, only stop for button 3
+ncp_repl(0x020D312C, 9, "CMP R0, #0")
+
 // The title screen clouds use a repeating HBlank DMA on channel 1, which wireless needs:
 // WM copies with DMA 1 and waits for the channel to be free, freezing forever.
 // Move the clouds to channel 0, the one stages use for the top screen parallax.
