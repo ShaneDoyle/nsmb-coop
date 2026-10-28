@@ -640,37 +640,30 @@ void defaultOnLayoutUpdate()
 #endif
 }
 
-// Wifi uses DMA 1 as seen at 0x0204AB5C and 0x0204A710
-// Only the foreground DMA conflicts with it
-
 // Prevent the game from breaking parallax for absolutely no reason.
 // These variable are not protected by the local player check,
 // and are setup later correctly at ov0:0x020BC518 anyway
 ncp_repl(0x020BBDAC, 0, "NOP; NOP")
 
-// Disable background HDMA parallax
-// ncp_repl(0x020AECAC, 0, "CMP R1, #1")
-// ncp_repl(0x020AED90, 0, ".int _ZN4Game11playerCountE")
+// Use the background HDMA parallax in VS mode too
+ncp_repl(0x020AECBC, 0, "B 0x020AECDC")
 
-ncp_asmfunc void parallaxDmaFix_ASM()
+// The VS stage setup does not set the stage vblank handler, which runs the HDMA parallax
+ncp_asmfunc void setVSStageVBlankHandler_ASM()
 {asm(R"(
-parallax_isSingleplayer:
-	LDR     R3, =_ZN4Game11playerCountE
-	LDR     R3, [R3]
-	CMP     R3, #1
-	BX      LR
-
-ncp_jump(0x020AECF0, 0)
-	BL      parallax_isSingleplayer
-	BLEQ    MI_StopDma
-	B       0x020AECF4
-
-ncp_jump(0x020AED40, 0)
-	BL      parallax_isSingleplayer
-	LDRNE   R2, =0xFFFF // disable top bg parallax
-	BL      0x020B1D6C // setup top bg parallax
-	B       0x020AED44
+ncp_jump(0x020A3358, 0)
+	BL      0x02152CBC // (ov52) VSStage::setup (keep replaced instruction)
+	BL      0x02005A60 // setVBlankHandler
+	B       0x020A3368
 )");}
+
+// Wireless uses DMA 1, move the top background HDMA parallax from DMA 1 to DMA 0
+ncp_repl(0x020AECDC, 0, "MOV R0, #0") // StageLayout::setupBgParallax -> MI_IsDmaBusy
+ncp_repl(0x020AECEC, 0, "MOV R0, #0") // StageLayout::setupBgParallax -> MI_StopDma
+ncp_repl(0x01FFFC84, "MOV R0, #0") // StageActor::doHdma -> MI_IsDmaBusy
+ncp_repl(0x01FFFC94, "MOV R0, #0") // StageActor::doHdma -> MI_StopDma
+ncp_repl(0x01FFFCFC, "MOV R0, #0") // StageActor::doHdma -> MI_StopDma
+ncp_repl(0x01FFFD28, "MOV R0, #0") // StageActor::doHdma -> MI_HBlankDmaCopy16
 
 ncp_set_call(0x020BD820, 0, Game::getPlayerCount) // Bottom screen background draw
 ncp_set_call(0x020BDA90, 0, Game::getPlayerCount) // Bottom screen background execute

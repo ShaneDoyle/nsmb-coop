@@ -1154,13 +1154,13 @@ ncp_jump(0x020D2704, 9)
 
 // The title screen clouds use a repeating HBlank DMA on channel 1, which wireless needs:
 // WM copies with DMA 1 and waits for the channel to be free, freezing forever.
-// Move the clouds to channel 2, the one stages use for the bottom screen parallax.
-ncp_repl(0x020CE060, 9, "MOV R0, #2") // MI_IsDmaBusy
-ncp_repl(0x020CE070, 9, "MOV R0, #2") // MI_StopDma
-ncp_repl(0x020CE07C, 9, "MOV R0, #2") // MI_StopDma
-ncp_repl(0x020CE094, 9, "MOV R0, #2") // MI_HBlankDmaCopy16
-ncp_repl(0x020CE1F4, 9, "MOV R0, #2") // MI_IsDmaBusy (clouds teardown)
-ncp_repl(0x020CE204, 9, "MOV R0, #2") // MI_StopDma (clouds teardown)
+// Move the clouds to channel 0, the one stages use for the top screen parallax.
+ncp_repl(0x020CE060, 9, "MOV R0, #0") // MI_IsDmaBusy
+ncp_repl(0x020CE070, 9, "MOV R0, #0") // MI_StopDma
+ncp_repl(0x020CE07C, 9, "MOV R0, #0") // MI_StopDma
+ncp_repl(0x020CE094, 9, "MOV R0, #0") // MI_HBlankDmaCopy16
+ncp_repl(0x020CE1F4, 9, "MOV R0, #0") // MI_IsDmaBusy (clouds teardown)
+ncp_repl(0x020CE204, 9, "MOV R0, #0") // MI_StopDma (clouds teardown)
 
 // TitleScreenScene::initializeMainMenu
 ncp_call(0x020D326C, 9)
