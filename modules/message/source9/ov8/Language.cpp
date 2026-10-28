@@ -1,4 +1,4 @@
-#if GAME_LANGUAGE_GE
+#if GAME_LANGUAGE_DE
 
 #include <nsmb/core/graphics/2d/oam.hpp>
 

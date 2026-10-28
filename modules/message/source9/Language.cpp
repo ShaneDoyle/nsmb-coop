@@ -9,7 +9,7 @@ constexpr s32 WorldmapStarCoin2XOffset = 24;
 constexpr s32 WorldmapStarCoin3XOffset = -4;
 constexpr s32 WorldmapStarCoin4XOffset = -4;
 
-#elif GAME_LANGUAGE_GE
+#elif GAME_LANGUAGE_DE
 
 constexpr s32 FileSelectNumberXOffset = 7;
 
@@ -67,7 +67,7 @@ constexpr s32 WorldmapStarCoin2XOffset = 24;
 constexpr s32 WorldmapStarCoin3XOffset = -4;
 constexpr s32 WorldmapStarCoin4XOffset = -4;
 
-#elif GAME_LANGUAGE_SP
+#elif GAME_LANGUAGE_ES
 
 constexpr s32 FileSelectNumberXOffset = 8;
 constexpr s32 WorldmapStarCoin1XOffset = -34;
@@ -75,7 +75,7 @@ constexpr s32 WorldmapStarCoin2XOffset = 24;
 constexpr s32 WorldmapStarCoin3XOffset = -4;
 constexpr s32 WorldmapStarCoin4XOffset = -4;
 
-#elif GAME_LANGUAGE_JP
+#elif GAME_LANGUAGE_JA
 
 constexpr s32 FileSelectNumberXOffset = 6;
 constexpr s32 WorldmapStarCoin1XOffset = -34;
@@ -205,7 +205,7 @@ const u8 Boot_logoPalette[32] = {
 	0xEF, 0x3D, 0x52, 0x4A, 0x94, 0x52, 0xD6, 0x5A, 0x39, 0x67, 0x7B, 0x6F, 0xBD, 0x77, 0xFF, 0x7F,
 };
 
-#elif GAME_LANGUAGE_CH
+#elif GAME_LANGUAGE_ZH
 
 constexpr s32 FileSelectNumberXOffset = -4;
 constexpr s32 WorldmapStarCoin1XOffset = -34;

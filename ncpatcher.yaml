@@ -72,17 +72,17 @@ variants:
   fr:
     defines: GAME_LANGUAGE_FR
   de:
-    defines: GAME_LANGUAGE_GE
+    defines: GAME_LANGUAGE_DE
   it:
     defines: GAME_LANGUAGE_IT
-  sp:
-    defines: GAME_LANGUAGE_SP
+  es:
+    defines: GAME_LANGUAGE_ES
   ja:
-    defines: GAME_LANGUAGE_JP
+    defines: GAME_LANGUAGE_JA
   ko:
     defines: GAME_LANGUAGE_KO
   zh:
-    defines: GAME_LANGUAGE_CH
+    defines: GAME_LANGUAGE_ZH
   pt:
     defines: GAME_LANGUAGE_PT
 

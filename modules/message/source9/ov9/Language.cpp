@@ -1,4 +1,4 @@
-#if GAME_LANGUAGE_JP
+#if GAME_LANGUAGE_JA
 
 #include <nsmb/core/graphics/2d/oam.hpp>
 
@@ -42,7 +42,7 @@ GXOamAttr TitleScreen_logoOamCopyrightAttrs[] = {
 ncp_repl(0x020CD130, 9, ".int TitleScreen_logoOamCopyrightAttrs")
 ncp_repl(0x020DBA58, 9, ".int TitleScreen_logoOamCopyrightAttrs")
 
-#elif GAME_LANGUAGE_CH
+#elif GAME_LANGUAGE_ZH
 
 #include <nsmb/core/graphics/2d/oam.hpp>
 
