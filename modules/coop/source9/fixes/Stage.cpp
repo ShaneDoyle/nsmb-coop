@@ -58,12 +58,32 @@ ncp_call(0x020A22D8, 0)
 	LDRB    R0, [R5,R0] // R0 = pause menu owner
 	BX      LR
 
-// Disable options on pause menu
+// Open the co-op settings instead of the options on the pause menu
 ncp_jump(0x020A2230, 0)
 	BL      _ZN4Game14getPlayerCountEv
 	CMP     R0, #1
-	BLEQ    0x020C1F14
+	BNE     .openCoopSettings
+	BL      0x020C1F14 // Keep replaced instruction
 	B       0x020A24D0
+.openCoopSettings:
+	// Stay on the main list so its text box keeps showing, the options state has none
+	LDR     R0, =0x020CA8A4
+	MOV     R1, #0
+	STRB    R1, [R0] // Pause menu state = main list
+	LDR     R0, =0x020CC004
+	STR     R1, [R0] // Keep the bottom screen out of its options state, it reads input
+	LDR     R0, =0x6428
+	LDRB    R0, [R5,R0] // R0 = pause menu owner
+	BL      _ZN12CoopSettings4openEm
+	B       0x020A24D0
+
+// The co-op settings take all input while open, so the pause menu does not react to it
+ncp_jump(0x020A20B4, 0)
+	BL      _ZN12CoopSettings6updateEv
+	CMP     R0, #0
+	BNE     0x020A24D0
+	CMP     R4, #9 // Keep replaced instruction
+	B       0x020A20B8
 )");}
 
 #endif // COOP_FIX_PAUSE_MENU

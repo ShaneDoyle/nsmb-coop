@@ -1,0 +1,16 @@
+id: Console
+name: Console
+description: A text console on the bottom screen that other modules can borrow to draw simple menus.
+
+authors:
+  - ItzTacos
+
+# The console only takes the screen over while open and gives it back exactly as
+# it found it, so it has no hooks of its own: whoever opens it decides when.
+targets:
+  - arm9:
+      includes: "include"
+      sources: "source9/*"
+
+nitrofs:
+  dir: nitrofs

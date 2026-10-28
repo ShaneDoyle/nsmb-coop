@@ -22,6 +22,7 @@
 #include "coop/CoopPlayer.hpp"
 #include "coop/CoopCamera.hpp"
 #include "coop/DesyncGuard.hpp"
+#include "coop/CoopSettings.hpp"
 #include "glue/level.hpp"
 #include "coop/fixes/Liquid.hpp"
 #include "coop/fixes/VolcanoEruption.hpp"
@@ -621,6 +622,8 @@ ncp_thumb void defaultOnLevelLoad()
 	flagpoleLinkedPlayer = nullptr;
 	playerInFlagpoleSentFlying[0] = false;
 	playerInFlagpoleSentFlying[1] = false;
+
+	CoopSettings::onLevelLoad();
 }
 
 ncp_thumb void defaultOnLayoutCreate()

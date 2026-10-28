@@ -27,6 +27,7 @@ modules:
   dump: build/generated/modules.json
   enabled:
     - coop
+    - console
     - mini-hacks
     - debug
     - dsimodewarn
