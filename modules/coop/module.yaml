@@ -110,6 +110,10 @@ components:
       files:
         - "enemy/w3_sign.nsbmd"
         - "enemy/w6_sign.nsbmd"
+        - "z_new/coop/W2UnlockCutscene.bin"
+        - "z_new/coop/W2UnlockCutscene_bgdat.bin"
+        - "z_new/coop/W5UnlockCutscene.bin"
+        - "z_new/coop/W5UnlockCutscene_bgdat.bin"
 
   # Actors
 

@@ -58,6 +58,7 @@ s(WarpCannon_switchState, 0x0217F7D4)
 s(setSecretExitFromSpriteData, 0x020068F0)
 s(MegaDestructionCounter_spawnReward, 0x0215F5FC)
 s(MegaDestructionCounter_fun0215FA0C, 0x0215FA0C)
+s(LoadBGDatFile, 0x0201ED50)
 
 // Title screen co-op menu
 s(TitleScreen_loadFileSelectGraphics, 0x020D2D74)
