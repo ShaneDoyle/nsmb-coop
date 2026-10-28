@@ -29,7 +29,6 @@ modules:
     - coop
     - console
     - mini-hacks
-    - debug
     - dsimodewarn
     - nwav
     - widescreen
@@ -103,7 +102,7 @@ targets:
     arena-lo: 0x02065F10
     region-catalog: ${env.NSMBREF_ROOT}/overlays9.yaml
     includes: ["${env.NSMB_NITRO_ROOT}/include", "${env.NSMBREF_ROOT}/include", build/generated/include]
-    defines: [SDK_ARM9, arm9_start=0x021901E0, NTR_DEBUG]
+    defines: [SDK_ARM9, arm9_start=0x021901E0]
     flags:
       common: [-march=armv5te, -mtune=arm946e-s]
       c: [-mthumb-interwork]
