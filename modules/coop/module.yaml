@@ -62,12 +62,18 @@ components:
       files:
         - "z_new/coop/SE_VOC_MA_SHOT.wav"
         - "z_new/coop/SE_VOC_LU_SHOT.wav"
-        - "z_new/coop/UI_O_menu_select_coop_d.bncl"
-        - "z_new/coop/UI_O_menu_select_coop_d.bnbl"
       objects:
         - name: "CoopWorldUnlockSign"
           type: "actor"
           header: "coop/actors/CoopWorldUnlockSign.hpp"
+
+  - VanillaTitleScreen:
+      target: arm9(9)
+      sources:
+        - "source9/vanilla/titlescreen/*"
+      files:
+        - "z_new/coop/UI_O_menu_select_coop_d.bncl"
+        - "z_new/coop/UI_O_menu_select_coop_d.bnbl"
 
   - DesyncGuard_Update_Hook:
       target: arm9
