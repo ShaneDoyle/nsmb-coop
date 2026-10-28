@@ -282,12 +282,20 @@ ncp_thumb void Player_freezeTimerOnDeathHook(s32 playerID, bool dead)
 
 	DesyncGuard::markDesyncCheck();
 
+	u8& isTimeStopped = *rcast<u8*>(0x020CA898);
+
+	// VS mode keeps the vanilla timer freeze
+	if (!Coop::isNotVS())
+	{
+		isTimeStopped |= 0x08;
+		return;
+	}
+
 	for (u32 iPlayerID = 0; iPlayerID < Game::getPlayerCount(); iPlayerID++)
 	{
 		if (!Game::getPlayerDead(iPlayerID))
 			return;
 	}
-	u8& isTimeStopped = *rcast<u8*>(0x020CA898);
 	isTimeStopped |= 0x48;
 }
 
@@ -393,6 +401,9 @@ void switchToPlayerSpectateState(Player* player)
 
 ncp_thumb bool customPlayerCreateCase(Player* player)
 {
+	if (!Coop::isNotVS())
+		return false;
+
 	u32 playerID = player->linkedPlayerID;
 	if (Game::getPlayerLives(playerID) == 0 || isPlayerDead[playerID])
 	{
@@ -406,6 +417,10 @@ ncp_thumb bool customPlayerCreateCase(Player* player)
 
 ncp_thumb bool customRespawnCondition(u32 playerID, s32 lives)
 {
+	// VS mode keeps the vanilla respawn
+	if (!Coop::isNotVS())
+		return lives != 0;
+
 	// Prevent lives going negative
 	if (lives < 0)
 		Game::setPlayerLives(playerID, 0);
@@ -424,12 +439,19 @@ ncp_call(0x02118968, 10)
 ncp_thumb void customRespawnReset(Player* player)
 {
 	player->reset(); // Keep replaced instruction
-	beginPlayerSpectate(player->linkedPlayerID);
+	if (Coop::isNotVS())
+		beginPlayerSpectate(player->linkedPlayerID);
 }
 
 ncp_call(0x02118DE4, 10)
 ncp_thumb void customPlayerRespawnCreateCase(Player* player)
 {
+	if (!Coop::isNotVS())
+	{
+		player->spawnVSPipe(); // Keep replaced instruction
+		return;
+	}
+
 	switchToPlayerSpectateState(player);
 
 	u32 seqID = Entrance::getSpawnMusic(player->linkedPlayerID);
@@ -458,6 +480,9 @@ ncp_jump(0x020FFB4C, 10)
 ncp_call(0x02118980, 10)
 ncp_thumb Vec3 customRespawnEntrance(u8 playerID)
 {
+	if (!Coop::isNotVS())
+		return Entrance::accessSpawnEntrance(playerID);
+
 	u32 otherID = playerID ^ 1;
 	Player* other = Game::getPlayer(otherID);
 
@@ -485,6 +510,10 @@ ncp_asmfunc void skipViewReloadOnRespawn_ASM()
 {asm(R"(
 // Skip view reload on respawn if there is autoscroll
 ncp_jump(0x021189BC, 10)
+	LDR     R0, =_ZN4Game6vsModeE
+	LDRB    R0, [R0]
+	CMP     R0, #0
+	BNE     0x02118A34
 	LDR     R0, =0x020CACD4
 	LDRB    R0, [R0]
 	CMP     R0, #0
@@ -507,14 +536,14 @@ ncp_asmfunc void Player_endCutscene_SUPER(Player* self)
 ncp_jump(0x0211F34C, 10)
 void Player_beginCutscene_OVERRIDE(Player* self, bool lookAtBoss)
 {
-	if (!Game::playerDead[self->linkedPlayerID])
+	if (!Coop::isNotVS() || !Game::playerDead[self->linkedPlayerID])
 		Player_beginCutscene_SUPER(self, lookAtBoss);
 }
 
 ncp_jump(0x0211F2EC, 10)
 void Player_endCutscene_OVERRIDE(Player* self)
 {
-	if (!Game::playerDead[self->linkedPlayerID])
+	if (!Coop::isNotVS() || !Game::playerDead[self->linkedPlayerID])
 		Player_endCutscene_SUPER(self);
 }
 
