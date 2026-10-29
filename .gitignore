@@ -10,16 +10,12 @@
 # absolute path into this machine's store. The lock is what gets committed.
 /.ncpatcher.env
 
-# Big Star Editor's choices for this checkout, including where this machine
-# keeps the clean ROM.
-/.big-star-workspace.json
+# Big Star Editor's files for this checkout: its choices (including where this
+# machine keeps the clean ROM), crash recovery and the backups it takes.
+/.bigstar/
 
 /.vscode
 /.venv
 
 *.lnk
 *.xdelta
-
-# Big Star Editor's crash recovery and the level backups it takes before a save.
-/.big-star-autosave
-/.big-star-backups
