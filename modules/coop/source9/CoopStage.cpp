@@ -680,6 +680,10 @@ ncp_repl(0x020BBDAC, 0, "NOP; NOP")
 // Use the background HDMA parallax in VS mode too
 ncp_repl(0x020AECBC, 0, "B 0x020AECDC")
 
+// Give background and foreground 75 the same cloud parallax as 0 (vanilla left it out since VS had no parallax)
+ncp_repl(0x020C7E12, 0, ".short 3") // bottomBgParallaxTypeTable[75]
+ncp_repl(0x020C7EAA, 0, ".short 3") // topBgParallaxTypeTable[75]
+
 // The VS stage setup does not set the stage vblank handler, which runs the HDMA parallax
 ncp_asmfunc void setVSStageVBlankHandler_ASM()
 {asm(R"(
