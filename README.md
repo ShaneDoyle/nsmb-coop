@@ -125,6 +125,11 @@ it in `build/xdelta/`.
 - If a header seems stale, delete `build/generated` - everything in it is
   regenerated, and `glue` only rewrites files whose contents actually changed
 
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
+You must supply your own copy of the game (see the notes below).
+
 ## Credits
 
 ### Core Development Team
