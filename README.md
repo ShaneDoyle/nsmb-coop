@@ -50,8 +50,8 @@ commit the lock it rewrites.
 ### Build Steps
 1. **Clone the repository**:
    ```bash
-   git clone --branch module https://github.com/ShaneDoyle/nsmb-coop.git nsmb-coop-module
-   cd nsmb-coop-module
+   git clone https://github.com/ShaneDoyle/nsmb-coop.git
+   cd nsmb-coop
    ```
 
 2. **Prepare the base ROM**:
