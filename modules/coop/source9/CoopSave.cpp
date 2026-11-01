@@ -4,10 +4,6 @@
 #include <nsmb/game/stage/player/common.hpp>
 #include <nsmb/core/net/core.hpp>
 
-#ifdef MODULE_WIDESCREEN
-#include "widescreen/widescreen.hpp"
-#endif
-
 namespace CoopSave {
 
 struct WorldmapPlayerBackup
@@ -38,14 +34,6 @@ Save::ReturnCode readMainSavePatch(u32 slot, MainSave* save)
 		return Save::ReturnCode::Success;
 
 	return Save::readMainSave(slot, save);
-}
-
-void reloadOptions()
-{
-	*rcast<u32*>(0x02085AD4) = scast<u32>(Save::optionSave.controls);
-#ifdef MODULE_WIDESCREEN
-	Widescreen::loadSaveOption();
-#endif
 }
 
 void loadBackupParams()
@@ -119,13 +107,5 @@ ncp_jump(0x02012FB4)
 // Use the extended backup params
 ncp_set_call(0x020CFC9C, 8, loadBackupParams)
 ncp_set_call(0x020CEEE8, 8, saveBackupParams)
-
-// Fixes a bug in the original game where synced settings used player 0's settings after the connection is terminated
-ncp_call(0x0200F45C)
-void call_0200F45C()
-{
-	Net::Core::resetConnection(); // Keep replaced instruction
-	reloadOptions();
-}
 
 } // namespace CoopSave

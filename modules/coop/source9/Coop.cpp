@@ -5,6 +5,11 @@
 #include <nsmb/core/system/save.hpp>
 #include <nsmb/core/entity/scene.hpp>
 #include <nsmb/core/net.hpp>
+#include <nsmb/core/wifi.hpp>
+
+#ifdef MODULE_WIDESCREEN
+#include "widescreen/widescreen.hpp"
+#endif
 
 namespace Coop {
 
@@ -36,6 +41,22 @@ ncp_thumb void syncSwitchScene(u32 r0, u32 r1)
 
 sceneSwitch:
 	Scene::switchScene(r0, r1);
+}
+
+// Undo what the connection left behind when it is terminated
+ncp_call(0x0200F45C)
+void Net_stopConnection_resetConnectionHook()
+{
+	Net::Core::resetConnection(); // Keep replaced instruction
+
+	// Fixes a bug in the original game where synced settings used player 0's settings after the connection is terminated
+	*rcast<u32*>(0x02085AD4) = scast<u32>(Save::optionSave.controls);
+#ifdef MODULE_WIDESCREEN
+	Widescreen::loadSaveOption();
+#endif
+
+	// Only updated while data sharing, it would stay at 2 and the worldmap would load singleplayer levels with 2 players
+	Wifi::communicatingConsoleCount = 1;
 }
 
 // Allow everything to load in VS mode
